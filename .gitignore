@@ -1,0 +1,17 @@
+# Build outputs
+bin/
+obj/
+
+# IDE settings
+.idea/
+.vs/
+
+# Benchmark outputs
+BenchmarkDotNet.Artifacts/
+
+# Temporary local research
+_other_ecs_benchmarks/
+
+# OS clutter
+.DS_Store
+Thumbs.db
