@@ -5,9 +5,11 @@ namespace SpaceBattle;
 public sealed partial class Battle<TStore>
 {
     public bool TryFindShip(int number, out EntityKey entity) => serialToShip.TryGetValue(number, out entity);
-    public void Capture(BattleFrame frame)
+    /// <param name="refreshEntities">Keep true after direct Store edits; false reuses the lists finalized by Step.</param>
+    public void Capture(BattleFrame frame, bool refreshEntities = true)
     {
-        Collect(); frame.Tick = Tick; frame.ArenaHalfSize = Config.ArenaHalfSize; frame.LastTickMs = LastTickMs; frame.Counters = Counters.Copy();
+        if (refreshEntities) Collect();
+        frame.Tick = Tick; frame.ArenaHalfSize = Config.ArenaHalfSize; frame.LastTickMs = LastTickMs; frame.Counters = Counters.Copy();
         frame.Ships.Clear(); frame.Projectiles.Clear(); frame.Debris.Clear(); frame.Particles.Clear(); frame.Turrets.Clear();
         foreach (var row in ships)
         {
@@ -30,8 +32,13 @@ public sealed partial class Battle<TStore>
         foreach (var row in particles)
         {
             var e = row.Entity; var p = Store.Get<Particle>(e); var t = Store.Get<Transform>(e); var m = Store.Get<Motion>(e);
-            var color = p.Color; color.W = Math.Clamp((p.ExpiresTick - Tick) / 30f, 0, 1);
-            frame.Particles.Add(new(p.Serial, 0, p.Kind, t.Position, m.Velocity, t.Angle, p.Size, 0, 0, 0, color));
+            var color = p.Color; var radius = p.Size;
+            color.W = Math.Clamp((p.ExpiresTick - Tick) / 30f, 0, 1);
+            if (p.Kind == HeavyImpactEffect.Kind)
+                HeavyImpactEffect.Present(p, Tick, out radius, out color.W);
+            else if (p.Kind is >= WarpEffect.PortalKind and <= WarpEffect.LastKind)
+                WarpEffect.Present(p, Tick, out radius, out color.W);
+            frame.Particles.Add(new(p.Serial, p.Kind >= WarpEffect.PortalKind ? p.Kind % 2 : 0, p.Kind, t.Position, m.Velocity, t.Angle, radius, 0, 0, 0, color));
         }
         foreach (var row in turrets)
         {
@@ -94,9 +101,25 @@ public sealed partial class Battle<TStore>
         foreach (var row in particles)
         {
             var e = row.Entity; var p = Store.Get<Particle>(e); Add((uint)p.Serial); Add((uint)p.Kind); Float(p.Size); Add((uint)p.ExpiresTick);
+            if (p.Kind >= WarpEffect.PortalKind) Add((uint)p.StartTick);
             Float(p.Color.X); Float(p.Color.Y); Float(p.Color.Z); Float(p.Color.W); TransformHash(Store.Get<Transform>(e)); MotionHash(Store.Get<Motion>(e));
         }
         foreach (var r in reinforcements) { Add((uint)r.Tick); Add((uint)r.Spawn.Team); Add((uint)r.Spawn.Class); Float(r.Spawn.Position.X); Float(r.Spawn.Position.Y); }
+        if (Config.EndlessReinforcements)
+        {
+            Add((uint)nextWarpCheckTick);
+            for (var team = 0; team < 2; team++)
+            {
+                var wave = warpWaves[team];
+                Add((uint)wave.Number); Add((uint)wave.Corner); Add((uint)wave.Composition); Add((uint)wave.NextWaveTick);
+                Add((uint)wave.ArrivalTick); Add((uint)wave.NextSpawnTick); Add((uint)wave.EndTick); Add((uint)wave.NextShip);
+                Float(wave.Position.X); Float(wave.Position.Y); Float(initialWarpStrength[team]);
+                Ref(wave.Home);
+                Add(Store.Alive(wave.Gate) && Store.Has<Particle>(wave.Gate) ? (uint)Store.Get<Particle>(wave.Gate).Serial : uint.MaxValue);
+                Add(wave.Active ? 1u : 0); Add((uint)wave.Ships.Length);
+                foreach (var kind in wave.Ships) Add((uint)kind);
+            }
+        }
         return hash;
         void Add(uint value) { hash ^= value; hash *= 1099511628211; }
         void Float(float value) => Add(BitConverter.SingleToUInt32Bits(value));

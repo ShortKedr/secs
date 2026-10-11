@@ -1,27 +1,50 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import http from "node:http";
 import { chromium } from "playwright";
 
 const arg = (name, fallback) => {
   const index = process.argv.indexOf(name);
   return index < 0 ? fallback : process.argv[index + 1];
 };
-const urls = arg("--urls", "http://127.0.0.1:8030/,http://127.0.0.1:8031/,http://127.0.0.1:8032/").split(",");
+let urls = arg("--urls", "http://127.0.0.1:8030/,http://127.0.0.1:8031/,http://127.0.0.1:8032/").split(",");
 const labels = arg("--labels", "before,tactics,stats").split(",");
+const sites = arg("--sites", "").split(",").filter(Boolean).map(site => path.resolve(site));
 const repeats = Number(arg("--repeats", "3"));
 const ticks = Number(arg("--ticks", "1200"));
 const phaseTicks = Number(arg("--phase-ticks", "600"));
+const warmupTicks = Number(arg("--warmup-ticks", "600"));
 const output = path.resolve(arg("--output", "Benchmarks.Local/tmp/performance-study/web.json"));
 const projectRoot = path.resolve(arg("--project-root", "."));
-if (urls.length !== labels.length || urls.length < 1) throw new Error("Matching URLs and labels required");
+if ((sites.length || urls.length) !== labels.length || labels.length < 1) throw new Error("Matching sites/URLs and labels required");
 for (const value of [repeats, ticks, phaseTicks]) {
   if (!Number.isInteger(value) || value < 1) throw new Error("Positive integer counts required");
 }
+if (!Number.isInteger(warmupTicks) || warmupTicks < 0 || warmupTicks > 600) throw new Error("Warmup ticks must be 0..600");
 const relative = path.relative(projectRoot, output);
 if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) throw new Error("Output must stay inside project");
-const browser = await chromium.launch({ headless: true });
+const servers = [];
+let browser;
 const runs = [];
 try {
+  if (sites.length) {
+    urls = [];
+    const mime = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".wasm": "application/wasm", ".png": "image/png" };
+    for (const site of sites) {
+      const server = http.createServer(async (request, response) => {
+        try {
+          const pathname = decodeURIComponent(new URL(request.url, "http://local").pathname);
+          const file = path.resolve(site, pathname.slice(1) || "index.html");
+          if (!file.startsWith(site + path.sep)) { response.writeHead(403).end(); return; }
+          response.writeHead(200, { "Content-Type": mime[path.extname(file)] || "application/octet-stream" }).end(await fs.readFile(file));
+        } catch { if (!response.headersSent) response.writeHead(404); response.end(); }
+      });
+      servers.push(server);
+      await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
+      urls.push(`http://127.0.0.1:${server.address().port}/`);
+    }
+  }
+  browser = await chromium.launch({ headless: true });
   for (let run = 0; run < repeats; run++) {
     const order = Array.from({ length: urls.length }, (_, i) => i);
     if (run % 2) order.reverse();
@@ -31,14 +54,13 @@ try {
       page.on("pageerror", (error) => errors.push(String(error)));
       await page.goto(`${urls[index]}?test=1`, { waitUntil: "networkidle", timeout: 120000 });
       await page.waitForFunction(() => window.spaceBattle?.ready, null, { timeout: 120000 });
-      const result = await page.evaluate(async ({ ticks, phaseTicks }) => {
+      const result = await page.evaluate(async ({ ticks, phaseTicks, warmupTicks }) => {
         window.spaceBattle.pause(true);
         const runtime = getDotnetRuntime(0);
         const exports = await runtime.getAssemblyExports("SpaceBattle.Web.dll");
         const bridge = exports.SpaceBattle.Web.BattleBridge;
-        if (!bridge.DiagnosticStage) throw new Error("Isolated diagnostic bridge required");
         bridge.Reset("nominal", 7331);
-        bridge.Advance(600);
+        if (warmupTicks) bridge.Advance(warmupTicks);
         // Warmup must not advance the measured battle's starting state.
         bridge.Reset("nominal", 7331);
         const stageNames = ["collect", "ai", "thermal-inventory", "steering", "weapons", "carriers", "physics", "hits", "lifecycle"];
@@ -57,7 +79,8 @@ try {
           const header = runtime.localHeapViewF64().subarray(pointer / 8, pointer / 8 + 32);
           if (header[1] !== tick) throw new Error(`Unexpected tick: ${header[1]} != ${tick}`);
           samples.push({ stepMs: header[5], totalMs: elapsedMs, counts: Array.from(header.subarray(6, 10)), bytes: header[31],
-            stages: stageNames.map((_, stage) => bridge.DiagnosticStage(stage)) });
+            stages: bridge.DiagnosticStage ? stageNames.map((_, stage) => bridge.DiagnosticStage(stage)) : null,
+            physicsQueries: bridge.DiagnosticPhysicsQuery ? [0, 1, 2, 3].map(field => bridge.DiagnosticPhysicsQuery(field)) : null });
           if (tick % phaseTicks !== 0 && tick !== ticks) continue;
           const exportSamples = [];
           for (let i = 0; i < 20; i++) {
@@ -66,7 +89,11 @@ try {
           phases.push({ startTick: tick - samples.length + 1, endTick: tick,
             coreStep: stats(samples.map(s => s.stepMs)), stepAndExport: stats(samples.map(s => s.totalMs)),
             perTickExportAndInterop: stats(samples.map(s => s.totalMs - s.stepMs)), exportOnlyAtPhaseEnd: stats(exportSamples),
-            stages: stageNames.map((name, stage) => ({ name, timing: stats(samples.map(s => s.stages[stage])) })),
+            stages: samples[0].stages ? stageNames.map((name, stage) => ({ name, timing: stats(samples.map(s => s.stages[stage])) })) : null,
+            physicsQueries: samples[0].physicsQueries ? {
+              names: ["sweeps", "emptySweeps", "rays", "pointQueries"],
+              totals: [0, 1, 2, 3].map(field => samples.reduce((sum, s) => sum + s.physicsQueries[field], 0))
+            } : null,
             meanCounts: Array.from({ length: 4 }, (_, c) => samples.reduce((sum, s) => sum + s.counts[c], 0) / samples.length),
             finalCounts: samples.at(-1).counts, frameBytes: samples.at(-1).bytes, checksum: bridge.Checksum(),
             counters: Array.from(runtime.localHeapViewF64().subarray(pointer / 8 + 14, pointer / 8 + 30)) });
@@ -74,16 +101,17 @@ try {
         }
         bridge.Validate();
         return { runtimeMode: bridge.Mode(), userAgent: navigator.userAgent, logicalProcessors: navigator.hardwareConcurrency, phases };
-      }, { ticks, phaseTicks });
+      }, { ticks, phaseTicks, warmupTicks });
       if (errors.length) throw new Error(errors.join("\n"));
       runs.push({ revision: labels[index], run: run + 1, url: urls[index], ...result });
       await page.close();
       await fs.mkdir(path.dirname(output), { recursive: true });
-      await fs.writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), ticks, phaseTicks, repeats,
-        scope: "Fresh independent seeded replays, 600-tick separate warmup, production one-tick Advance plus binary export. Canvas/DOM paused; diagnostics read outside Step timing. Alternating revision order.", runs }, null, 2));
-      console.log(JSON.stringify({ revision: labels[index], run: run + 1, phases: result.phases.map(p => ({ startTick: p.startTick, meanMs: p.coreStep.meanMs, totalMs: p.stepAndExport.meanMs, aiMs: p.stages[1].timing.meanMs, hitsMs: p.stages[7].timing.meanMs, checksum: p.checksum })) }));
+      await fs.writeFile(output, JSON.stringify({ measuredAt: new Date().toISOString(), ticks, phaseTicks, warmupTicks, repeats,
+        scope: `Fresh independent seeded replays, ${warmupTicks}-tick separate warmup, production one-tick Advance plus binary export. Canvas/DOM paused; diagnostics read outside Step timing. Alternating revision order.`, runs }, null, 2));
+      console.log(JSON.stringify({ revision: labels[index], run: run + 1, phases: result.phases.map(p => ({ startTick: p.startTick, meanMs: p.coreStep.meanMs, totalMs: p.stepAndExport.meanMs, aiMs: p.stages?.[1].timing.meanMs, hitsMs: p.stages?.[7].timing.meanMs, checksum: p.checksum })) }));
     }
   }
 } finally {
-  await browser.close();
+  await browser?.close();
+  for (const server of servers) await new Promise(resolve => server.close(resolve));
 }

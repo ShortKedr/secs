@@ -25,6 +25,11 @@ try {
     & dotnet publish SpaceBattle.Web.csproj -c Release --artifacts-path "$root/Benchmarks.Local/tmp/web-build" -o $output @options
     if ($LASTEXITCODE -ne 0) { throw "WebAssembly publish failed ($LASTEXITCODE)." }
     $site = Join-Path $output "wwwroot"
+    foreach ($name in @("warp-atlas.png", "warp-atlas.json")) {
+        $source = Join-Path $root "SpaceBattle.Game/Assets/$name"
+        if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing shared warp asset: $source" }
+        Copy-Item -LiteralPath $source -Destination (Join-Path $site "assets/$name") -Force
+    }
     $index = Join-Path $site "index.html"
     $html = [IO.File]::ReadAllText($index)
     if ($html -notmatch '<base href="[^"]*"\s*/?>') { throw "Missing base URL in index.html." }
@@ -33,6 +38,9 @@ try {
     [IO.File]::WriteAllText((Join-Path $site ".nojekyll"), "", [Text.UTF8Encoding]::new($false))
     if (-not (Test-Path (Join-Path $site "_framework/blazor.boot.json"))) { throw "Missing WASM runtime manifest." }
     if (-not (Test-Path (Join-Path $site "assets/ships-atlas.png"))) { throw "Missing shared ship atlas." }
+    if (-not (Test-Path (Join-Path $site "assets/guns-atlas.png")) -or -not (Test-Path (Join-Path $site "assets/guns-atlas.json"))) { throw "Missing shared gun atlas or manifest." }
+    if (-not (Test-Path (Join-Path $site "assets/effects-atlas.png")) -or -not (Test-Path (Join-Path $site "assets/effects-atlas.json"))) { throw "Missing shared effects atlas or manifest." }
+    if (-not (Test-Path (Join-Path $site "assets/warp-atlas.png")) -or -not (Test-Path (Join-Path $site "assets/warp-atlas.json"))) { throw "Missing shared warp atlas or manifest." }
     Write-Output "Published Space Battle: $site (base $BasePath)"
 }
 finally { Pop-Location }

@@ -4,12 +4,48 @@ English | [Русский](README.ru.md)
 
 # Space Battle Benchmark
 
+Interactive clients now use [corner warp reinforcements](REINFORCEMENTS.md)
+for endless battles. This opt-in gameplay rule does not rewrite this historical campaign.
+
 The [current gameplay cover workflow](COVER.md) is separate from this historical
 benchmark campaign. Its authoritative configuration is `cover-settings.json`;
 it updates only `cover.png` and `cover.png.json`, never frozen `action.png`,
 `action.png.json`, parity records or measured results.
 
-> **Revision boundary:** current gameplay is [mounted armament `mounted-armament-v3`](ARMAMENT.md), with [tactical AI `tactical-lock-v2`](TACTICS.md). The report and frozen evidence use `predictive-neutral-v1`. No new timing campaign was run. The full-suite/offline-analysis instructions below describe that historical campaign; the analyzer deliberately accepts only its v1 evidence. Do not overwrite frozen results with current runs or treat old measurements as current-gameplay performance. A new campaign needs separate outputs and an explicitly updated evidence gate.
+> **Revision boundary:** current gameplay is [mounted armament `mounted-armament-v7`](ARMAMENT.md), with [tactical AI `tactical-lock-v2`](TACTICS.md). The report and frozen evidence use `predictive-neutral-v1`. No new timing campaign was run. The full-suite/offline-analysis instructions below describe that historical campaign; the analyzer deliberately accepts only its v1 evidence. Do not overwrite frozen results with current runs or treat old measurements as current-gameplay performance. A new campaign needs separate outputs and an explicitly updated evidence gate.
+
+V7 excludes the firing ship from projectile collision searches, including
+all turret-parent fixtures. Other friendly/enemy hits, debris and hull contacts
+are unchanged. `SelfHits` remains in telemetry for compatibility, always zero.
+Historical evidence below retains its original collision rules.
+
+V6 makes mounted guns auxiliary: cannon 7 damage / 84 ticks, plasma 3.25 / 36.
+Damage is quartered and cooldown doubled: raw battery DPS is 87.5% lower.
+Main/heavy weapons retain v5 settings; small-ship weapons are unchanged.
+
+Heavy cadence v5 uses nominal cooldowns of 12/14/18/22/26 seconds for
+Frigate/Destroyer/LightCarrier/FleetCarrier/Foundry; low doubles them and high
+halves them. Per-shot damage remains 60/80/480/640/800; range, projectile speed,
+heat and normal guns are unchanged. `SpawnShip` assigns 50%-100% initial charge
+of the actual churn-scaled cooldown relative to `birthTick`, using a local RNG
+from seed + ship serial independent of the battle RNG. Late-built/respawned
+ships also have no free first heavy volley; turrets remain ready at birth.
+This replaces the old nominal opening of 54 ready heavy weapons in 198 ships
+and cooldowns of 3.5/4/6/7/8 seconds. Cadence changes sustained firepower, not
+per-shot lethality; it is initial tuning, not balance proof. Tactical v2 remains
+unchanged, with catalog rate feeding estimated DPS.
+
+V6 passed exact catalog turret damage/cadence checks and all five 3000-tick
+adapter replays (`0D9F42BC28101A28`), native render/controls and production AOT
+combat/profile/reset/statistics/control/armament checks. This verifies
+implementation, not matchup balance or performance.
+
+V5 passed mechanics validation and all five 3000-tick adapter replays
+(`F42899B97415194A`); AOT opening/combat/control checks also passed. These are
+correctness checks, not timing measurements. Frozen results/reports and historical
+spatial/performance studies are unchanged. Current checks use separate local outputs,
+verify scaled repeat cooldowns and birth-relative charge for initial/late-built/
+respawned ships, and check that charge sampling does not consume the battle RNG.
 
 The headless host measures the shared `Battle<TStore>.Step` workload using five
 native ECS implementations. Do not run analysis, rendering, replay, builds or

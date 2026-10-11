@@ -6,7 +6,19 @@ English | [Русский](README.ru.md)
 [Benchmark report](../docs/space-battle/REPORT.md) |
 [Repository](../README.md)
 
+[Experimental .NET 11 CoreCLR + crossgen2/R2R path](../SpaceBattle.Web.CoreClr/README.md).
+The production host and Pages workflow still use Mono AOT.
+
 ## Runtime and Scenario
+
+The interactive host enables [corner warp reinforcement waves](../docs/space-battle/REINFORCEMENTS.md)
+for depleted fleets, preserving survivors and varying the incoming composition.
+
+Hulls, mounting bases and gun heads use the same native team palette:
+cyan RGB `(0.2, 0.85, 0.95)` and red `(1, 0.37, 0.4)`. Two tinted variants of
+each ship/gun atlas are prepared once at loading; no per-frame pixel processing
+or color filter is added. Alpha, pivots, recoil, projectiles and warp artwork
+are preserved. Orange overheat indicators remain distinct.
 
 This is a real .NET 8 Blazor WebAssembly host for the unchanged
 [SpaceBattle.Core](../SpaceBattle.Core), [SpaceBattle.SECS](../SpaceBattle.SECS)
@@ -20,19 +32,56 @@ Web host and renderer sources are in this directory.
 The three existing churn profiles are low=0.5, nominal=1 and high=2, with
 96 initial escorts and 3 carriers per team. Shared Core retains predictive
 intercept aiming, deterministic spread and team-neutral projectile/debris
-damage, including friendly and self hits. See the
+damage, including friendly hits. V7 excludes only each projectile's owner from
+collisions; debris and hull contacts are unchanged, and `SelfHits` stays zero.
+See the
 [measured simulation systems](../docs/space-battle/SYSTEMS.md) for the historical rule details.
 Current source uses [tactical AI `tactical-lock-v2`](../docs/space-battle/TACTICS.md):
 kill-cost target locks, 2-4 ship focus groups and wounded-ship screening.
 The benchmark report remains a `predictive-neutral-v1` snapshot, not a timing
 measurement of this new AI. Updating local source does not publish the live demo.
 
-Current gameplay adds [mounted armament `mounted-armament-v3`](../docs/space-battle/ARMAMENT.md):
+Current gameplay adds [mounted armament `mounted-armament-v7`](../docs/space-battle/ARMAMENT.md):
 independent turret entities and slow heavy hull cannons on large ships, rendered
 in both clients. Binary frame v3 retains 16-double rows, uses an 80-double header,
 and appends turret rows after particles. Header fields 63/64 count alive/visible
 mounts; 65/66 count heavy/turret shots. Turret row fields 9/10/11 are parent
 serial, recoil and normalized heat. All ECS totals include mounted entities.
+
+V6 reduces auxiliary turret damage to 25% and doubles cooldown: cannon 7 damage
+per 84 ticks, plasma 3.25 per 36 ticks. Nominal raw battery DPS is eight times
+lower; main/heavy guns and small-ship weapons are unchanged from v5.
+
+Heavy nominal cooldowns are 12/14/18/22/26 seconds for Frigate/Destroyer/
+LightCarrier/FleetCarrier/Foundry; low uses 24/28/36/44/52 and high 6/7/9/11/13.
+Heavy damage stays 60/80/480/640/800; its range, projectile speed and heat are
+unchanged. `SpawnShip` assigns 50%-100% initial heavy charge of the actual
+churn-scaled cooldown relative to `birthTick`, using a seed + ship serial local
+RNG independent of battle RNG. Late-built/respawned ships follow the same rule:
+no free first heavy volley; turrets start ready as before. The old nominal
+initial fleet of 198 had 54 ready heavy weapons and 3.5/4/6/7/8-second cooldowns.
+This changes cadence and sustained firepower, not per-shot lethality; it is
+initial tuning, not balance proof. Tactical revision stays `tactical-lock-v2`:
+only catalog rate changes AI estimated DPS, not the tactical algorithm.
+
+V6 passed exact catalog turret damage/cadence checks and all five 3000-tick
+adapter replays (`0D9F42BC28101A28`), plus native render/controls and production
+AOT combat/profile/reset/statistics/control/armament checks. This verifies
+implementation, not matchup balance or performance.
+
+V5 passed headless validation and 10 replay checkpoints over 3000 ticks on all
+five adapters (checksum `F42899B97415194A`). Production AOT browser checks
+passed for combat, cadence, reset parity, statistics and controls. No measurements,
+frozen results/reports or historical spatial/performance studies are changed.
+
+Both clients share a [generated projectile/particle atlas](../SpaceBattle.Game/Assets/PROVENANCE.md#effects-atlas).
+Whole projectile sprites rotate with actual velocity; particles retain lifetime
+alpha on centered square quads, using their own square atlas cells. Native and
+web keep the two sprite families separate and reject invalid particle cells.
+The shared artwork has a controlled contrast lift, verified against
+[fixed effect-only brightness budgets](../SpaceBattle.Game/Assets/PROVENANCE.md#contrast-checks).
+Images replace primitive strokes/circles and texture squares without changing the
+binary frame, physics, damage or gameplay revision.
 
 ## Publish and Serve Locally
 

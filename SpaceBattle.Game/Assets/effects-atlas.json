@@ -1,0 +1,16 @@
+{
+  "width": 1254,
+  "height": 1254,
+  "alphaThreshold": 32,
+  "sprites": [
+    { "family": "projectile", "kind": 0, "x": 45, "y": 189, "width": 316, "height": 67, "pivotX": 255, "pivotY": 34 },
+    { "family": "projectile", "kind": 1, "x": 426, "y": 177, "width": 380, "height": 91, "pivotX": 266, "pivotY": 48 },
+    { "family": "projectile", "kind": 2, "x": 863, "y": 161, "width": 347, "height": 118, "pivotX": 267, "pivotY": 57 },
+    { "family": "projectile", "kind": 3, "x": 20, "y": 554, "width": 356, "height": 132, "pivotX": 250, "pivotY": 63 },
+    { "family": "projectile", "kind": 4, "x": 408, "y": 518, "width": 468, "height": 205, "pivotX": 345, "pivotY": 105 },
+    { "family": "particle", "kind": 0, "x": 1000, "y": 547, "width": 182, "height": 182, "pivotX": 91, "pivotY": 91 },
+    { "family": "particle", "kind": 1, "x": 55, "y": 873, "width": 290, "height": 290, "pivotX": 145, "pivotY": 145 },
+    { "family": "particle", "kind": 2, "x": 460, "y": 824, "width": 350, "height": 350, "pivotX": 175, "pivotY": 175 },
+    { "family": "particle", "kind": 3, "x": 876, "y": 833, "width": 334, "height": 334, "pivotX": 167, "pivotY": 167 }
+  ]
+}

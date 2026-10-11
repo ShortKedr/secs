@@ -11,9 +11,17 @@ internal sealed unsafe class Renderer : IDisposable
     private readonly uint program, vao, buffer, texture;
     private readonly List<Vertex> vertices = new(200000);
     private readonly SpriteRect[] sprites = new SpriteRect[12];
+    private readonly GunSprite[] gunSprites = new GunSprite[6];
+    private readonly GunSprite[] projectileSprites = new GunSprite[5];
+    private readonly GunSprite[] particleSprites = new GunSprite[4];
+    private readonly GunSprite[] warpSprites = new GunSprite[4];
     private int atlasWidth, atlasHeight;
     private readonly record struct SpriteRect(int X, int Y, int Width, int Height);
+    private readonly record struct GunSprite(SpriteRect Rect, Vector2 Pivot);
     public bool HasAtlas { get; }
+    public bool HasGunAtlas { get; }
+    public bool HasEffectsAtlas { get; }
+    public bool HasWarpAtlas { get; }
     private readonly record struct Vertex(Vector2 Position, Vector2 Uv, Vector4 Color);
     public Renderer(GL gl)
     {
@@ -37,11 +45,13 @@ internal sealed unsafe class Renderer : IDisposable
         gl.VertexAttribPointer(1, 2, VertexAttribPointerType.Float, false, 32, (void*)8);
         gl.VertexAttribPointer(2, 4, VertexAttribPointerType.Float, false, 32, (void*)16);
         texture = gl.GenTexture(); gl.BindTexture(TextureTarget.Texture2D, texture);
+        ImageResult? shipsImage = null, gunsImage = null, effectsImage = null, warpImage = null;
         var path = Path.Combine(AppContext.BaseDirectory, "Assets", "ships-atlas.png");
         if (File.Exists(path))
         {
             using var stream = File.OpenRead(path);
             var img = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+            shipsImage = img;
             atlasWidth = img.Width; atlasHeight = img.Height;
             var manifestPath = Path.ChangeExtension(path, ".json");
             if (File.Exists(manifestPath))
@@ -65,8 +75,156 @@ internal sealed unsafe class Renderer : IDisposable
                 if(img.Width%4!=0 || img.Height%3!=0)throw new InvalidDataException("Nonuniform atlas requires ships-atlas.json.");
                 for(int i=0;i<12;i++)sprites[i]=new(i%4*img.Width/4,i/4*img.Height/3,img.Width/4,img.Height/3);
             }
-            fixed (byte* data = img.Data) gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint)img.Width, (uint)img.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
             HasAtlas = true;
+        }
+        var gunPath = Path.Combine(AppContext.BaseDirectory, "Assets", "guns-atlas.png");
+        var gunManifestPath = Path.ChangeExtension(gunPath, ".json");
+        if (File.Exists(gunPath) || File.Exists(gunManifestPath))
+        {
+            try
+            {
+                if (!File.Exists(gunPath) || !File.Exists(gunManifestPath))
+                    throw new InvalidDataException("Both guns-atlas.png and guns-atlas.json are required.");
+                using var stream = File.OpenRead(gunPath);
+                gunsImage = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+                using var manifest = System.Text.Json.JsonDocument.Parse(File.ReadAllText(gunManifestPath));
+                var root = manifest.RootElement;
+                if (root.GetProperty("width").GetInt32() != gunsImage.Width || root.GetProperty("height").GetInt32() != gunsImage.Height ||
+                    root.GetProperty("alphaThreshold").GetInt32() != 32)
+                    throw new InvalidDataException("Gun atlas dimensions or alphaThreshold (32) do not match the contract.");
+                foreach (var entry in root.GetProperty("sprites").EnumerateArray())
+                {
+                    int kind = entry.GetProperty("kind").GetInt32();
+                    var rect = new SpriteRect(entry.GetProperty("x").GetInt32(), entry.GetProperty("y").GetInt32(),
+                        entry.GetProperty("width").GetInt32(), entry.GetProperty("height").GetInt32());
+                    float pivotX = entry.GetProperty("pivotX").GetSingle(), pivotY = entry.GetProperty("pivotY").GetSingle();
+                    if (kind < -1 || kind > 4 || rect.X < 0 || rect.Y < 0 || rect.Width < 1 || rect.Height < 1 ||
+                        (long)rect.X + rect.Width > gunsImage.Width || (long)rect.Y + rect.Height > gunsImage.Height ||
+                        !float.IsFinite(pivotX) || !float.IsFinite(pivotY) || pivotX < 0 || pivotY < 0 || pivotX > rect.Width || pivotY > rect.Height)
+                        throw new InvalidDataException("Invalid gun kind, sprite rectangle or crop-relative pivot.");
+                    if (gunSprites[kind + 1].Rect.Width != 0)
+                        throw new InvalidDataException($"Duplicate gun atlas kind {kind}.");
+                    gunSprites[kind + 1] = new(rect with { Y = checked(rect.Y + (shipsImage?.Height ?? 0)) }, new(pivotX / rect.Width, pivotY / rect.Height));
+                }
+                if (gunSprites.Any(s => s.Rect.Width == 0))
+                    throw new InvalidDataException("Gun atlas needs mounting base kind -1 and all weapon kinds 0 through 4.");
+                HasGunAtlas = true;
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                throw new InvalidDataException("Failed to load guns-atlas.png / guns-atlas.json: " + e.Message, e);
+            }
+        }
+        var effectsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "effects-atlas.png");
+        var effectsManifestPath = Path.ChangeExtension(effectsPath, ".json");
+        if (File.Exists(effectsPath) || File.Exists(effectsManifestPath))
+        {
+            try
+            {
+                if (!File.Exists(effectsPath) || !File.Exists(effectsManifestPath))
+                    throw new InvalidDataException("Both effects-atlas.png and effects-atlas.json are required.");
+                using var stream = File.OpenRead(effectsPath);
+                effectsImage = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+                using var manifest = System.Text.Json.JsonDocument.Parse(File.ReadAllText(effectsManifestPath));
+                var root = manifest.RootElement;
+                if (root.GetProperty("width").GetInt32() != effectsImage.Width || root.GetProperty("height").GetInt32() != effectsImage.Height ||
+                    root.GetProperty("alphaThreshold").GetInt32() != 32)
+                    throw new InvalidDataException("Effects atlas dimensions or alphaThreshold (32) do not match the contract.");
+                int yOffset = checked((shipsImage?.Height ?? 0) + (gunsImage?.Height ?? 0));
+                foreach (var entry in root.GetProperty("sprites").EnumerateArray())
+                {
+                    string? family = entry.GetProperty("family").GetString();
+                    int kind = entry.GetProperty("kind").GetInt32();
+                    int count = family switch { "projectile" => 5, "particle" => 4, _ => 0 };
+                    if (count == 0 || kind < 0 || kind >= count)
+                        throw new InvalidDataException("Invalid effects atlas family or kind.");
+                    var familySprites = family == "particle" ? particleSprites : projectileSprites;
+                    var rect = new SpriteRect(entry.GetProperty("x").GetInt32(), entry.GetProperty("y").GetInt32(),
+                        entry.GetProperty("width").GetInt32(), entry.GetProperty("height").GetInt32());
+                    float pivotX = entry.GetProperty("pivotX").GetSingle(), pivotY = entry.GetProperty("pivotY").GetSingle();
+                    if (rect.X < 0 || rect.Y < 0 || rect.Width < 1 || rect.Height < 1 ||
+                        (long)rect.X + rect.Width > effectsImage.Width || (long)rect.Y + rect.Height > effectsImage.Height ||
+                        !float.IsFinite(pivotX) || !float.IsFinite(pivotY) || pivotX < 0 || pivotY < 0 || pivotX >= rect.Width || pivotY >= rect.Height)
+                        throw new InvalidDataException("Invalid effects sprite rectangle or crop-relative pivot.");
+                    if (family == "particle" && (rect.Width != rect.Height || pivotX != rect.Width * .5f || pivotY != rect.Height * .5f))
+                        throw new InvalidDataException("Particle sprites need square cells and centered pivots.");
+                    if (familySprites[kind].Rect.Width != 0)
+                        throw new InvalidDataException($"Duplicate effects atlas {family} kind {kind}.");
+                    familySprites[kind] = new(rect with { Y = checked(rect.Y + yOffset) }, new(pivotX / rect.Width, pivotY / rect.Height));
+                }
+                if (projectileSprites.Any(s => s.Rect.Width == 0) || particleSprites.Any(s => s.Rect.Width == 0))
+                    throw new InvalidDataException("Effects atlas needs projectile kinds 0 through 4 and particle kinds 0 through 3.");
+                HasEffectsAtlas = true;
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                throw new InvalidDataException("Failed to load effects-atlas.png / effects-atlas.json: " + e.Message, e);
+            }
+        }
+        int baseWidth = Math.Max(Math.Max(shipsImage?.Width ?? 0, gunsImage?.Width ?? 0), effectsImage?.Width ?? 0);
+        int baseHeight = checked((shipsImage?.Height ?? 0) + (gunsImage?.Height ?? 0) + (effectsImage?.Height ?? 0));
+        var warpPath = Path.Combine(AppContext.BaseDirectory, "Assets", "warp-atlas.png");
+        var warpManifestPath = Path.ChangeExtension(warpPath, ".json");
+        if (File.Exists(warpPath) || File.Exists(warpManifestPath))
+        {
+            try
+            {
+                if (!File.Exists(warpPath) || !File.Exists(warpManifestPath))
+                    throw new InvalidDataException("Both warp-atlas.png and warp-atlas.json are required.");
+                using var stream = File.OpenRead(warpPath);
+                warpImage = ImageResult.FromStream(stream, ColorComponents.RedGreenBlueAlpha);
+                using var manifest = System.Text.Json.JsonDocument.Parse(File.ReadAllText(warpManifestPath));
+                var root = manifest.RootElement;
+                if (root.GetProperty("width").GetInt32() != warpImage.Width || root.GetProperty("height").GetInt32() != warpImage.Height ||
+                    root.GetProperty("alphaThreshold").GetInt32() != 32 || warpImage.Width != warpImage.Height || warpImage.Width % 2 != 0)
+                    throw new InvalidDataException("Warp atlas needs matching dimensions, a square 2x2 grid and alphaThreshold 32.");
+                int cell = warpImage.Width / 2;
+                foreach (var entry in root.GetProperty("sprites").EnumerateArray())
+                {
+                    int kind = entry.GetProperty("kind").GetInt32();
+                    if (kind < 0 || kind > 3 || (entry.TryGetProperty("family", out var family) && family.GetString() != "warp"))
+                        throw new InvalidDataException("Invalid warp atlas family or kind.");
+                    var rect = new SpriteRect(entry.GetProperty("x").GetInt32(), entry.GetProperty("y").GetInt32(),
+                        entry.GetProperty("width").GetInt32(), entry.GetProperty("height").GetInt32());
+                    float pivotX = entry.GetProperty("pivotX").GetSingle(), pivotY = entry.GetProperty("pivotY").GetSingle();
+                    int cellX = kind % 2 * cell, cellY = kind / 2 * cell;
+                    if (rect.Width < 1 || rect.Width != rect.Height || rect.X < cellX || rect.Y < cellY ||
+                        (long)rect.X + rect.Width > cellX + cell || (long)rect.Y + rect.Height > cellY + cell ||
+                        pivotX != rect.Width * .5f || pivotY != rect.Height * .5f)
+                        throw new InvalidDataException("Warp sprites need square crops inside their own quadrant and centered pivots.");
+                    if (warpSprites[kind].Rect.Width != 0)
+                        throw new InvalidDataException($"Duplicate warp atlas kind {kind}.");
+                    warpSprites[kind] = new(rect with { X = checked(rect.X + baseWidth) }, new(.5f, .5f));
+                }
+                if (warpSprites.Any(s => s.Rect.Width == 0))
+                    throw new InvalidDataException("Warp atlas needs all four kinds 0 through 3.");
+                HasWarpAtlas = true;
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                throw new InvalidDataException("Failed to load warp-atlas.png / warp-atlas.json: " + e.Message, e);
+            }
+        }
+        if (shipsImage is not null || gunsImage is not null || effectsImage is not null || warpImage is not null)
+        {
+            // Keep the existing vertical stack unchanged; warp occupies a new right-hand strip.
+            atlasWidth = checked(baseWidth + (warpImage?.Width ?? 0));
+            atlasHeight = Math.Max(baseHeight, warpImage?.Height ?? 0);
+            gl.GetInteger(GetPName.MaxTextureSize, out int maxTextureSize);
+            if (atlasWidth > maxTextureSize || atlasHeight > maxTextureSize)
+                throw new InvalidDataException("Combined ship/gun/effects/warp atlas exceeds OpenGL maximum texture size.");
+            var pixels = new byte[checked(atlasWidth * atlasHeight * 4)];
+            void CopyImage(ImageResult? img, int xOffset, int yOffset)
+            {
+                if (img is null) return;
+                for (int y = 0; y < img.Height; y++)
+                    Array.Copy(img.Data, y * img.Width * 4, pixels, ((y + yOffset) * atlasWidth + xOffset) * 4, img.Width * 4);
+            }
+            CopyImage(shipsImage, 0, 0);
+            CopyImage(gunsImage, 0, shipsImage?.Height ?? 0);
+            CopyImage(effectsImage, 0, checked((shipsImage?.Height ?? 0) + (gunsImage?.Height ?? 0)));
+            CopyImage(warpImage, baseWidth, 0);
+            fixed (byte* data = pixels) gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, (uint)atlasWidth, (uint)atlasHeight, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
         }
         else { uint white = uint.MaxValue; gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, 1, 1, 0, PixelFormat.Rgba, PixelType.UnsignedByte, &white); }
         gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
@@ -101,14 +259,78 @@ internal sealed unsafe class Renderer : IDisposable
         var a=p-forward*halfHeight-side*halfWidth; var b=p+forward*halfHeight-side*halfWidth; var c=p+forward*halfHeight+side*halfWidth; var d=p-forward*halfHeight+side*halfWidth;
         Add(a,color,new(u,v2)); Add(b,color,new(u,v)); Add(c,color,new(u2,v)); Add(a,color,new(u,v2)); Add(c,color,new(u2,v)); Add(d,color,new(u2,v2));
     }
-    public void Gun(Vector2 p, float radius, float angle, float recoil, float heat, int team, bool main = false)
+    private void EffectSpriteQuad(Vector2 p, Vector2 forward, float w, float h, GunSprite sprite, float alpha)
+    {
+        var side = new Vector2(-forward.Y, forward.X);
+        var rect = sprite.Rect;
+        // Source X points right; the crop pivot stays on the entity, including the projectile head.
+        var a = p - forward * (sprite.Pivot.X * w) - side * (sprite.Pivot.Y * h);
+        var b = a + forward * w; var c = b + side * h; var d = a + side * h;
+        float u = (rect.X + .5f) / atlasWidth, v = (rect.Y + .5f) / atlasHeight;
+        float u2 = (rect.X + rect.Width - .5f) / atlasWidth, v2 = (rect.Y + rect.Height - .5f) / atlasHeight;
+        var color = new Vector4(1, 1, 1, alpha);
+        Add(a,color,new(u,v)); Add(b,color,new(u2,v)); Add(c,color,new(u2,v2));
+        Add(a,color,new(u,v)); Add(c,color,new(u2,v2)); Add(d,color,new(u,v2));
+    }
+    public void Projectile(Vector2 p, Vector2 screenVelocity, float radius, int kind, float angle = 0)
+    {
+        if (kind < 0 || kind > 4) throw new ArgumentOutOfRangeException(nameof(kind));
+        float speed = screenVelocity.Length();
+        var forward = speed > 0 ? screenVelocity / speed : new Vector2(MathF.Cos(angle), -MathF.Sin(angle));
+        float length = Math.Max(kind == 4 ? 18 : kind == 3 ? 10 : 6,
+            Math.Max(speed * (kind == 4 ? .07f : .025f), radius * (kind == 4 ? 4 : 2)));
+        if (!HasEffectsAtlas) { Line(p-forward*length,p,Math.Max(1,radius*2),Vector4.One); return; }
+        var sprite = projectileSprites[kind];
+        EffectSpriteQuad(p,forward,length,length*sprite.Rect.Height/sprite.Rect.Width,sprite,1);
+    }
+    public void Particle(Vector2 p, float diameter, float angle, int kind, float alpha)
+    {
+        if (kind < 0 || kind > 7) throw new ArgumentOutOfRangeException(nameof(kind));
+        diameter = Math.Max(2,diameter);
+        var forward = new Vector2(MathF.Cos(angle), -MathF.Sin(angle));
+        if (kind >= 4 ? !HasWarpAtlas : !HasEffectsAtlas)
+        {
+            var side = new Vector2(-forward.Y, forward.X);
+            var a = p - (forward + side) * (diameter * .5f);
+            var b = a + forward * diameter; var c = b + side * diameter; var d = a + side * diameter;
+            var color = new Vector4(1, 1, 1, alpha);
+            Triangle(a,b,c,color); Triangle(a,c,d,color);
+            return;
+        }
+        EffectSpriteQuad(p,forward,diameter,diameter,kind >= 4 ? warpSprites[kind - 4] : particleSprites[kind],alpha);
+    }
+    private void GunSpriteQuad(Vector2 p, float radius, float angle, GunSprite sprite, Vector2 pivot, Vector4 color)
     {
         var forward = new Vector2(MathF.Cos(angle), -MathF.Sin(angle));
-        var tint = team == 0 ? new Vector4(.27f,.56f,.60f,1) : new Vector4(.67f,.52f,.29f,1);
-        if (!main) Circle(p,radius,new(.28f,.32f,.34f,1),true);
+        var side = new Vector2(-forward.Y, forward.X);
+        var rect = sprite.Rect;
+        float w = radius * 2, h = w * rect.Height / rect.Width;
+        var a = p - side * (pivot.X * w) + forward * ((pivot.Y - 1) * h);
+        var b = p - side * (pivot.X * w) + forward * (pivot.Y * h);
+        var c = b + side * w; var d = a + side * w;
+        float u = (rect.X + .5f) / atlasWidth, v = (rect.Y + .5f) / atlasHeight;
+        float u2 = (rect.X + rect.Width - .5f) / atlasWidth, v2 = (rect.Y + rect.Height - .5f) / atlasHeight;
+        Add(a,color,new(u,v2)); Add(b,color,new(u,v)); Add(c,color,new(u2,v));
+        Add(a,color,new(u,v2)); Add(c,color,new(u2,v)); Add(d,color,new(u2,v2));
+    }
+    public void Gun(Vector2 p, float radius, float angle, float recoil, float heat, Vector4 color, int kind = 4, bool main = false)
+    {
+        var forward = new Vector2(MathF.Cos(angle), -MathF.Sin(angle));
+        var tint = color;
         var start = p - forward * (Math.Clamp(recoil,0,1)*radius*.7f);
+        if (HasGunAtlas)
+        {
+            if (kind < 0 || kind > 4) throw new ArgumentOutOfRangeException(nameof(kind));
+            var mount = gunSprites[0];
+            GunSpriteQuad(p,radius,MathF.PI*.5f,mount,mount.Pivot,color);
+            var head = gunSprites[kind + 1];
+            GunSpriteQuad(start,radius,angle,head,head.Pivot,color);
+            Circle(p,Math.Max(.5f,radius*.15f),heat>.75f?new(.82f,.48f,.24f,.8f):tint,true);
+            return;
+        }
+        if (!main) Circle(p,radius,new Vector4(.28f,.32f,.34f,1)*color,true);
         var end = start + forward*radius*(main?4.5f:2.7f);
-        Line(start,end,Math.Max(1,radius*.64f),heat>.75f?new(.67f,.46f,.3f,1):new(.39f,.47f,.48f,1));
+        Line(start,end,Math.Max(1,radius*.64f),heat>.75f?new(.67f,.46f,.3f,1):new Vector4(.39f,.47f,.48f,1)*color);
         Line(end-forward*radius*.55f,end,Math.Max(1.3f,radius*.84f),tint);
     }
     public void Text(float x, float y, string text, Vector4 color, int scale = 2)

@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <AssemblyName>SpaceBattle.Web</AssemblyName>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RuntimeFrameworkVersion>11.0.0-rc.1.26425.128</RuntimeFrameworkVersion>
+    <UseMonoRuntime>false</UseMonoRuntime>
+    <!-- RC1's SDK cannot stage browser R2R; the dedicated helper runs crossgen2. -->
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <SpaceBattleCoreClrR2R Condition="'$(SpaceBattleCoreClrR2R)' == ''">false</SpaceBattleCoreClrR2R>
+    <WasmBuildNative>true</WasmBuildNative>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(SpaceBattleCoreClrR2R)' == 'true'">
+    <DefineConstants>$(DefineConstants);WEB_CORECLR_R2R</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(SpaceBattleCoreClrR2R)' != 'true'">
+    <DefineConstants>$(DefineConstants);WEB_CORECLR_INTERPRETER</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageDownload Include="Microsoft.NETCore.App.Crossgen2.win-x64" Version="[11.0.0-rc.1.26425.128]" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-rc.1.26425.128" />
+    <ProjectReference Include="../SpaceBattle.Core/SpaceBattle.Core.csproj" />
+    <ProjectReference Include="../SpaceBattle.SECS/SpaceBattle.SECS.csproj" />
+    <Compile Include="../SpaceBattle.Web/Program.cs" Link="Program.cs" />
+    <Compile Include="../SpaceBattle.Web/BattleBridge.cs" Link="BattleBridge.cs" />
+    <Content Include="../SpaceBattle.Web/wwwroot/**/*" Exclude="../SpaceBattle.Web/wwwroot/licenses/NOTICE.txt" Link="wwwroot/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="NOTICE.txt" Link="wwwroot/licenses/NOTICE.txt" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/ships-atlas.png" Link="wwwroot/assets/ships-atlas.png" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/ships-atlas.json" Link="wwwroot/assets/ships-atlas.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/guns-atlas.png" Link="wwwroot/assets/guns-atlas.png" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/guns-atlas.json" Link="wwwroot/assets/guns-atlas.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/effects-atlas.png" Link="wwwroot/assets/effects-atlas.png" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/effects-atlas.json" Link="wwwroot/assets/effects-atlas.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/warp-atlas.png" Link="wwwroot/assets/warp-atlas.png" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/warp-atlas.json" Link="wwwroot/assets/warp-atlas.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/PROVENANCE.md" Link="wwwroot/licenses/ARTWORK.md" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="StageCoreClrR2R" BeforeTargets="ProcessPublishFilesForWasm"
+          DependsOnTargets="LoadStaticWebAssetsBuildManifest"
+          Condition="'$(LocalR2RDir)' != '' and '$(WasmBuildingForNestedPublish)' != 'true'">
+    <ItemGroup>
+      <_R2RBuildAsset Include="@(StaticWebAsset)"
+        Condition="'%(StaticWebAsset.AssetTraitName)' == 'WasmResource' and
+                   '%(StaticWebAsset.AssetTraitValue)' == 'runtime' and
+                   Exists('$(LocalR2RDir)/%(Filename).wasm')" />
+      <StaticWebAsset Update="@(_R2RBuildAsset)" R2RWebcilPath="$(LocalR2RDir)/%(Filename).wasm" />
+    </ItemGroup>
+    <Error Condition="'@(_R2RBuildAsset)' == ''" Text="No managed WASM build assets found for R2R staging." />
+    <Delete Files="@(_R2RBuildAsset->'$(IntermediateOutputPath)webcil/publish/%(Filename).wasm')" />
+  </Target>
+</Project>

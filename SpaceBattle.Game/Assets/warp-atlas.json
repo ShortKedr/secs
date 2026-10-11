@@ -1,0 +1,11 @@
+{
+  "width": 1254,
+  "height": 1254,
+  "alphaThreshold": 32,
+  "sprites": [
+    { "family": "warp", "kind": 0, "x": 0, "y": 0, "width": 627, "height": 627, "pivotX": 313.5, "pivotY": 313.5 },
+    { "family": "warp", "kind": 1, "x": 627, "y": 0, "width": 627, "height": 627, "pivotX": 313.5, "pivotY": 313.5 },
+    { "family": "warp", "kind": 2, "x": 0, "y": 627, "width": 627, "height": 627, "pivotX": 313.5, "pivotY": 313.5 },
+    { "family": "warp", "kind": 3, "x": 627, "y": 627, "width": 627, "height": 627, "pivotX": 313.5, "pivotY": 313.5 }
+  ]
+}

@@ -25,9 +25,11 @@ internal sealed class BattleApp : IDisposable
     private readonly bool hidden;
     private int replayStartTick;
     private readonly string? capture;
+    private readonly string? effectsCapture;
+    private readonly string? gunTintsCapture;
     private readonly int captureTick;
     private readonly float initialZoom;
-    private readonly bool exitCapture, validate, validateControls, validateLiveStatistics;
+    private readonly bool exitCapture, validate, validateControls, validateLiveStatistics, validateEffects, validateGunTints;
     private bool controlsVerified;
     private bool captured, paused;
     private int selected = -1;
@@ -75,6 +77,13 @@ internal sealed class BattleApp : IDisposable
         capture=Value("--capture"); captureTick=Number("--capture-tick",0); exitCapture=args.Contains("--exit-after-capture");validate=args.Contains("--validate-render");
         validateControls=args.Contains("--validate-controls");
         validateLiveStatistics=args.Contains("--validate-live-statistics");
+        validateEffects=args.Contains("--validate-effects");
+        if(Value("--effects-capture") is { } effectsPath)effectsCapture=ProjectOutput(effectsPath);
+        if(effectsCapture is not null&&!validateEffects)throw new ArgumentException("--effects-capture requires --validate-effects.");
+        validateGunTints=args.Contains("--validate-gun-tints");
+        if(Value("--gun-tints-capture") is { } gunPath)gunTintsCapture=ProjectOutput(gunPath);
+        if(gunTintsCapture is not null&&!validateGunTints)throw new ArgumentException("--gun-tints-capture requires --validate-gun-tints.");
+        if(validateEffects&&validateGunTints)throw new ArgumentException("Run effect and gun tint galleries separately.");
         statisticsVisible=args.Contains("--statistics");
         hidden=args.Contains("--hidden");
         profileFrames=ProfileNumber("--profile-frames",0);
@@ -93,6 +102,8 @@ internal sealed class BattleApp : IDisposable
             throw new ArgumentException("Profile options require --profile-frames N.");
         if(validateLiveStatistics&&(profileFrames>0||capture is not null))
             throw new ArgumentException("Live statistics validation must run without capture or replay profiling.");
+        if((validateEffects||validateGunTints)&&(profileFrames>0||validateLiveStatistics))
+            throw new ArgumentException("Visual validation must run separately from profiling or live statistics validation.");
         var zoomArgument=Value("--zoom");
         initialZoom=1;
         if(zoomArgument is not null)
@@ -108,14 +119,15 @@ internal sealed class BattleApp : IDisposable
         {
             capture=ProjectOutput(capture);
         }
-        config=new BattleConfig { ShipsPerTeam=Number("--ships",Number("--ships-per-team",96)), Seed=(uint)Number("--seed",7331) };config.Validate();
+        config=new BattleConfig { ShipsPerTeam=Number("--ships",Number("--ships-per-team",96)), Seed=(uint)Number("--seed",7331),
+            EndlessReinforcements=!args.Contains("--finite"), ReplenishCarriers=false };config.Validate();
         battle=new(new SecsStore(),config);
         var options=WindowOptions.Default;
         int width=Number("--width",1440), height=Number("--height",900);
         if(width<960||height<540)throw new ArgumentException("Window size must be at least 960 x 540.");
         options.Size=new Vector2D<int>(width,height);
         options.Title="Space Battle | SECS"; options.API=new GraphicsAPI(ContextAPI.OpenGL,ContextProfile.Core,ContextFlags.ForwardCompatible,new APIVersion(3,3));
-        options.IsVisible=!hidden&&(capture is null || args.Contains("--visible")); options.VSync=profileFrames==0&&capture is null;
+        options.IsVisible=!hidden&&(!(validateEffects||validateGunTints)||args.Contains("--visible"))&&(capture is null || args.Contains("--visible")); options.VSync=profileFrames==0&&capture is null;
         if(profileFrames>0) {options.FramesPerSecond=0;options.UpdatesPerSecond=0;}
         window=Window.Create(options);window.Load+=Load;window.Update+=Update;window.Render+=Render;window.Closing+=DisposeGraphics;
     }
@@ -123,6 +135,18 @@ internal sealed class BattleApp : IDisposable
     private void Load()
     {
         gl=window.CreateOpenGL();renderer=new(gl);input=window.CreateInput();
+        if(validateGunTints)
+        {
+            GunTintRenderValidation.Run(renderer,window.FramebufferSize.X,window.FramebufferSize.Y,gunTintsCapture);
+            if(capture is null) {window.Close();return;}
+        }
+        if(validateEffects)
+        {
+            EffectRenderValidation.Run(renderer,window.FramebufferSize.X,window.FramebufferSize.Y,effectsCapture);
+            if(capture is null) {window.Close();return;}
+        }
+        if(validate&&(!renderer.HasAtlas||!renderer.HasGunAtlas||!renderer.HasEffectsAtlas||config.EndlessReinforcements&&!renderer.HasWarpAtlas))
+            throw new InvalidOperationException("Render validation requires ship, gun, effects and enabled warp atlases.");
         foreach(var keyboard in input.Keyboards) keyboard.KeyDown+=(_,key,_)=> {if(profileFrames==0||key==Key.Escape)HandleKey(key);};
         if(profileFrames==0)foreach(var mouse in input.Mice)
         {
@@ -148,7 +172,7 @@ internal sealed class BattleApp : IDisposable
         ResetRates();
         liveValidationStart=Timestamp();
         if(profileFrames>0)profiler=new FrontendProfiler(gl,profileFrames,profileWarmup,profileOutput!,profileCsv);
-        Console.WriteLine($"OpenGL {gl.GetStringS(StringName.Version)}; atlas={renderer.HasAtlas}; tick={battle.Tick}");
+        Console.WriteLine($"OpenGL {gl.GetStringS(StringName.Version)}; atlas={renderer.HasAtlas}; gunAtlas={renderer.HasGunAtlas}; effectsAtlas={renderer.HasEffectsAtlas}; warpAtlas={renderer.HasWarpAtlas}; tick={battle.Tick}");
     }
     private void HandleKey(Key key)
     {
@@ -229,7 +253,7 @@ internal sealed class BattleApp : IDisposable
         if(paused) return;
         accumulator+=Math.Min(dt,.25)*speed;
         int steps=0;while(accumulator>=1.0/config.TickRate&&steps++<32) { Step(true);accumulator-=1.0/config.TickRate; }
-        battle.Capture(frame);
+        battle.Capture(frame, refreshEntities: false);
     }
     private float Scale=>Math.Max(1,Math.Min(window.FramebufferSize.X-40,window.FramebufferSize.Y-240))/(config.ArenaHalfSize*2)*zoom;
     private Vector2 Screen(Vector2 p)=>new(window.FramebufferSize.X*.5f+(p.X-center.X)*Scale,window.FramebufferSize.Y*.5f+30-(p.Y-center.Y)*Scale);
@@ -297,7 +321,7 @@ internal sealed class BattleApp : IDisposable
         }
         profile.PollGpu();
         long simulationStart=FrontendProfiler.Timestamp();Step();long simulationEnd=FrontendProfiler.Timestamp();
-        battle.Capture(frame);long snapshotEnd=FrontendProfiler.Timestamp();
+        battle.Capture(frame, refreshEntities: false);long snapshotEnd=FrontendProfiler.Timestamp();
         profile.BeginGpu();
         long renderStart=FrontendProfiler.Timestamp();RenderScene();long renderEnd=FrontendProfiler.Timestamp();
         profile.EndGpu();profile.CollectErrors(profile.SampleIndex);
@@ -312,26 +336,13 @@ internal sealed class BattleApp : IDisposable
         for(int i=0;i<800;i++) { var p=Screen(new Vector2((float)rng.NextDouble()*1600-800,(float)rng.NextDouble()*1600-800));renderer.Rect(p.X,p.Y,i%9==0?2:1,1,new(.22f,.29f,.39f,.8f)); }
         float a=config.ArenaHalfSize;
         Vector2[] corners=[Screen(new(-a,-a)),Screen(new(a,-a)),Screen(new(a,a)),Screen(new(-a,a))];for(int i=0;i<4;i++)renderer.Line(corners[i],corners[(i+1)%4],1,new(.14f,.23f,.29f,.7f));
-        foreach(var e in frame.Particles)renderer.Circle(Screen(e.Position),Math.Max(1,e.Radius*Scale),e.Color,true);
         foreach(var e in frame.Debris) { var p=Screen(e.Position);renderer.Line(p,p+new Vector2(3,2),2,e.Color); }
+        foreach(var e in frame.Particles)
+            if(!WarpEffect.Foreground(e.Kind))
+                renderer.Particle(Screen(e.Position),Math.Max(2,e.Radius*Scale*2),e.Angle,e.Kind,e.Color.W);
         foreach(var e in frame.Projectiles)
         {
-            var p=Screen(e.Position); var tail=Screen(e.Position-e.Velocity*.045f);
-            if(e.Kind==(int)WeaponKind.HeavyCannon)
-            {
-                renderer.Line(Screen(e.Position-e.Velocity*.07f),p,Math.Max(2.5f,e.Radius*Scale*2),new(.5f,.85f,1,1));
-                renderer.Circle(p,Math.Max(3,e.Radius*Scale*2),new(.93f,.74f,.32f,1),true);
-                continue;
-            }
-            var color=(WeaponKind)e.Kind switch
-            {
-                WeaponKind.Plasma=>new Vector4(.5f,1,.65f,.9f),
-                WeaponKind.Cannon=>new Vector4(1,.8f,.3f,1),
-                WeaponKind.Missile=>new Vector4(1,.65f,.3f,1),
-                _=>new Vector4(.95f,.93f,.8f,1)
-            };
-            renderer.Line(tail,p,e.Kind==(int)WeaponKind.Cannon?2:1,color);
-            if(e.Kind==(int)WeaponKind.Plasma)renderer.Circle(p,Math.Max(2,e.Radius*Scale),color,true);
+            renderer.Projectile(Screen(e.Position),new Vector2(e.Velocity.X,-e.Velocity.Y)*Scale,e.Radius*Scale,e.Kind,e.Angle);
         }
         int renderedShips=0;
         foreach(var e in frame.Ships)
@@ -341,7 +352,7 @@ internal sealed class BattleApp : IDisposable
             renderedShips++;
             renderer.Line(Screen(e.Position-e.Velocity*.12f),p,Math.Max(1,r*.3f),new(.22f,.59f,1,.25f));
             renderer.Ship(p,r,e.Angle,e.Kind,e.Team==0?Cyan:Red);
-            if(ShipCatalog.IsWeaponsPlatform((ShipClass)e.Kind))renderer.Gun(p,Math.Max(1.5f,r*.24f),e.Angle,0,e.Heat,e.Team,true);
+            if(ShipCatalog.IsWeaponsPlatform((ShipClass)e.Kind))renderer.Gun(p,Math.Max(1.5f,r*.24f),e.Angle,0,e.Heat,e.Team==0?Cyan:Red,main:true);
             if(e.Shield>.01f&&r>=3)renderer.Circle(p,r*1.35f,new(.4f,.7f,1,Math.Clamp(e.Shield,0,1)*.4f));
             if(e.Heat>.65f)renderer.Circle(p,r*1.6f,new(1,.55f,.12f,Math.Clamp(e.Heat,0,1)*.7f));
             if(e.Hull<.98f&&r>=3) {renderer.Rect(p.X-r,p.Y+r+3,r*2,2,new(.18f,.2f,.23f,1));renderer.Rect(p.X-r,p.Y+r+3,r*2*Math.Clamp(e.Hull,0,1),2,new(.45f,.95f,.5f,1));}
@@ -351,8 +362,11 @@ internal sealed class BattleApp : IDisposable
         {
             var p=Screen(turret.Position);float r=Math.Max(1.4f,turret.Radius*Scale);
             if(p.X < -r*4 || p.Y < -r*4 || p.X>w+r*4 || p.Y>h+r*4)continue;
-            renderer.Gun(p,r,turret.Angle,turret.Recoil,turret.Heat,turret.Team);
+            renderer.Gun(p,r,turret.Angle,turret.Recoil,turret.Heat,turret.Team==0?Cyan:Red,(int)turret.Kind);
         }
+        foreach(var e in frame.Particles)
+            if(WarpEffect.Foreground(e.Kind))
+                renderer.Particle(Screen(e.Position),Math.Max(2,e.Radius*Scale*2),e.Angle,e.Kind,e.Color.W);
         var population=new TeamPopulation();battle.Store.ForEach<Identity,TeamPopulation>(ref population);
         Hud(w,h,population);renderer.End();
         return (renderedShips,population);
@@ -380,9 +394,12 @@ internal sealed class BattleApp : IDisposable
                 statistics.StageMeanMs.Length==Battle<SecsStore>.StageNames.Length&&ticksPerSecond==0&&
                 double.IsFinite(statistics.MeanMs)&&statistics.MeanMs>=0&&statistics.P95Ms<=statistics.P99Ms&&statistics.P99Ms<=statistics.MaximumMs;
             var stats=new {frame.Tick,Width=w,Height=h,Zoom=zoom,ConfiguredShipsPerTeam=config.ShipsPerTeam,Ships=frame.Ships.Count,RenderedShips=renderedShips,AliveCyan=population.Cyan,AliveRed=population.Red,Projectiles=frame.Projectiles.Count,Debris=frame.Debris.Count,Particles=frame.Particles.Count,BrightPixels=bright,UniqueColors=colors.Count,SceneBrightPixels=sceneBright,SceneUniqueColors=sceneColors.Count,Nonblank=ok,Atlas=renderer.HasAtlas,ControlsVerified=controlsVerified,BattleChecksum=checkpoint,CoreDllSha256=coreHash,GameDllSha256=gameHash,SecsAdapterDllSha256=secsHash,LastTickMs=frame.LastTickMs,P99=statistics.P99Ms,
-                AliveEntities,AliveShips=battle.ShipCount,DockedShips=battle.ShipCount-frame.Ships.Count,Turrets=frame.Turrets.Count,AliveTurrets=battle.TurretCount,DockedTurrets=battle.TurretCount-frame.Turrets.Count,
+                GunAtlas=renderer.HasGunAtlas,EffectsAtlas=renderer.HasEffectsAtlas,AliveEntities,AliveShips=battle.ShipCount,DockedShips=battle.ShipCount-frame.Ships.Count,Turrets=frame.Turrets.Count,AliveTurrets=battle.TurretCount,DockedTurrets=battle.TurretCount-frame.Turrets.Count,
                 TurretPoses=frame.Turrets.Select(t=>new {t.Serial,t.ParentSerial,t.Team,t.Kind,X=t.Position.X,Y=t.Position.Y,t.Angle,t.Radius,t.Heat,t.Recoil}),
                 HeavyShots=frame.Counters.HeavyShots,TurretShots=frame.Counters.TurretShots,GameplayRevision=ArmamentRules.Revision,CountsValid=countsValid,StatisticsValid=statisticsValid,
+                WarpAtlas=renderer.HasWarpAtlas,config.EndlessReinforcements,ReinforcementRevision=WarpReinforcementRules.Revision,
+                battle.Counters.ReinforcementWaves,battle.Counters.ReinforcementShips,
+                Reinforcements=Enumerable.Range(0,2).Select(team=> {var wave=battle.Reinforcement(team);return new {Team=team,wave.Wave,wave.Corner,wave.Composition,wave.PendingShips,wave.ArrivalTick,wave.NextSpawnTick,wave.EndTick,X=wave.Position.X,Y=wave.Position.Y,wave.Active};}).ToArray(),
                 Statistics=new {statistics.SampleCount,Capacity=SimulationStatistics.WindowCapacity,statistics.LastMs,statistics.MeanMs,statistics.P95Ms,statistics.P99Ms,statistics.MaximumMs,StageNames=Battle<SecsStore>.StageNames,statistics.StageMeanMs,WallTicksPerSecond=ticksPerSecond,RenderFps=renderFps,RenderSubmissionCpuMs=renderCpuMs,TickBudgetMs,MeanBudgetPercent=statistics.MeanMs/TickBudgetMs*100,Paused=paused,PanelVisible=statisticsVisible,OfflineCapture=true}};
             File.WriteAllText(capture+".json",System.Text.Json.JsonSerializer.Serialize(stats,new System.Text.Json.JsonSerializerOptions{WriteIndented=true}));
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(stats));captured=true;ResetRates();

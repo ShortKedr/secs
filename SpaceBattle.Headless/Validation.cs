@@ -23,7 +23,12 @@ internal static partial class Validation
         for (var i = 0; i < 3000; i++)
         {
             battle.Step();
-            if ((i + 1) % 300 == 0) { battle.Validate(); hashes[i / 300] = battle.Checksum(); }
+            if ((i + 1) % 300 == 0)
+            {
+                battle.Validate();
+                Require(battle.Counters.SelfHits == 0, $"{battle.Framework}: no projectile self hits at tick {i + 1}");
+                hashes[i / 300] = battle.Checksum();
+            }
         }
         Console.WriteLine($"Replay {battle.Framework}: {hashes[^1]:X16}"); return hashes;
     }
@@ -52,7 +57,7 @@ internal static partial class Validation
             for (var i = 0; i < 1800; i++) battle.Step();
             Require(first == battle.Checksum(), "deterministic replay");
         }
-        PhysicsChecks(); FireControlChecks(); ProjectileChecks(); MechanicsChecks(); TacticalChecks(); ArmamentChecks(); StatisticsChecks();
+        PhysicsChecks(); SpatialChecks(); FireControlChecks(); ProjectileChecks(); ProjectileOwnerChecks(); HeavyImpactChecks(); WarpReinforcementChecks(); MechanicsChecks(); TacticalChecks(); TacticalSpatialChecks(); ArmamentChecks(); LifecycleSpatialChecks(); StatisticsChecks();
         Console.WriteLine("PASS: classes, plasma heat, live combat, production, structural churn, damaging debris, deterministic replay, compound physics and swept hits.");
     }
     private static void PhysicsChecks()
@@ -152,7 +157,7 @@ internal static partial class Validation
         {
             Require(Vector2.Distance(projectile.Velocity, shooterVelocity + aim.Direction * 120) < 0.002f, "initial projectile velocity inherits shooter motion without spread");
         }
-        Console.WriteLine("PASS: enemy/friendly/self projectile damage, hit counters, burst aim decisions and inherited projectile velocity.");
+        Console.WriteLine("PASS: enemy/friendly projectile damage, owner immunity, hit counters, burst aim decisions and inherited projectile velocity.");
 
         static void CheckHit(string name, bool friendly, bool self)
         {
@@ -176,6 +181,14 @@ internal static partial class Validation
             battle.Store.Set(projectile, new Projectile { Serial = 1000000, Owner = owner, Target = owner,
                 Kind = WeaponKind.MachineGun, Damage = 10, Radius = 0.1f, ExpiresTick = 100 });
             battle.Store.Commit(); battle.Step();
+            if (self)
+            {
+                Require(battle.Store.Get<Hull>(victim).Current == before, "self projectile leaves own hull untouched");
+                Require(battle.Store.Alive(projectile), "self projectile survives crossing owner");
+                Require(battle.Counters.Hits == 0 && battle.Counters.FriendlyFireHits == 0 && battle.Counters.SelfHits == 0,
+                    "self exclusion produces no hit telemetry");
+                return;
+            }
             Require(MathF.Abs(battle.Store.Get<Hull>(victim).Current - (before - 10 * (1 - armor))) < 0.002f, name + " projectile damages actual swept victim regardless of telemetry target");
             Require(!battle.Store.Alive(projectile) && battle.Counters.Hits == 1, name + " projectile consumed on hit");
             Require(battle.Counters.FriendlyFireHits == (friendly ? 1 : 0) && battle.Counters.SelfHits == (self ? 1 : 0), name + " friendly/self telemetry");

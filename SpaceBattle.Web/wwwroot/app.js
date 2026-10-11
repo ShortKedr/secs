@@ -175,7 +175,14 @@
     speed = 1,
     snapshot = null,
     atlas,
-    sprites;
+    sprites,
+    gunAtlas,
+    gunSprites,
+    effectsAtlas,
+    projectileSprites,
+    particleSprites,
+    warpAtlas,
+    warpSprites;
   let selected = null,
     following = false,
     accumulator = 0,
@@ -364,6 +371,10 @@
     snapshot.counts.turrets = header[63];
     snapshot.counters.heavyShots = header[65];
     snapshot.counters.turretShots = header[66];
+    snapshot.counters.reinforcementWaves = header[67];
+    snapshot.counters.reinforcementShips = header[68];
+    snapshot.pendingReinforcements = header[69];
+    snapshot.aliveTeams = [header[70], header[71]];
     Object.assign(snapshot.performance, {
       samples: header[32],
       meanMs: header[33],
@@ -511,6 +522,26 @@
   }
   const color = (r) =>
     `rgba(${Math.round(r[12] * 255)},${Math.round(r[13] * 255)},${Math.round(r[14] * 255)},${Math.max(0, Math.min(1, r[15]))})`;
+  const teamPalette = [[0.2, 0.85, 0.95], [1, 0.37, 0.4]];
+  const teamPaint = teamPalette.map(rgb => `rgb(${rgb.map(value => Math.round(value * 255)).join(",")})`);
+  function prepareTeamAtlases(image, alphaThreshold = -1) {
+    // Source PNGs stay untouched; pixel work happens only during asset loading.
+    return teamPalette.map((rgb) => {
+      const texture = document.createElement("canvas");
+      texture.width = image.naturalWidth; texture.height = image.naturalHeight;
+      const context = texture.getContext("2d", { willReadFrequently: true });
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(0, 0, texture.width, texture.height);
+      for (let i = 0; i < pixels.data.length; i += 4) {
+        pixels.data[i] *= rgb[0];
+        pixels.data[i + 1] *= rgb[1];
+        pixels.data[i + 2] *= rgb[2];
+        if (pixels.data[i + 3] <= alphaThreshold) pixels.data[i + 3] = 0;
+      }
+      context.putImageData(pixels, 0, 0);
+      return texture;
+    });
+  }
   function draw() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#080a0c";
@@ -538,37 +569,22 @@
       ctx.fill();
     }
     for (const r of snapshot.particles) {
-      const p = screen(r);
-      ctx.fillStyle = color(r);
-      ctx.fillRect(
-        p.x,
-        p.y,
-        Math.max(1, r[8] * scale),
-        Math.max(1, r[8] * scale),
-      );
+      if (r[2] !== 3 && r[2] !== 6 && r[2] !== 7) drawParticle(r, scale);
     }
+    ctx.globalAlpha = 1;
     for (const r of snapshot.projectiles) {
       const p = screen(r);
-      if (r[2] === 4) {
-        ctx.strokeStyle = "#80d9ff";
-        ctx.lineWidth = Math.max(2.5, r[8] * scale * 2);
-        ctx.beginPath();
-        ctx.moveTo(p.x - r[5] * scale * 0.07, p.y + r[6] * scale * 0.07);
-        ctx.lineTo(p.x, p.y);
-        ctx.stroke();
-        ctx.fillStyle = "#eebc52";
-        ctx.beginPath();
-        ctx.ellipse(p.x, p.y, Math.max(3, r[8] * scale * 2), Math.max(1.8, r[8] * scale), -r[7], 0, Math.PI * 2);
-        ctx.fill();
-        continue;
-      }
-      ctx.strokeStyle = color(r);
-      ctx.lineWidth = Math.max(1, r[8] * scale);
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.lineTo(p.x - r[5] * scale * 0.025, p.y + r[6] * scale * 0.025);
-      ctx.stroke();
+      const heavy = r[2] === 4;
+      const length = Math.max(heavy ? 18 : r[2] === 3 ? 10 : 6,
+        Math.hypot(r[5], r[6]) * scale * (heavy ? 0.07 : 0.025),
+        r[8] * scale * (heavy ? 4 : 2));
+      if (p.x < -length || p.y < -length || p.x > width + length || p.y > height + length) continue;
+      const angle = r[5] || r[6] ? Math.atan2(-r[6], r[5]) : -r[7];
+      const c = Math.cos(angle), s = Math.sin(angle);
+      ctx.setTransform(dpr * c, dpr * s, -dpr * s, dpr * c, p.x * dpr, p.y * dpr);
+      drawEffectSprite(projectileSprites.get(r[2]), 0, 0, length);
     }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     for (const r of snapshot.ships) {
       const p = screen(r),
         sprite = sprites.get(r[2]);
@@ -587,7 +603,7 @@
         const h = size * 1.5,
           w = (h * sprite.width) / sprite.height;
         ctx.drawImage(
-          atlas,
+          atlas[r[1] === 0 ? 0 : 1],
           sprite.x,
           sprite.y,
           sprite.width,
@@ -599,21 +615,8 @@
         );
       }
       ctx.restore();
-      if ([5, 6, 8, 9, 10].includes(r[2])) {
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(-r[7]);
-        ctx.fillStyle = "#272e31";
-        ctx.fillRect(-size * 0.08, -size * 0.055, size * 0.2, size * 0.11);
-        ctx.fillStyle = "#465155";
-        ctx.fillRect(size * 0.08, -size * 0.035, size * 0.52, size * 0.07);
-        ctx.fillStyle = "#303a3d";
-        ctx.fillRect(size * 0.43, -size * 0.05, size * 0.055, size * 0.1);
-        ctx.strokeStyle = r[1] === 0 ? "#4596a0" : "#b39350";
-        ctx.lineWidth = Math.max(0.6, size * 0.012);
-        ctx.strokeRect(size * 0.57, -size * 0.045, size * 0.035, size * 0.09);
-        ctx.restore();
-      }
+      if ([5, 6, 8, 9, 10].includes(r[2]))
+        drawGun(p, Math.max(1.5, size * 0.12), r[7], 4, 0, r[11], r[1]);
       ctx.strokeStyle = r[1] === 0 ? "#5de4f1" : "#ff686f";
       ctx.lineWidth = 1.2;
       ctx.beginPath();
@@ -630,21 +633,53 @@
     for (const r of snapshot.turrets) {
       const p = screen(r), radius = Math.max(1.4, r[8] * scale);
       if (p.x < -radius * 4 || p.y < -radius * 4 || p.x > width + radius * 4 || p.y > height + radius * 4) continue;
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(-r[7]);
-      ctx.fillStyle = color(r);
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, 0, Math.PI * 2);
-      ctx.fill();
-      const recoil = Math.max(0, Math.min(1, r[10])) * radius * 0.7;
-      ctx.fillStyle = r[11] > 0.75 ? "#aa754c" : "#65777b";
-      ctx.fillRect(-recoil, -radius * 0.32, radius * 2.7, radius * 0.64);
-      ctx.fillStyle = r[1] === 0 ? "#458d94" : "#aa8549";
-      ctx.fillRect(radius * 2.15 - recoil, -radius * 0.42, radius * 0.55, radius * 0.84);
-      ctx.restore();
+      drawGun(p, radius, r[7], r[2], r[10], r[11], r[1]);
     }
+    // Contact and warp arrival flashes remain visible over the hull.
+    for (const r of snapshot.particles) {
+      if (r[2] === 3 || r[2] === 6 || r[2] === 7) drawParticle(r, scale);
+    }
+    ctx.globalAlpha = 1;
     $("zoom-label").textContent = Math.round(camera.zoom * 100) + "%";
+  }
+  function drawParticle(r, scale) {
+    const isWarp = r[2] >= 4;
+    const p = screen(r), sprite = isWarp ? warpSprites.get(r[2] - 4) : particleSprites.get(r[2]);
+    const source = isWarp ? warpAtlas : effectsAtlas;
+    const size = Math.max(2, r[8] * scale * 2);
+    if (p.x < -size || p.y < -size || p.x > width + size || p.y > height + size) return;
+    ctx.globalAlpha = Math.max(0, Math.min(1, r[15]));
+    if (r[7] === 0) drawEffectSprite(sprite, p.x, p.y, size, source);
+    else {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(-r[7]);
+      drawEffectSprite(sprite, 0, 0, size, source); ctx.restore();
+    }
+  }
+  function drawEffectSprite(sprite, x, y, extent, source = effectsAtlas) {
+    const scale = extent / Math.max(sprite.width, sprite.height);
+    ctx.drawImage(source, sprite.x, sprite.y, sprite.width, sprite.height,
+      x - sprite.pivotX * scale, y - sprite.pivotY * scale,
+      sprite.width * scale, sprite.height * scale);
+  }
+  function drawGunSprite(sprite, radius, source) {
+    const unit = (radius * 2) / sprite.width;
+    ctx.drawImage(source, sprite.x, sprite.y, sprite.width, sprite.height,
+      -sprite.pivotX * unit, -sprite.pivotY * unit,
+      sprite.width * unit, sprite.height * unit);
+  }
+  function drawGun(p, radius, angle, kind, recoil, heat, team) {
+    const source = gunAtlas[team === 0 ? 0 : 1];
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    drawGunSprite(gunSprites.get(-1), radius, source);
+    ctx.rotate(Math.PI / 2 - angle);
+    ctx.translate(0, Math.max(0, Math.min(1, recoil)) * radius * 0.7);
+    drawGunSprite(gunSprites.get(kind), radius, source);
+    ctx.restore();
+    ctx.fillStyle = heat > 0.75 ? "#d17a3d" : teamPaint[team === 0 ? 0 : 1];
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.5, radius * 0.15), 0, Math.PI * 2);
+    ctx.fill();
   }
   function updateUI() {
     if (!ready || !snapshot) return;
@@ -807,6 +842,8 @@
       runtimeMode = bridge.Mode();
       if (
         runtimeMode !== "aot-binary" &&
+        runtimeMode !== "coreclr-r2r-binary" &&
+        runtimeMode !== "coreclr-interpreter-binary" &&
         runtimeMode !== "interpreter-binary"
       ) {
         throw new Error("Unsupported simulation runtime mode: " + runtimeMode);
@@ -820,6 +857,85 @@
       atlas = new Image();
       atlas.src = "assets/ships-atlas.png";
       await atlas.decode();
+      atlas = prepareTeamAtlases(atlas);
+      const gunManifest = await fetch("assets/guns-atlas.json");
+      if (!gunManifest.ok) throw new Error("Gun atlas manifest: " + gunManifest.status);
+      const gunData = await gunManifest.json();
+      const gunImage = new Image();
+      gunImage.src = "assets/guns-atlas.png";
+      await gunImage.decode();
+      if (gunData.width !== gunImage.naturalWidth || gunData.height !== gunImage.naturalHeight || gunData.alphaThreshold !== 32)
+        throw new Error("Gun atlas dimensions or alpha threshold mismatch");
+      gunSprites = new Map();
+      for (const s of gunData.sprites) {
+        if (!Number.isInteger(s.kind) || s.kind < -1 || s.kind > 4 || gunSprites.has(s.kind) ||
+            ![s.x, s.y, s.width, s.height].every(Number.isInteger) || s.x < 0 || s.y < 0 || s.width < 1 || s.height < 1 ||
+            s.x + s.width > gunData.width || s.y + s.height > gunData.height ||
+            !Number.isFinite(s.pivotX) || !Number.isFinite(s.pivotY) || s.pivotX < 0 || s.pivotY < 0 || s.pivotX > s.width || s.pivotY > s.height)
+          throw new Error("Invalid gun sprite rectangle, kind or pivot");
+        gunSprites.set(s.kind, s);
+      }
+      if (gunSprites.size !== 6) throw new Error("Gun atlas needs a mount and all five weapon kinds");
+      gunAtlas = prepareTeamAtlases(gunImage, gunData.alphaThreshold);
+      const effectsManifest = await fetch("assets/effects-atlas.json");
+      if (!effectsManifest.ok) throw new Error("Effects atlas manifest: " + effectsManifest.status);
+      const effectsData = await effectsManifest.json();
+      const effectsImage = new Image(); effectsImage.src = "assets/effects-atlas.png";
+      await effectsImage.decode();
+      if (effectsData.width !== effectsImage.naturalWidth || effectsData.height !== effectsImage.naturalHeight || effectsData.alphaThreshold !== 32)
+        throw new Error("Effects atlas dimensions or alpha threshold mismatch");
+      projectileSprites = new Map(); particleSprites = new Map();
+      for (const s of effectsData.sprites) {
+        const map = s.family === "projectile" ? projectileSprites : s.family === "particle" ? particleSprites : null;
+        if (!map || !Number.isInteger(s.kind) || s.kind < 0 || s.kind > (s.family === "projectile" ? 4 : 3) || map.has(s.kind) ||
+            ![s.x, s.y, s.width, s.height].every(Number.isInteger) || s.x < 0 || s.y < 0 || s.width < 1 || s.height < 1 ||
+            s.x + s.width > effectsData.width || s.y + s.height > effectsData.height ||
+            !Number.isFinite(s.pivotX) || !Number.isFinite(s.pivotY) || s.pivotX < 0 || s.pivotY < 0 || s.pivotX >= s.width || s.pivotY >= s.height)
+          throw new Error("Invalid effects sprite family, kind, rectangle or pivot");
+        if (s.family === "particle" && (s.width !== s.height || s.pivotX !== s.width / 2 || s.pivotY !== s.height / 2))
+          throw new Error("Particle sprites need square cells and centered pivots");
+        map.set(s.kind, s);
+      }
+      if (projectileSprites.size !== 5 || particleSprites.size !== 4)
+        throw new Error("Effects atlas needs all five projectile kinds and four particle kinds");
+      // Alpha cleanup is a one-time load operation; preserve the source PNG.
+      effectsAtlas = document.createElement("canvas");
+      effectsAtlas.width = effectsData.width; effectsAtlas.height = effectsData.height;
+      const effectsContext = effectsAtlas.getContext("2d", { willReadFrequently: true });
+      effectsContext.drawImage(effectsImage, 0, 0);
+      const effectPixels = effectsContext.getImageData(0, 0, effectsData.width, effectsData.height);
+      for (let i = 3; i < effectPixels.data.length; i += 4)
+        if (effectPixels.data[i] <= effectsData.alphaThreshold) effectPixels.data[i] = 0;
+      effectsContext.putImageData(effectPixels, 0, 0);
+      const warpManifest = await fetch("assets/warp-atlas.json");
+      if (!warpManifest.ok) throw new Error("Warp atlas manifest: " + warpManifest.status);
+      const warpData = await warpManifest.json();
+      const warpImage = new Image(); warpImage.src = "assets/warp-atlas.png";
+      await warpImage.decode();
+      if (warpData.width !== warpImage.naturalWidth || warpData.height !== warpImage.naturalHeight ||
+          warpData.alphaThreshold !== 32 || warpData.width !== warpData.height || warpData.width % 2 !== 0)
+        throw new Error("Warp atlas needs matching dimensions, a square 2x2 grid and alpha threshold 32");
+      warpSprites = new Map();
+      const warpCell = warpData.width / 2;
+      for (const s of warpData.sprites) {
+        if (!Number.isInteger(s.kind) || s.kind < 0 || s.kind > 3 || warpSprites.has(s.kind) ||
+            (Object.hasOwn(s, "family") && s.family !== "warp") ||
+            ![s.x, s.y, s.width, s.height].every(Number.isInteger) || s.width < 1 || s.width !== s.height ||
+            s.x < (s.kind % 2) * warpCell || s.y < Math.floor(s.kind / 2) * warpCell ||
+            s.x + s.width > (s.kind % 2 + 1) * warpCell || s.y + s.height > (Math.floor(s.kind / 2) + 1) * warpCell ||
+            s.pivotX !== s.width / 2 || s.pivotY !== s.height / 2)
+          throw new Error("Warp sprites need unique kinds, square crops inside their own quadrant and centered pivots");
+        warpSprites.set(s.kind, s);
+      }
+      if (warpSprites.size !== 4) throw new Error("Warp atlas needs all four kinds 0 through 3");
+      warpAtlas = document.createElement("canvas");
+      warpAtlas.width = warpData.width; warpAtlas.height = warpData.height;
+      const warpContext = warpAtlas.getContext("2d", { willReadFrequently: true });
+      warpContext.drawImage(warpImage, 0, 0);
+      const warpPixels = warpContext.getImageData(0, 0, warpData.width, warpData.height);
+      for (let i = 3; i < warpPixels.data.length; i += 4)
+        if (warpPixels.data[i] <= warpData.alphaThreshold) warpPixels.data[i] = 0;
+      warpContext.putImageData(warpPixels, 0, 0);
       ready = true;
       reset();
       if (!ready) return;
@@ -1082,6 +1198,13 @@
       })),
     };
   }
+  function reinforcements() {
+    if (!ready) return null;
+    const fields = ["wave", "corner", "composition", "pending", "ArrivalTick", "NextSpawnTick", "EndTick", "X", "Y", "Active"];
+    return [0, 1].map((team) => Object.fromEntries(
+      fields.map((name, field) => [name, bridge.Reinforcement(team, field)]),
+    ));
+  }
   window.render_game_to_text = () =>
     JSON.stringify({
       ready,
@@ -1093,8 +1216,15 @@
       binary: snapshot?.binary,
       renderCounts: snapshot ? Object.fromEntries(["ships", "projectiles", "debris", "particles", "turrets"].map((key) => [key, snapshot[key].length])) : {},
       counters: snapshot?.counters || {},
+      pendingReinforcements: snapshot?.pendingReinforcements ?? 0,
+      reinforcements: reinforcements(),
       checksum: ready ? bridge.Checksum() : undefined,
       runtimeMode,
+      visualAssets: { gunsAtlas: Boolean(gunAtlas), gunKinds: gunSprites ? [...gunSprites.keys()] : [],
+        teamTint: { palette: teamPalette, hullTextures: atlas?.length ?? 0, gunTextures: gunAtlas?.length ?? 0 },
+        effectsAtlas: Boolean(effectsAtlas), projectileKinds: projectileSprites ? [...projectileSprites.keys()] : [],
+        particleKinds: particleSprites ? [...particleSprites.keys()] : [],
+        warpAtlas: Boolean(warpAtlas), warpKinds: warpSprites ? [...warpSprites.keys()] : [] },
       revision: snapshot?.revision,
       tactics: tacticCounters(),
       statistics: statistics(),
@@ -1141,6 +1271,8 @@
     },
     validate: () => bridge.Validate(),
     tactics,
+    reinforcements,
+    aliveTeamCounts: () => snapshot?.aliveTeams.slice() ?? [0, 0],
     statistics,
     refresh: () => {
       accept(bridge.Snapshot());

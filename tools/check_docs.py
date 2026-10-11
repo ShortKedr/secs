@@ -12,12 +12,12 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 DOCUMENTS = [
     "README.md", "SECS.Benchmarks/README.md", "SpaceBattle.Game/README.md",
-    "SpaceBattle.Web/README.md",
+    "SpaceBattle.Web/README.md", "SpaceBattle.Web.CoreClr/README.md",
     "SpaceBattle.Game/Assets/PROVENANCE.md", "SpaceBattle.Adapters/README.md",
     "docs/SECS_OPTIMIZATION.md", "docs/benchmarks/optimization-methodology.md",
     "docs/space-battle/README.md", "docs/space-battle/PLAN.md",
-    "docs/space-battle/SYSTEMS.md", "docs/space-battle/TACTICS.md", "docs/space-battle/ARMAMENT.md", "docs/space-battle/COVER.md", "docs/space-battle/PERFORMANCE_INVESTIGATION.md", "docs/space-battle/REPORT.md",
-    "tools/performance/README.md",
+    "docs/space-battle/SYSTEMS.md", "docs/space-battle/TACTICS.md", "docs/space-battle/ARMAMENT.md", "docs/space-battle/REINFORCEMENTS.md", "docs/space-battle/COVER.md", "docs/space-battle/PERFORMANCE_INVESTIGATION.md", "docs/space-battle/REPORT.md",
+    "docs/space-battle/SPATIAL_OPTIMIZATION.md", "tools/performance/README.md",
     "Benchmarks.Local/README.md", "THIRD_PARTY_NOTICES.md",
 ]
 

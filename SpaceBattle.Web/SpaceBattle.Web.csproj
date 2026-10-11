@@ -19,6 +19,12 @@
     <ProjectReference Include="../SpaceBattle.SECS/SpaceBattle.SECS.csproj" />
     <Content Include="../SpaceBattle.Game/Assets/ships-atlas.png" Link="wwwroot/assets/ships-atlas.png" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../SpaceBattle.Game/Assets/ships-atlas.json" Link="wwwroot/assets/ships-atlas.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/guns-atlas.png" Link="wwwroot/assets/guns-atlas.png" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/guns-atlas.json" Link="wwwroot/assets/guns-atlas.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/effects-atlas.png" Link="wwwroot/assets/effects-atlas.png" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/effects-atlas.json" Link="wwwroot/assets/effects-atlas.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/warp-atlas.png" Link="wwwroot/assets/warp-atlas.png" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../SpaceBattle.Game/Assets/warp-atlas.json" Link="wwwroot/assets/warp-atlas.json" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../SpaceBattle.Game/Assets/PROVENANCE.md" Link="wwwroot/licenses/ARTWORK.md" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

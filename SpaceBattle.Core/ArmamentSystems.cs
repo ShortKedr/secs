@@ -4,9 +4,18 @@ namespace SpaceBattle;
 
 public static class ArmamentRules
 {
-    public const string Revision = "mounted-armament-v3";
+    public const string Revision = "mounted-armament-v7";
     public const float TurretTurnRate = 5, TurretAimTolerance = 0.08f, MainAimTolerance = 0.12f;
     public const int TurretDecisionTicks = 30, RecoilTicks = 9;
+
+    public static int InitialHeavyChargeTicks(Weapon weapon, float churn, uint seed, int serial)
+    {
+        var cooldown = Math.Max(1, (int)(weapon.Cooldown / churn));
+        var minimum = (cooldown + 1) / 2;
+        // A separate stream staggers births without changing fleet placement or shot spread.
+        var rng = new RandomStream(seed ^ unchecked((uint)serial * 0x9E3779B9u) ^ 0xD1B54A35u);
+        return minimum + (int)(rng.Next() % (uint)(cooldown - minimum + 1));
+    }
 }
 
 // Nongeneric value types avoid Mono WASM AOT generic calling-convention pitfalls.
@@ -15,9 +24,13 @@ internal readonly record struct ShotRequest(EntityKey Owner, EntityKey Target, i
 
 public sealed partial class Battle<TStore>
 {
+    private readonly Dictionary<EntityKey, List<MovingRow>> attachedGuns = new();
+    private readonly List<int> turretCandidates = new();
     private void SpawnTurrets(EntityKey parent, Identity id, Transform ship)
     {
         var count = ShipCatalog.TurretCount(id.Class);
+        if (count == 0) return;
+        var guns = new List<MovingRow>(count); attachedGuns.Add(parent, guns);
         var radius = ShipCatalog.Radius(id.Class);
         for (var slot = 0; slot < count; slot++)
         {
@@ -32,6 +45,7 @@ public sealed partial class Battle<TStore>
             Store.Set(gun, ShipCatalog.TurretWeapon(id.Class, slot));
             Store.Set(gun, new Heat { Limit = 60, CoolingPerSecond = 12 });
             turrets.Add(new(gun, number)); Counters.StructuralAdds += 4;
+            guns.Add(new(gun, number));
         }
     }
 
@@ -78,8 +92,10 @@ public sealed partial class Battle<TStore>
                 else
                 {
                     var best = float.PositiveInfinity;
-                    foreach (var ship in ships)
+                    tacticalPoints.Query(transform.Position, weapon.Range, turretCandidates);
+                    foreach (var candidate in turretCandidates)
                     {
+                        var ship = aiRows[candidate];
                         if (!TurretTargetAvailable(ship.Entity, id.Team, transform.Position, weapon.Range)) continue;
                         var cost = Vector2.DistanceSquared(transform.Position, ship.Transform.Position);
                         if (cost < best) { best = cost; mount.Target = ship.Entity; }
@@ -114,18 +130,29 @@ public sealed partial class Battle<TStore>
 
     private static float MuzzleDistance(Vector2 offset, Vector2 direction, float radius)
     {
-        // Launch outside the parent's enclosing circle without granting owner collision immunity.
+        // Keep the muzzle outside the parent's enclosing circle regardless of owner filtering.
         var projection = Vector2.Dot(offset, direction);
         return MathF.Max(0, -projection + MathF.Sqrt(MathF.Max(0, projection * projection + radius * radius - offset.LengthSquared())));
     }
 
+    private void RefreshTurretAttachments()
+    {
+        foreach (var guns in attachedGuns.Values) guns.Clear();
+        foreach (var row in turrets)
+        {
+            var parent = Store.Get<MountedTurret>(row.Entity).Parent;
+            if (!attachedGuns.TryGetValue(parent, out var guns)) attachedGuns.Add(parent, guns = new());
+            guns.Add(row);
+        }
+    }
+
     private void DestroyTurrets(EntityKey parent)
     {
-        for (var i = turrets.Count - 1; i >= 0; i--)
+        if (!attachedGuns.Remove(parent, out var guns)) return;
+        // Retain reverse attachment destruction order; compact the global list once per tick.
+        for (var i = guns.Count - 1; i >= 0; i--)
         {
-            var gun = turrets[i].Entity;
-            if (Store.Get<MountedTurret>(gun).Parent != parent) continue;
-            Store.Destroy(gun); turrets.RemoveAt(i); Counters.StructuralRemoves += 4;
+            Store.Destroy(guns[i].Entity); Counters.StructuralRemoves += 4;
         }
     }
 }

@@ -6,28 +6,32 @@ internal static partial class Validation
     private static void ArmamentChecks()
     {
         ArmamentCatalogChecks();
+        ArmamentSpawnChargeChecks();
+        ArmamentInitialChargeChecks();
         ArmamentEntityChecks();
         ArmamentPoseChecks();
         ArmamentIndependentChecks();
         ArmamentLaunchChecks();
         ArmamentNeutralCollisionChecks();
         ArmamentHeavyChecks();
+        ArmamentCatalogTurretChecks();
+        ArmamentEscortImpactChecks();
         ArmamentDockAndDeathChecks();
         Require(ArmamentReplay() == ArmamentReplay(), "mounted armament deterministic replay");
-        Console.WriteLine("PASS: armament catalog, mount ECS/physics isolation, rotating poses, independent targets/heat/cooldowns, swivel/alignment, safe inherited launch, heavy power/repeat, docking/death and replay.");
+        Console.WriteLine("PASS: armament catalog/eighth-DPS mounts, seeded spawn charge/first-shot deadlines, mount ECS/physics isolation, rotating poses, independent targets/heat/cooldowns, swivel/alignment, safe inherited launch, heavy power/repeat, catalog turret cadence/damage, escort/carrier impact separation, docking/death and replay.");
     }
 
     private static void ArmamentCatalogChecks()
     {
-        Require((int)WeaponKind.HeavyCannon == 4 && ArmamentRules.Revision == "mounted-armament-v3", "armament wire kind and revision");
+        Require((int)WeaponKind.HeavyCannon == 4 && ArmamentRules.Revision == "mounted-armament-v7", "armament wire kind and revision");
         Require(TacticalRules.Revision == "tactical-lock-v2", "armament preserves tactical revision");
         foreach (var kind in Enum.GetValues<ShipClass>())
         {
             var (count, damage, cooldown) = kind switch
             {
-                ShipClass.Frigate => (2, 160f, 210), ShipClass.Destroyer => (2, 240f, 240),
-                ShipClass.LightCarrier => (4, 480f, 360), ShipClass.FleetCarrier => (6, 640f, 420),
-                ShipClass.FoundryCarrier => (8, 800f, 480), _ => (0, 0f, 0)
+                ShipClass.Frigate => (2, 60f, 720), ShipClass.Destroyer => (2, 80f, 840),
+                ShipClass.LightCarrier => (4, 480f, 1080), ShipClass.FleetCarrier => (6, 640f, 1320),
+                ShipClass.FoundryCarrier => (8, 800f, 1560), _ => (0, 0f, 0)
             };
             Require(ShipCatalog.IsWeaponsPlatform(kind) == (count > 0) && ShipCatalog.TurretCount(kind) == count, kind + " platform/count");
             var primary = ShipCatalog.Primary(kind);
@@ -45,10 +49,156 @@ internal static partial class Validation
                 continue;
             }
             Require(primary.Kind == WeaponKind.HeavyCannon && primary.Damage == damage && primary.Cooldown == cooldown && primary.Burst == 1, kind + " heavy progression");
+            Require(primary.Speed == 170 && primary.Range == (ShipCatalog.IsCarrier(kind) ? 220 : 170) &&
+                primary.HeatPerShot == (ShipCatalog.IsCarrier(kind) ? 40 : 25), kind + " unchanged heavy ballistics/heat");
             var kinds = Enumerable.Range(0, count).Select(slot => ShipCatalog.TurretWeapon(kind, slot)).ToArray();
             Require(kinds.All(w => (w.Kind is WeaponKind.Cannon or WeaponKind.Plasma) && w.Damage > 0 && w.Cooldown > 0 && w.Range > 0 && w.Speed > 0), kind + " regular mount weapons");
             Require(kinds.Select(w => w.Kind).Distinct().Count() == 2, kind + " mixed cannon/plasma mounts");
+            Require(kinds.All(w => w.Damage == (w.Kind == WeaponKind.Cannon ? 7f : 3.25f) &&
+                w.Cooldown == (w.Kind == WeaponKind.Cannon ? 84 : 36)), kind + " quarter-power double-cooldown mounts");
+            Require(kinds.All(w => w.Range == (ShipCatalog.IsCarrier(kind) ? 150 : 120) && w.Burst == 1 &&
+                w.Speed == (w.Kind == WeaponKind.Cannon ? 100 : 75) &&
+                w.HeatPerShot == (w.Kind == WeaponKind.Cannon ? 6.5f : 3.5f)), kind + " unchanged mount ballistics/heat");
+            var v5BatteryDps = kinds.Sum(w => w.Kind == WeaponKind.Cannon ? 28d / 42 : 13d / 18) * 60;
+            var batteryDps = kinds.Sum(w => (double)w.Damage * w.Burst / w.Cooldown) * 60;
+            Require(Math.Abs(batteryDps * 8 - v5BatteryDps) < 0.000001, kind + " mounted battery DPS is one eighth of v5");
         }
+        var frigate = ShipCatalog.Primary(ShipClass.Frigate).Damage;
+        var destroyer = ShipCatalog.Primary(ShipClass.Destroyer).Damage;
+        var lightCarrier = ShipCatalog.Primary(ShipClass.LightCarrier).Damage;
+        Require(frigate > 0 && frigate < destroyer && destroyer * 6 <= lightCarrier,
+            "escort heavy guns retained below carrier class power");
+    }
+
+    private static void ArmamentSpawnChargeChecks()
+    {
+        foreach (var churn in new[] { 0.5f, 1f, 2f, 8f })
+        {
+            var first = ArmamentFleetCharge(27, churn);
+            Require(first.SequenceEqual(ArmamentFleetCharge(27, churn)), $"same-seed initial fleet charge/placement churn={churn}");
+            Require(first.GroupBy(s => s.Kind).All(group => group.Select(s => s.Ready).Distinct().Count() > 1),
+                $"initial fleet charge varies within each heavy class churn={churn}");
+            var other = ArmamentFleetCharge(28, churn);
+            Require(first.Select(s => s.Ready).Where((ready, i) => ready != other[i].Ready).Any(),
+                $"different seed changes initial charge churn={churn}");
+        }
+        // Odd cooldowns round the lower bound upward; the one-tick clamp stays ready after one tick.
+        foreach (var cooldown in new[] { 0, 1, 5 })
+        {
+            var weapon = new Weapon { Kind = WeaponKind.HeavyCannon, Cooldown = cooldown };
+            var charges = Enumerable.Range(1, 128).Select(serial => ArmamentRules.InitialHeavyChargeTicks(weapon, 1, 27, serial)).ToArray();
+            var maximum = Math.Max(1, cooldown);
+            Require(charges.All(charge => charge >= (maximum + 1) / 2 && charge <= maximum) &&
+                charges.Min() == (maximum + 1) / 2 && charges.Max() == maximum, "charge rounded-half bounds and clamp");
+        }
+    }
+
+    private static (int Serial, ShipClass Kind, Vector2 Position, int Ready)[] ArmamentFleetCharge(uint seed, float churn)
+    {
+        using var battle = new Battle<SecsStore>(new(), new BattleConfig
+        { ShipsPerTeam = 16, Seed = seed, ChurnMultiplier = churn, ParticleMultiplier = 0, ReplenishCarriers = false });
+        var frame = new BattleFrame(); battle.Capture(frame);
+        var placement = new RandomStream(seed);
+        foreach (var ship in frame.Ships.OrderBy(s => s.Team).ThenBy(s => s.Serial))
+        {
+            Require(battle.TryFindShip(ship.Serial, out var e), "spawn charge ship lookup");
+            var weapon = battle.Store.Get<Weapon>(e);
+            if (weapon.Kind == WeaponKind.HeavyCannon)
+            {
+                var maximum = Math.Max(1, (int)(weapon.Cooldown / churn));
+                Require(weapon.NextFireTick >= (maximum + 1) / 2 && weapon.NextFireTick <= maximum,
+                    $"spawned heavy half/full charge bounds serial={ship.Serial} churn={churn}");
+                Require(weapon.NextFireTick == ArmamentExpectedCharge(weapon, churn, seed, ship.Serial),
+                    "spawned heavy uses independent seed/serial charge stream");
+            }
+            else Require(weapon.NextFireTick == 0, "normal spawned primary remains ready at zero");
+            if (battle.Store.Has<SecondaryWeapon>(e))
+                Require(battle.Store.Get<SecondaryWeapon>(e).Value.NextFireTick == 0, "normal spawned secondary remains ready at zero");
+            Require(MountedGuns(battle, e).All(g => battle.Store.Get<Weapon>(g).NextFireTick == 0), "normal spawned turrets remain ready at zero");
+            if (!ShipCatalog.IsCarrier((ShipClass)ship.Kind))
+            {
+                var expected = new Vector2((ship.Team == 0 ? -1 : 1) * placement.Range(40, 72), placement.Range(-65, 65));
+                Require(ship.Position == expected, "heavy charge does not consume fleet placement RNG");
+            }
+        }
+        battle.Validate();
+        return frame.Ships.Where(s => ShipCatalog.IsWeaponsPlatform((ShipClass)s.Kind)).OrderBy(s => s.Serial)
+            .Select(s => { battle.TryFindShip(s.Serial, out var e); return (s.Serial, (ShipClass)s.Kind, s.Position, battle.Store.Get<Weapon>(e).NextFireTick); }).ToArray();
+    }
+
+    private static int ArmamentExpectedCharge(Weapon weapon, float churn, uint seed, int serial)
+    {
+        var maximum = Math.Max(1, (int)(weapon.Cooldown / churn));
+        var minimum = (maximum + 1) / 2;
+        var stream = new RandomStream(seed ^ unchecked((uint)serial * 0x9E3779B9u) ^ 0xD1B54A35u);
+        return minimum + (int)(stream.Next() % (uint)(maximum - minimum + 1));
+    }
+
+    private static void ArmamentInitialChargeChecks()
+    {
+        foreach (var churn in new[] { 0.5f, 1f, 2f, 8f })
+        foreach (var kind in new[] { ShipClass.Frigate, ShipClass.Destroyer, ShipClass.LightCarrier, ShipClass.FleetCarrier, ShipClass.FoundryCarrier })
+        {
+            var first = ArmamentChargeScene(kind, churn);
+            Require(first == ArmamentChargeScene(kind, churn), $"fixed-scene charge/deadline replay kind={kind} churn={churn}");
+        }
+    }
+
+    private static (int Ready, ulong Checksum) ArmamentChargeScene(ShipClass kind, float churn)
+    {
+        using var battle = ArmamentBattle(churn);
+        for (var i = 0; i < 37; i++) battle.Step();
+        var birth = battle.Tick;
+        // Capture real SpawnShip readiness before the tactical helpers can replace it with int.MaxValue.
+        var parent = battle.SpawnShip(0, kind, Vector2.Zero, EntityKey.None);
+        battle.Store.Commit();
+        var weapon = battle.Store.Get<Weapon>(parent);
+        var serial = battle.Store.Get<Identity>(parent).Serial;
+        var deadline = weapon.NextFireTick;
+        Require(deadline == birth + ArmamentExpectedCharge(weapon, churn, battle.Config.Seed, serial),
+            $"late spawn absolute heavy readiness kind={kind} churn={churn}");
+        battle.Store.Get<Motion>(parent) = default;
+        battle.Store.Get<Brain>(parent) = new Brain { Mode = BrainMode.Patrol, NextDecisionTick = int.MaxValue,
+            Target = EntityKey.None, Home = EntityKey.None, SquadLeader = EntityKey.None, CoverAlly = EntityKey.None };
+        battle.Store.Get<Inventory>(parent).NextUseTick = int.MaxValue;
+        if (battle.Store.Has<Carrier>(parent)) battle.Store.Get<Carrier>(parent).NextBuildTick = int.MaxValue;
+        TacticalDurability(battle, parent, 10000);
+        var target = ArmamentActor(battle, 1, ShipClass.FleetCarrier, new(80, 0));
+        ArmamentAttack(battle, parent, target);
+        var guns = MountedGuns(battle, parent);
+        foreach (var gun in guns)
+        {
+            Require(battle.Store.Get<Weapon>(gun).NextFireTick == 0, "late spawned mounted gun initially ready");
+            battle.Store.Get<MountedTurret>(gun).Target = target;
+            battle.Store.Get<MountedTurret>(gun).NextDecisionTick = int.MaxValue;
+            ArmamentAim(battle, gun);
+        }
+        battle.Step();
+        Require(battle.Counters.HeavyShots == 0 && battle.Counters.TurretShots == guns.Count &&
+            battle.Store.Get<Weapon>(parent).NextFireTick == deadline, "regular mounted guns fire while heavy charges");
+        foreach (var gun in guns)
+        {
+            var regular = battle.Store.Get<Weapon>(gun);
+            Require(regular.NextFireTick == battle.Tick + Math.Max(1, (int)(regular.Cooldown / churn)),
+                "charging scene retains regular mounted churn scaling");
+        }
+        FreezeMountedGuns(battle, parent);
+        while (battle.Tick < deadline - 1)
+        {
+            battle.Store.Get<Transform>(parent).Angle = 0;
+            battle.Step();
+            Require(battle.Counters.HeavyShots == 0 && battle.Store.Get<Weapon>(parent).NextFireTick == deadline,
+                "heavy with aligned in-range target blocked until initial deadline");
+        }
+        battle.Store.Get<Transform>(parent).Angle = 0;
+        battle.Step();
+        Require(battle.Tick == deadline && battle.Counters.HeavyShots == 1 &&
+            battle.Store.Get<Weapon>(parent).NextFireTick == deadline + Math.Max(1, (int)(weapon.Cooldown / churn)),
+            "heavy first shot exactly at initial deadline then full churn-scaled cooldown");
+        Require(ArmamentProjectiles(battle).Count(e => battle.Store.Get<Projectile>(e).Kind == WeaponKind.HeavyCannon &&
+            battle.Store.Get<Projectile>(e).Owner == parent) == 1, "initial deadline emits actual heavy projectile");
+        battle.Validate();
+        return (deadline, battle.Checksum());
     }
 
     private static void ArmamentEntityChecks()
@@ -260,6 +410,112 @@ internal static partial class Validation
             battle.Store.Get<Transform>(parent).Angle = 0; battle.Step();
             Require(battle.Tick == deadline && battle.Counters.Shots == 2 && battle.Store.Get<Weapon>(parent).NextFireTick == deadline + deadline - fired,
                 kind + " heavy repeats exactly at cooldown deadline");
+            battle.Validate();
+        }
+    }
+
+    private static void ArmamentCatalogTurretChecks()
+    {
+        foreach (var churn in new[] { 0.5f, 1f, 2f })
+        foreach (var kind in new[] { ShipClass.Frigate, ShipClass.Destroyer, ShipClass.LightCarrier, ShipClass.FleetCarrier, ShipClass.FoundryCarrier })
+        foreach (var weaponKind in new[] { WeaponKind.Cannon, WeaponKind.Plasma })
+        {
+            var checksum = ArmamentCatalogTurretScene(kind, weaponKind, churn);
+            Require(checksum == ArmamentCatalogTurretScene(kind, weaponKind, churn),
+                $"catalog turret cadence/impact deterministic replay kind={kind} weapon={weaponKind} churn={churn}");
+        }
+    }
+
+    private static ulong ArmamentCatalogTurretScene(ShipClass kind, WeaponKind weaponKind, float churn)
+    {
+        using var battle = ArmamentBattle(churn);
+        var parent = ArmamentActor(battle, 0, kind, Vector2.Zero);
+        var target = ArmamentActor(battle, 1, ShipClass.FleetCarrier, new(30, 0));
+        ArmamentAttack(battle, parent, target);
+        var guns = MountedGuns(battle, parent);
+        var gun = guns.First(g => battle.Store.Get<Weapon>(g).Kind == weaponKind);
+        var mount = battle.Store.Get<MountedTurret>(gun);
+        var catalog = ShipCatalog.TurretWeapon(kind, mount.Slot);
+        var damage = weaponKind == WeaponKind.Cannon ? 7f : 3.25f;
+        var interval = (int)((weaponKind == WeaponKind.Cannon ? 84 : 36) / churn);
+        Require(battle.Store.Get<Weapon>(gun).Equals(catalog with { NextFireTick = int.MaxValue }),
+            "spawned isolated turret retains every catalog weapon field");
+        // Absorb exactly one cannon shell; armor rejects its same-tick and later fragments.
+        if (weaponKind == WeaponKind.Cannon)
+        {
+            TacticalDurability(battle, target, 10000, damage, 1);
+            TacticalDurability(battle, parent, 10000, 0, 1);
+        }
+        battle.Store.Get<Weapon>(gun).NextFireTick = 0;
+        battle.Store.Get<MountedTurret>(gun).Target = target;
+        battle.Store.Get<MountedTurret>(gun).NextDecisionTick = int.MaxValue;
+        ArmamentAim(battle, gun);
+        var context = $"kind={kind} weapon={weaponKind} churn={churn}";
+        var impacts = 0;
+        // Include the third impact but stop before the fourth catalog deadline.
+        for (var tick = 1; tick < 1 + 3 * interval; tick++)
+        {
+            battle.Step();
+            var shots = 1 + (tick - 1) / interval;
+            var fired = 1 + (shots - 1) * interval;
+            Require(battle.Counters.Shots == shots && battle.Counters.TurretShots == shots && battle.Counters.HeavyShots == 0 &&
+                battle.Store.Get<Weapon>(gun).NextFireTick == fired + interval &&
+                battle.Store.Get<MountedTurret>(gun).LastFireTick == fired,
+                $"catalog turret exact cadence/no early shots tick={tick} {context}");
+            if (tick == fired)
+            {
+                var projectile = ArmamentProjectiles(battle).Single();
+                var shot = battle.Store.Get<Projectile>(projectile);
+                Require(shot.Kind == weaponKind && shot.Damage == damage && shot.Owner == parent && shot.Target == target &&
+                    MathF.Abs(battle.Store.Get<Motion>(projectile).Velocity.Length() - catalog.Speed) < 0.002f,
+                    $"real catalog turret projectile damage/ballistics {context}");
+            }
+            Require(battle.Counters.Hits == impacts || battle.Counters.Hits == impacts + 1,
+                $"catalog turret isolated single impacts {context}");
+            impacts = (int)battle.Counters.Hits;
+            Require(impacts <= shots && (tick != fired || impacts == shots - 1),
+                $"catalog turret impact follows each launch {context}");
+            if (tick == fired + interval - 1)
+                Require(impacts == shots, $"catalog turret each shot impacts before next deadline {context}");
+            var hull = battle.Store.Get<Hull>(target).Current;
+            if (weaponKind == WeaponKind.Cannon)
+                Require(hull == 10000 && battle.Store.Get<Shield>(target).Current == (impacts == 0 ? damage : 0),
+                    $"catalog cannon applies exactly seven direct shield damage without fragment contamination {context}");
+            else
+                Require(MathF.Abs(10000 - hull - impacts * damage) < 0.001f && battle.Counters.PlasmaShieldHits == 0,
+                    $"catalog plasma applies exact unshielded impact damage {context}");
+            Require(battle.Store.Get<Weapon>(parent).NextFireTick == int.MaxValue &&
+                guns.Where(g => g != gun).All(g => battle.Store.Get<Weapon>(g).NextFireTick == int.MaxValue) &&
+                battle.Store.Get<Hull>(parent).Current == 10000 && battle.Counters.SelfHits == 0 && battle.Counters.FriendlyFireHits == 0,
+                $"catalog turret scene keeps main/sibling guns frozen and damage isolated {context}");
+        }
+        Require(impacts == 3, $"catalog turret three real impacts {context}");
+        battle.Validate();
+        return battle.Checksum();
+    }
+
+    private static void ArmamentEscortImpactChecks()
+    {
+        foreach (var kind in new[] { ShipClass.Frigate, ShipClass.Destroyer, ShipClass.LightCarrier, ShipClass.FleetCarrier, ShipClass.FoundryCarrier })
+        {
+            using var battle = ArmamentBattle();
+            var parent = ArmamentActor(battle, 0, kind, Vector2.Zero);
+            var target = TacticalActor(battle, 1, ShipClass.Frigate, new(80, 0), false);
+            // The same damaged, unshielded target must survive escorts but not carrier guns.
+            battle.Store.Get<Hull>(target).Current = 180;
+            battle.Store.Get<Shield>(target).Current = 0;
+            var armor = battle.Store.Get<Hull>(target).Armor;
+            ArmamentAttack(battle, parent, target);
+            battle.Store.Get<Weapon>(parent).NextFireTick = 0;
+            for (var i = 0; i < 90 && battle.Counters.Hits == 0; i++) battle.Step();
+            Require(battle.Counters.Shots == 1 && battle.Counters.Hits == 1, kind + " single real heavy impact on damaged frigate");
+            Require(battle.Store.Alive(target) != ShipCatalog.IsCarrier(kind), kind + " escort/carrier kill separation");
+            if (battle.Store.Alive(target))
+            {
+                var expected = 180 - ShipCatalog.Primary(kind).Damage * (1 - armor);
+                Require(MathF.Abs(battle.Store.Get<Hull>(target).Current - expected) < 0.01f,
+                    kind + " reduced heavy power still applies armored hull damage");
+            }
             battle.Validate();
         }
     }

@@ -31,11 +31,20 @@ public sealed partial class Battle<TStore>
     private readonly Dictionary<EntityKey, int> aiIndexes = new(), squadIndexes = new();
     private readonly List<Squad> squadBuffers = new();
     private readonly HashSet<int> assignedSquadMembers = new();
+    private readonly SpatialPointIndex tacticalPoints = new();
+    private readonly List<int> tacticalCandidates = new();
+    private readonly SpatialPointIndex squadLeaderPoints = new();
+    private readonly List<int> squadLeaderCandidates = new();
+    private int[] incomingHeads = [], incomingNext = [];
+    private EntityKey[] cachedThreats = [];
+    private bool[] threatCached = [];
+    private float coverQueryRadius;
     private int squadCount, nextFormationTick;
 
     private void PrepareTactics()
     {
         aiRows.Clear(); aiIndexes.Clear(); squadIndexes.Clear(); assignedSquadMembers.Clear(); squadCount = 0;
+        squadLeaderPoints.Clear();
         foreach (var ship in ships)
         {
             var e = ship.Entity;
@@ -45,6 +54,12 @@ public sealed partial class Battle<TStore>
                 Store.Get<Shield>(e), Store.Get<Heat>(e), Store.Get<Weapon>(e),
                 Store.Has<SecondaryWeapon>(e) ? Store.Get<SecondaryWeapon>(e).Value : default,
                 Store.Get<Brain>(e), Store.Get<CombatState>(e), Store.Get<Collider>(e).Radius, Store.Has<Docked>(e)));
+        }
+        tacticalPoints.Clear(); coverQueryRadius = TacticalRules.FormationRange;
+        for (var i = 0; i < aiRows.Count; i++)
+        {
+            tacticalPoints.Add(aiRows[i].Transform.Position, i);
+            coverQueryRadius = MathF.Max(coverQueryRadius, TacticalRules.FormationRange + aiRows[i].Radius);
         }
         var repair = false;
         for (var i = 0; i < aiRows.Count; i++)
@@ -79,7 +94,8 @@ public sealed partial class Battle<TStore>
             {
                 if (!SquadEligible(aiRows[i]) || assignedSquadMembers.Contains(i)) continue;
                 var nearest = -1; var best = TacticalRules.FormationRange * TacticalRules.FormationRange;
-                for (var g = 0; g < squadCount; g++)
+                squadLeaderPoints.Query(aiRows[i].Transform.Position, TacticalRules.FormationRange, squadLeaderCandidates);
+                foreach (var g in squadLeaderCandidates)
                 {
                     var squad = squadBuffers[g];
                     if (squad.Count < 2 || squad.Count >= TacticalRules.MaxSquadSize || aiRows[squad.Leader].Id.Team != aiRows[i].Id.Team) continue;
@@ -91,11 +107,13 @@ public sealed partial class Battle<TStore>
                     var squad = squadBuffers[nearest]; squad.Members[squad.Count++] = i; assignedSquadMembers.Add(i); continue;
                 }
                 var newGroup = NewSquad(i); var fresh = squadBuffers[newGroup]; fresh.Members[fresh.Count++] = i;
+                tacticalPoints.Query(aiRows[i].Transform.Position, TacticalRules.FormationRange, tacticalCandidates);
                 for (var slot = 1; slot < TacticalRules.MaxSquadSize; slot++)
                 {
                     nearest = -1; best = TacticalRules.FormationRange * TacticalRules.FormationRange;
-                    for (var j = i + 1; j < aiRows.Count; j++)
+                    foreach (var j in tacticalCandidates)
                     {
+                        if (j <= i) continue;
                         if (!SquadEligible(aiRows[j]) || aiRows[j].Id.Team != aiRows[i].Id.Team || assignedSquadMembers.Contains(j)) continue;
                         var d = Vector2.DistanceSquared(aiRows[i].Transform.Position, aiRows[j].Transform.Position);
                         if (d < best) { best = d; nearest = j; }
@@ -116,6 +134,7 @@ public sealed partial class Battle<TStore>
         }
         for (var i = 0; i < aiRows.Count; i++)
             aiRows[i] = aiRows[i] with { Brain = Store.Get<Brain>(aiRows[i].Entity) };
+        PrepareThreatIndex();
         for (var g = 0; g < squadCount; g++)
         {
             var squad = squadBuffers[g]; if (squad.Count < 2) continue;
@@ -140,6 +159,7 @@ public sealed partial class Battle<TStore>
     {
         if (squadCount == squadBuffers.Count) squadBuffers.Add(new());
         var squad = squadBuffers[squadCount]; squad.Count = 0; squad.Leader = leader;
+        squadLeaderPoints.Add(aiRows[leader].Transform.Position, squadCount);
         return squadCount++;
     }
     private static bool SquadEligible(AiShipSnapshot row) => !row.Docked && row.Id.Class <= ShipClass.Gunship &&
@@ -272,7 +292,35 @@ public sealed partial class Battle<TStore>
         }
     }
 
+    private void PrepareThreatIndex()
+    {
+        if (incomingHeads.Length < aiRows.Count)
+        {
+            var capacity = Math.Max(aiRows.Count, incomingHeads.Length * 2);
+            incomingHeads = new int[capacity]; incomingNext = new int[capacity];
+            cachedThreats = new EntityKey[capacity]; threatCached = new bool[capacity];
+        }
+        Array.Fill(incomingHeads, -1, 0, aiRows.Count);
+        Array.Clear(threatCached, 0, aiRows.Count);
+        // Prepend in reverse snapshot order to preserve the original ascending tie order.
+        for (var i = aiRows.Count - 1; i >= 0; i--)
+        {
+            var enemy = aiRows[i];
+            if (enemy.Docked || enemy.Brain.Mode != BrainMode.Attack || !aiIndexes.TryGetValue(enemy.Brain.Target, out var target) ||
+                enemy.Id.Team == aiRows[target].Id.Team) continue;
+            incomingNext[i] = incomingHeads[target]; incomingHeads[target] = i;
+        }
+    }
+
     private EntityKey FindThreat(int index)
+    {
+        if (threatCached[index]) return cachedThreats[index];
+        var threat = FindSnapshotThreat(index);
+        cachedThreats[index] = threat; threatCached[index] = true;
+        return threat;
+    }
+
+    private EntityKey FindSnapshotThreat(int index)
     {
         var row = aiRows[index];
         if (Tick - row.Combat.LastDamageTick <= 180 && TargetAvailable(row, row.Combat.LastAttacker))
@@ -282,9 +330,9 @@ public sealed partial class Battle<TStore>
                 return attacker.Entity;
         }
         var nearest = float.PositiveInfinity; var threat = EntityKey.None;
-        foreach (var enemy in aiRows)
+        for (var i = incomingHeads[index]; i >= 0; i = incomingNext[i])
         {
-            if (enemy.Id.Team == row.Id.Team || enemy.Docked || enemy.Brain.Mode != BrainMode.Attack || enemy.Brain.Target != row.Entity) continue;
+            var enemy = aiRows[i];
             var distance = Vector2.DistanceSquared(row.Transform.Position, enemy.Transform.Position);
             var range = MathF.Max(enemy.Primary.Range, enemy.Secondary.Range) * 1.1f;
             if (distance < range * range && distance < nearest) { nearest = distance; threat = enemy.Entity; }
@@ -294,8 +342,10 @@ public sealed partial class Battle<TStore>
     private EntityKey FindCover(int index)
     {
         var row = aiRows[index]; var vitality = Vitality(row); var best = float.NegativeInfinity; var cover = EntityKey.None;
-        foreach (var ally in aiRows)
+        tacticalPoints.Query(row.Transform.Position, coverQueryRadius, tacticalCandidates);
+        foreach (var candidate in tacticalCandidates)
         {
+            var ally = aiRows[candidate];
             if (ally.Id.Team != row.Id.Team || ally.Entity == row.Entity || ally.Docked ||
                 ally.Brain.Mode is BrainMode.Screen or BrainMode.Retreat or BrainMode.Docking ||
                 ally.Hull.Current < ally.Hull.Maximum * 0.65f || Vitality(ally) < vitality + 0.15f) continue;

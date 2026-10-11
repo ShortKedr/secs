@@ -4,9 +4,26 @@ English | [Русский](TACTICS.ru.md)
 
 # Tactical AI
 
-Current gameplay adds [mounted armament `mounted-armament-v3`](ARMAMENT.md).
+Current gameplay adds [mounted armament `mounted-armament-v7`](ARMAMENT.md).
 Target cost now also includes mounted cannon/plasma DPS with their own heat
 budgets. Heavy hull weapons steer toward predicted intercept before firing.
+V6 reduces mount damage/rate in the shared catalog; kill-time estimates use
+those auxiliary values without changing the tactical algorithm.
+
+Tactical revision remains `tactical-lock-v2`: v5 changes only the catalog heavy
+rate feeding AI estimated DPS, not target selection, leases, squads or movement.
+Heavy nominal cooldowns are 12/14/18/22/26 seconds in Frigate/Destroyer/
+LightCarrier/FleetCarrier/Foundry order; low doubles them, high halves them.
+Damage stays 60/80/480/640/800, with range, speed, heat and normal guns unchanged.
+`SpawnShip` sets 50%-100% initial heavy charge of the actual churn-scaled cooldown
+relative to `birthTick`, from seed + ship serial through a local RNG independent
+of battle RNG. Late-built/respawned ships get the same rule, no free first heavy
+volley; turrets start ready as before. This replaces 54 ready heavy weapons in
+the old nominal initial fleet of 198 and old cooldowns of 3.5/4/6/7/8 seconds.
+It changes cadence and sustained firepower, not per-shot lethality, and is initial
+tuning, not balance proof. The estimator does not model this initial readiness.
+V5 passed mechanics validation and all five adapter replays; current correctness
+evidence is documented in [Armament](ARMAMENT.md). No measurements or historical studies are changed.
 
 This describes the implemented `tactical-lock-v2` in
 [TacticalAi.cs](../../SpaceBattle.Core/TacticalAi.cs) and
@@ -122,8 +139,9 @@ shield regeneration, consumable use, detailed missile acceleration/homing,
 projectile caps, current cooldown readiness or future overkill allocation.
 Intercept means an aiming estimate, not shooting down incoming projectiles.
 
-Neutral projectile collision/friendly fire is unchanged: projectiles can damage
-any enabled ship fixture, including allies and their owner; owner/target are not
-team immunity. Actual predictive aim and deterministic spread remain firing
+Friendly fire is unchanged: projectiles can damage any other enabled ship fixture,
+including allies. Armament v7 excludes only the projectile owner (the parent for
+mounted guns), not its team or target; debris and hull contacts stay neutral.
+Actual predictive aim and deterministic spread remain firing
 rules. See the frozen report for its original evidence and attribution limits,
 not validation or performance results for this tactical revision.

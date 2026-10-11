@@ -9,6 +9,8 @@ Local diagnostic study, 2026-10-11. This is not a replacement for the published 
 These archived diagnostics predate [mounted armament](ARMAMENT.md). Their timings
 do not measure the current gun-enabled gameplay.
 
+For the current implementation and before/after results, see [spatial optimization](SPATIAL_OPTIMIZATION.md).
+
 ## Findings
 
 - The dense battle does reproduce roughly 24-27 ms of WASM simulation work, before frame export or drawing.

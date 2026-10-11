@@ -39,6 +39,8 @@ public static unsafe partial class BattleBridge
             battle = new Battle<SecsStore>(store, new BattleConfig
             {
                 Seed = (uint)seed,
+                EndlessReinforcements = true,
+                ReplenishCarriers = false,
                 ChurnMultiplier = requested == 0 ? 0.5f : requested == 1 ? 1f : 2f
             });
         }
@@ -68,6 +70,35 @@ public static unsafe partial class BattleBridge
 
     [JSExport]
     public static string Revision() => ArmamentRules.Revision;
+
+    [JSExport]
+    public static double Reinforcement(int team, int field)
+    {
+        var wave = Current.Reinforcement(team);
+        return field switch
+        {
+            0 => wave.Wave, 1 => wave.Corner, 2 => wave.Composition, 3 => wave.PendingShips,
+            4 => wave.ArrivalTick, 5 => wave.NextSpawnTick, 6 => wave.EndTick,
+            7 => wave.Position.X, 8 => wave.Position.Y, 9 => wave.Active ? 1 : 0,
+            _ => throw new ArgumentOutOfRangeException(nameof(field))
+        };
+    }
+
+    // On-demand work diagnostics stay outside Step timing and the rendering protocol.
+    [JSExport]
+    public static double DiagnosticStage(int stage) => stage >= 0 && stage < Current.LastStageMs.Length
+        ? Current.LastStageMs[stage] : throw new ArgumentOutOfRangeException(nameof(stage));
+
+    [JSExport]
+    public static double DiagnosticPhysicsQuery(int field)
+    {
+        var work = Current.PhysicsQueries;
+        return field switch
+        {
+            0 => work.Sweeps, 1 => work.EmptySweeps, 2 => work.Rays, 3 => work.PointQueries,
+            _ => throw new ArgumentOutOfRangeException(nameof(field))
+        };
+    }
 
     // On-demand diagnostics do not enlarge the per-frame rendering buffer.
     [JSExport]
@@ -103,7 +134,11 @@ public static unsafe partial class BattleBridge
     [JSExport]
     public static string Mode()
     {
-#if WEB_INTERPRETER
+#if WEB_CORECLR_R2R
+        return "coreclr-r2r-binary";
+#elif WEB_CORECLR_INTERPRETER
+        return "coreclr-interpreter-binary";
+#elif WEB_INTERPRETER
         return "interpreter-binary";
 #else
         return "aot-binary";
@@ -115,7 +150,7 @@ public static unsafe partial class BattleBridge
     {
         var started = Stopwatch.GetTimestamp();
         var current = Current;
-        current.Capture(frame);
+        current.Capture(frame, refreshEntities: false);
         int rows = frame.Ships.Count + frame.Projectiles.Count + frame.Debris.Count + frame.Particles.Count + frame.Turrets.Count;
         EnsureCapacity(rows);
         buffer[0] = 3;
@@ -181,7 +216,12 @@ public static unsafe partial class BattleBridge
         buffer[64] = frame.Turrets.Count;
         buffer[65] = c.HeavyShots;
         buffer[66] = c.TurretShots;
-        for (int i = 67; i < HeaderValues; i++) buffer[i] = 0;
+        buffer[67] = c.ReinforcementWaves;
+        buffer[68] = c.ReinforcementShips;
+        buffer[69] = current.Reinforcement(0).PendingShips + current.Reinforcement(1).PendingShips;
+        buffer[70] = current.TeamShipCount(0);
+        buffer[71] = current.TeamShipCount(1);
+        for (int i = 72; i < HeaderValues; i++) buffer[i] = 0;
         double* destination = buffer + HeaderValues;
         CopyRows(frame.Ships, ref destination);
         CopyRows(frame.Projectiles, ref destination);

@@ -5,6 +5,7 @@ namespace SpaceBattle;
 public sealed partial class Battle<TStore>
 {
     private readonly List<(int Tick, SpawnRequest Spawn)> reinforcements = new();
+    private readonly Dictionary<EntityKey, int> occupiedDocks = new(), ownedShips = new();
     private struct WeaponSystem : IProcessor<Identity, Weapon, Brain>
     {
         public Battle<TStore> Battle;
@@ -163,15 +164,15 @@ public sealed partial class Battle<TStore>
         {
             ref var p = ref Store.Get<Projectile>(row.Entity); var t = Store.Get<Transform>(row.Entity);
             if (p.ExpiresTick <= Tick || Outside(t.Position)) { retired.Add(row.Entity); continue; }
-            if (!physics.Sweep(t.Previous, t.Position, p.Radius, out var targetSerial, out var impact)) continue;
+            var ownerSerial = Store.Alive(p.Owner) && Store.Has<Identity>(p.Owner) ? Store.Get<Identity>(p.Owner).Serial : -1;
+            if (!physics.Sweep(t.Previous, t.Position, p.Radius, ownerSerial, out var targetSerial, out var impact)) continue;
             if (!serialToShip.TryGetValue(targetSerial, out var target) || !AliveShip(target)) continue;
             Damage(target, p.Damage, p.Kind == WeaponKind.Plasma, false, p.Owner); Counters.Hits++;
             if (Store.Alive(p.Owner) && Store.Has<Identity>(p.Owner) &&
                 Store.Get<Identity>(p.Owner).Team == Store.Get<Identity>(target).Team) Counters.FriendlyFireHits++;
-            if (target == p.Owner) Counters.SelfHits++;
             var velocity = Store.Get<Motion>(row.Entity).Velocity;
-            Effect(impact, velocity * 0.05f, p.Kind == WeaponKind.HeavyCannon ? 3 : p.Kind == WeaponKind.Plasma ? 1 : 0,
-                p.Kind == WeaponKind.HeavyCannon ? 12 : 5);
+            Effect(impact, velocity * 0.05f, p.Kind == WeaponKind.HeavyCannon ? HeavyImpactEffect.Kind : p.Kind == WeaponKind.Plasma ? 1 : 0,
+                p.Kind == WeaponKind.HeavyCannon ? 12 : 5, p.Kind == WeaponKind.HeavyCannon ? HeavyImpactEffect.CoreRadius(p.Damage) : 0);
             if (p.Kind is WeaponKind.Cannon or WeaponKind.Missile) Fragments(impact, velocity * 0.12f, 6, p.Damage * 0.2f);
             retired.Add(row.Entity);
         }
@@ -206,7 +207,7 @@ public sealed partial class Battle<TStore>
         if (shield.Current <= 0) State(e, StateKind.ShieldBreak, true);
         if (hull.Current <= 0) State(e, StateKind.Destroy, true);
     }
-    private void Effect(Vector2 position, Vector2 velocity, int kind, int count)
+    private void Effect(Vector2 position, Vector2 velocity, int kind, int count, float heavyRadius = 6)
     {
         var rng = new RandomStream(Config.Seed ^ (uint)(serial * 113 + Tick));
         for (var i = 0; i < count * Config.ParticleMultiplier; i++)
@@ -214,8 +215,19 @@ public sealed partial class Battle<TStore>
             if (particles.Count >= Config.MaxParticles) break;
             var e = Store.Create(); var number = ++serial;
             Store.Set(e, new Transform { Position = position, Previous = position });
-            Store.Set(e, new Motion { Velocity = velocity + new Vector2(rng.Range(-8, 8), rng.Range(-8, 8)) });
-            Store.Set(e, new Particle { Serial = number, ExpiresTick = Tick + 20 + i % 35, Kind = kind, Size = kind == 2 ? rng.Range(1, 4) : rng.Range(0.15f, 0.8f),
+            var drift = new Vector2(rng.Range(-8, 8), rng.Range(-8, 8));
+            var size = kind == 2 ? rng.Range(1, 4) : rng.Range(0.15f, 0.8f);
+            var lifetime = 20 + i % 35;
+            var motion = velocity + drift;
+            if (kind == HeavyImpactEffect.Kind)
+            {
+                // One contact-centered blast, then small light fragments; no additional damage or debris.
+                size = i == 0 ? heavyRadius : size * 1.8f;
+                motion = i == 0 ? Vector2.Zero : velocity * 0.2f + drift * 2;
+                lifetime = HeavyImpactEffect.LifetimeTicks;
+            }
+            Store.Set(e, new Motion { Velocity = motion });
+            Store.Set(e, new Particle { Serial = number, ExpiresTick = Tick + lifetime, Kind = kind, Size = size,
                 Color = kind == 3 ? new(0.45f, 0.85f, 1, 1) : kind == 1 ? new(0.2f, 1, 0.8f, 1) : kind == 2 ? new(1, 0.35f, 0.1f, 1) : new(1, 0.8f, 0.2f, 1) });
             particles.Add(new(e, number)); Counters.StructuralAdds += 3;
         }
@@ -236,6 +248,23 @@ public sealed partial class Battle<TStore>
     }
     private void FlushLifecycle()
     {
+        occupiedDocks.Clear();
+        var trackDocks = false;
+        var destroyingShips = false;
+        foreach (var state in states)
+        {
+            trackDocks |= state.Kind == StateKind.Dock;
+            destroyingShips |= state.Kind == StateKind.Destroy;
+        }
+        // Store permits reparenting mounts; rebuild once before the destruction batch.
+        if (destroyingShips) RefreshTurretAttachments();
+        if (trackDocks)
+            foreach (var ship in ships)
+            {
+                if (!Store.Alive(ship.Entity) || !Store.Has<Docked>(ship.Entity)) continue;
+                var home = Store.Get<Docked>(ship.Entity).Carrier;
+                occupiedDocks.TryGetValue(home, out var count); occupiedDocks[home] = count + 1;
+            }
         states.Sort(static (a, b) => a.Serial != b.Serial ? a.Serial.CompareTo(b.Serial) : a.Kind != b.Kind ? a.Kind.CompareTo(b.Kind) : a.Enable.CompareTo(b.Enable));
         foreach (var state in states)
         {
@@ -252,14 +281,15 @@ public sealed partial class Battle<TStore>
                     if (Tag(e, state.Enable, new ShieldBroken { SinceTick = Tick }) && state.Enable) Counters.ShieldBreaks++; break;
                 case StateKind.Dock:
                     if (Store.Has<Docked>(e) || !AliveShip(state.Other)) break;
-                    var occupied = 0;
-                    foreach (var ship in ships) if (Store.Alive(ship.Entity) && Store.Has<Docked>(ship.Entity) && Store.Get<Docked>(ship.Entity).Carrier == state.Other) occupied++;
+                    occupiedDocks.TryGetValue(state.Other, out var occupied);
                     if (occupied >= Store.Get<Carrier>(state.Other).RepairSlots) break;
                     Tag(e, true, new Docked { Carrier = state.Other, ReleaseTick = Tick + 180 });
+                    occupiedDocks[state.Other] = occupied + 1;
                     Store.Get<Brain>(e).Mode = BrainMode.Docking; Counters.Dockings++; break;
                 case StateKind.Undock:
                     if (!Store.Has<Docked>(e)) break;
                     var home = Store.Get<Docked>(e).Carrier;
+                    if (trackDocks) occupiedDocks[home]--;
                     Tag(e, false, default(Docked)); Store.Get<Brain>(e).Mode = BrainMode.Attack;
                     ref var inventory = ref Store.Get<Inventory>(e);
                     for (var i = 0; i < inventory.Capacity; i++) inventory.Items[i].Count = 2;
@@ -268,12 +298,13 @@ public sealed partial class Battle<TStore>
                 case StateKind.Destroy:
                     var id = Store.Get<Identity>(e); var position = Store.Get<Transform>(e).Position; var velocity = Store.Get<Motion>(e).Velocity;
                     var radius = Store.Get<Collider>(e).Radius;
+                    if (trackDocks && Store.Has<Docked>(e)) occupiedDocks[Store.Get<Docked>(e).Carrier]--;
                     physics.RemoveShip(Store.Get<PhysicsLink>(e).Body); serialToShip.Remove(id.Serial);
                     Counters.StructuralRemoves += ShipComponentCount(e);
                     DestroyTurrets(e);
                     Store.Destroy(e); Counters.ShipsDestroyed++; Counters.Explosions++;
                     Effect(position, velocity, 2, (int)(radius * 12)); Fragments(position, velocity, (int)(radius * 10), radius * 2);
-                    if (ShipCatalog.IsCarrier(id.Class) && Config.ReplenishCarriers)
+                    if (ShipCatalog.IsCarrier(id.Class) && Config.ReplenishCarriers && !Config.EndlessReinforcements)
                         reinforcements.Add((Tick + 1800, new(id.Team, id.Class, new Vector2(id.Team == 0 ? -110 : 110, ((int)id.Class - 9) * 34), EntityKey.None)));
                     break;
             }
@@ -282,12 +313,19 @@ public sealed partial class Battle<TStore>
         // Native destruction is deferred until all hit queries have completed.
         foreach (var e in retired) if (Store.Alive(e)) { Store.Destroy(e); Counters.StructuralRemoves += 3; }
         retired.Clear(); Store.Commit();
+        ownedShips.Clear();
+        if (builds.Count > 0)
+            foreach (var ship in ships)
+            {
+                if (!AliveShip(ship.Entity)) continue;
+                var home = Store.Get<Brain>(ship.Entity).Home;
+                ownedShips.TryGetValue(home, out var count); ownedShips[home] = count + 1;
+            }
         builds.Sort(static (a, b) => a.Team != b.Team ? a.Team.CompareTo(b.Team) : a.Order.CompareTo(b.Order));
         foreach (var build in builds)
         {
             if (!AliveShip(build.Home) || teamCounts[build.Team] >= Config.ShipsPerTeam + Config.CarriersPerTeam) continue;
-            var owned = 0;
-            foreach (var ship in ships) if (AliveShip(ship.Entity) && Store.Get<Brain>(ship.Entity).Home == build.Home) owned++;
+            ownedShips.TryGetValue(build.Home, out var owned);
             if (owned >= Store.Get<Carrier>(build.Home).Capacity) continue;
             SpawnShip(build.Team, build.Class, build.Position, build.Home); Store.Get<Carrier>(build.Home).Built++;
             teamCounts[build.Team]++; Counters.Builds++;

@@ -19,8 +19,10 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
     public int DebrisCount => debris.Count;
     public int ParticleCount => particles.Count;
     public int TurretCount => turrets.Count;
+    public int TeamShipCount(int team) => team is >= 0 and <= 1 ? teamCounts[team] : throw new ArgumentOutOfRangeException(nameof(team));
     public int PhysicsBodies => physics.Bodies;
     public int PhysicsFixtures => physics.Fixtures;
+    public PhysicsQueryStatistics PhysicsQueries => physics.QueryStatistics;
     private readonly PhysicsService physics = new();
     private readonly List<ShipRow> ships = new();
     private readonly List<MovingRow> projectiles = new(), debris = new(), particles = new();
@@ -53,6 +55,7 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
                 SpawnShip(team, (ShipClass)(i % 8), new Vector2((team == 0 ? -1 : 1) * rng.Range(40, 72), rng.Range(-65, 65)), homes[i % homes.Length]);
         }
         Store.Commit(); Collect();
+        InitializeWarpReinforcements();
     }
 
     public EntityKey SpawnShip(int team, ShipClass kind, Vector2 position, EntityKey home)
@@ -71,7 +74,10 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         Store.Set(e, new Heat { Limit = carrier ? 220 : 100 + (int)kind * 10, CoolingPerSecond = carrier ? 20 : 8 + (int)kind });
         Store.Set(e, new Brain { Home = home, Target = EntityKey.None, SquadLeader = EntityKey.None,
             CoverAlly = EntityKey.None, OrbitSign = id.Serial % 2 == 0 ? 1 : -1 });
-        Store.Set(e, ShipCatalog.Primary(kind)); Store.Set(e, collider);
+        var primary = ShipCatalog.Primary(kind);
+        if (primary.Kind == WeaponKind.HeavyCannon)
+            primary.NextFireTick = Tick + ArmamentRules.InitialHeavyChargeTicks(primary, Config.ChurnMultiplier, Config.Seed, id.Serial);
+        Store.Set(e, primary); Store.Set(e, collider);
         Store.Set(e, new PhysicsLink { Body = physics.AddShip(id.Serial, transform, collider) });
         Store.Set(e, new CombatState { LastDamageTick = -1000, LastAttacker = EntityKey.None });
         var inventory = new Inventory { Capacity = carrier ? 16 : 2 + (int)kind };
@@ -110,22 +116,48 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         var docking = new DockSystem { Battle = this }; Store.ForEach<Identity, Docked, Hull, DockSystem>(ref docking); Mark(5);
         StepPhysics(); Mark(6);
         ResolveHits(); Mark(7);
-        FlushLifecycle(); Store.Commit(); SyncTurrets(); Collect(); Mark(8);
+        FlushLifecycle(); Store.Commit(); CompactMovingRows(); SyncTurrets(); CollectShips();
+        UpdateWarpReinforcements(); Mark(8);
         LastTickMs = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
         void Mark(int stage) { var now = Stopwatch.GetTimestamp(); LastStageMs[stage] = (now - previous) * 1000.0 / Stopwatch.Frequency; previous = now; }
     }
 
     private void Collect()
     {
-        ships.Clear(); projectiles.Clear(); debris.Clear(); particles.Clear(); Array.Clear(teamCounts);
-        var collector = new ShipCollector { Battle = this }; Store.ForEach<Identity, Transform, ShipCollector>(ref collector);
+        CollectShips();
+        projectiles.Clear(); debris.Clear(); particles.Clear();
         var projectilesCollector = new ProjectileCollector { Battle = this }; Store.ForEach<Projectile, ProjectileCollector>(ref projectilesCollector);
         var debrisCollector = new DebrisCollector { Battle = this }; Store.ForEach<Debris, DebrisCollector>(ref debrisCollector);
         var particlesCollector = new ParticleCollector { Battle = this }; Store.ForEach<Particle, ParticleCollector>(ref particlesCollector);
-        ships.Sort(static (a, b) => a.Identity.Serial.CompareTo(b.Identity.Serial));
         projectiles.Sort(static (a, b) => a.Serial.CompareTo(b.Serial));
         debris.Sort(static (a, b) => a.Serial.CompareTo(b.Serial));
         particles.Sort(static (a, b) => a.Serial.CompareTo(b.Serial));
+    }
+
+    private void CollectShips()
+    {
+        ships.Clear(); Array.Clear(teamCounts);
+        var collector = new ShipCollector { Battle = this }; Store.ForEach<Identity, Transform, ShipCollector>(ref collector);
+        ships.Sort(static (a, b) => a.Identity.Serial.CompareTo(b.Identity.Serial));
+    }
+
+    private void CompactMovingRows()
+    {
+        Compact(projectiles); Compact(debris); Compact(particles); Compact(turrets);
+        void Compact(List<MovingRow> rows)
+        {
+            var write = 0; var ordered = true; var previous = int.MinValue;
+            for (var read = 0; read < rows.Count; read++)
+            {
+                var row = rows[read];
+                if (!Store.Alive(row.Entity)) continue;
+                ordered &= row.Serial >= previous; previous = row.Serial;
+                rows[write++] = row;
+            }
+            if (write < rows.Count) rows.RemoveRange(write, rows.Count - write);
+            // Normal spawns append increasing serials; externally injected serials may not.
+            if (!ordered) rows.Sort(static (a, b) => a.Serial.CompareTo(b.Serial));
+        }
     }
 
     private struct ShipCollector : IProcessor<Identity, Transform>

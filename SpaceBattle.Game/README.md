@@ -10,8 +10,34 @@ Interactive Silk.NET/OpenGL 3.3 frontend for `Battle<SecsStore>`. The default
 configuration starts 96 escorts per team plus carriers (198 total), all controlled
 by AI. Use `--ships 2048` for the 4096-escort stress configuration.
 
+Depleted fleets receive [corner warp reinforcement waves](../docs/space-battle/REINFORCEMENTS.md)
+with varied compositions and visible warning/arrival effects. Surviving ships are
+not reset. `--finite` disables the interactive endless-wave rule.
+
 Large ships use [independent turrets and heavy hull cannons](../docs/space-battle/ARMAMENT.md).
 Mounted entities are included in alive ECS totals and shown separately from ships.
+V7 excludes the firing ship from projectile collisions (the parent for turrets).
+Other friendly/enemy hits, debris and hull contacts remain enabled; `SelfHits` is zero.
+V6 makes them auxiliary: cannon 7 damage / 84 ticks, plasma 3.25 / 36 ticks;
+raw nominal battery DPS is 87.5% lower. Main/heavy guns retain v5 settings.
+Both clients share a [generated gun atlas](Assets/PROVENANCE.md#gun-atlas), with
+fixed mounts, crop-relative bearing pivots and independently rotating/recoiling heads.
+Mount bases and weapon heads use the same parent-hull RGB paint, including the
+main heavy cannon. Orange overheat indicators remain independent of team paint.
+`--validate-gun-tints --gun-tints-capture Benchmarks.Local/tmp/gun-tints.png
+--width 1920 --height 1400` checks native PNG-pixel references, both teams,
+transparency, recoil and heat in a hidden GL window.
+Projectiles and particles use a shared [generated effects atlas](Assets/PROVENANCE.md#effects-atlas):
+five velocity-aligned head/trail sprites and four lifetime-faded particle sprites.
+Particles use their own square cells and centered square quads, never projectile
+head/trail crops. Both clients validate the same cell/pivot contract.
+Colored effect cores have a controlled contrast lift; the
+[contrast regression](Assets/PROVENANCE.md#contrast-checks) checks readability
+against fixed whole-scene/local brightness budgets, without per-frame bloom.
+`--validate-effects --effects-capture Benchmarks.Local/tmp/particles.png` runs a
+hidden GL framebuffer regression for all four particle kinds at full/quarter
+alpha, writes a gallery and exits. It is independent of gameplay captures and
+must run separately from profiling/live-statistics validation.
 
 Controls: Space pauses, +/- changes simulation speed, R restarts the seeded
 battle, Home fits the arena, WASD/arrows pan, middle/right drag pans, wheel zooms

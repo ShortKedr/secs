@@ -89,6 +89,7 @@ try {
     page.evaluate(() => JSON.parse(window.render_game_to_text()));
   async function checkEntities() {
     const current = await state();
+    assert.equal(current.counters.selfHits, 0, "Projectiles never collide with their owner");
     assert.equal(current.binary.version, 3);
     assert.equal(current.binary.headerValues, 80);
     assert.equal(current.binary.rowValues, 16);
@@ -118,6 +119,8 @@ try {
     return current;
   }
   let initial = await state();
+  assert.equal(initial.visualAssets.gunsAtlas, true, "Shared generated gun atlas is loaded");
+  assert.deepEqual(initial.visualAssets.gunKinds, [-1, 0, 1, 2, 3, 4]);
   const requiredMode = argument("--require-mode", null);
   if (requiredMode)
     assert.equal(
@@ -126,7 +129,7 @@ try {
       "Expected production AOT/binary build",
     );
   assert.equal(initial.seed, 7331);
-  assert.equal(initial.revision, "mounted-armament-v3");
+  assert.equal(initial.revision, "mounted-armament-v7");
   assert.equal(initial.tick, 0);
   assert.equal(initial.counts.ships, 198);
   assert.equal(initial.paused, true);

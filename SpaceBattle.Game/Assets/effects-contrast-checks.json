@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "scope": "Artistic visual regression, not a simulation benchmark, accessibility certification or medical safety claim.",
+  "source": {
+    "imageSha256": "95C0655FE0CA4CC324E91D6A38FBF032CFF25CB33570248C5A756E38F81A514A",
+    "manifestCanonicalSha256": "9ADA67456D6672AABE92D64C069CBE566CB5C127320A4233D549289731FFDB95",
+    "baselineImageSha256": "B476DD47230E0B6644DCFC79C3D01C0216F9A16282B82F8AED7E46C1C55F4A70",
+    "baselineManifestCanonicalSha256": "6F27BB4318C2E3778B146EE5D2B1D807EF94AC7386809864BAB5382EB362AF6C",
+    "canonicalization": "JSON recursively sorted keys, ASCII, separators comma and colon, no whitespace."
+  },
+  "protocol": {
+    "viewport": [1280, 800],
+    "deviceScaleFactor": 1,
+    "seed": 7331,
+    "profiles": ["low", "nominal", "high"],
+    "ticks": [300, 600],
+    "zooms": [1, 3],
+    "candidateScenePairs": 12,
+    "pairedSpriteProbes": 9,
+    "probeExtent": 128,
+    "probeOpacity": 1,
+    "probeGeometry": "Identical baseline-aspect rectangles, including transparent pixels in the denominator.",
+    "tileGrid": "Non-overlapping 64x64 pixels, partial edge tiles use actual area.",
+    "contribution": "max(0, linear Rec709 Y(lit) - Y(hidden effects)); real render pixels."
+  },
+  "guardrails": {
+    "meanAddedY": 0.03,
+    "hotFraction": 0.01,
+    "tileHotFraction": 0.25,
+    "tileSize": 64,
+    "hotY": 0.8,
+    "hotDeltaY": 0.05,
+    "strongContrast": 3,
+    "familyImprovement": 1.1
+  },
+  "candidateMaxima": {
+    "meanAddedY": 0.002014908038285062,
+    "hotFraction": 0.000486328125,
+    "tileHotFraction": 0.015625
+  },
+  "familyComparison": [
+    {
+      "family": "projectile",
+      "baselineMedianP75AddedY": 0.06326625540933165,
+      "candidateMedianP75AddedY": 0.14812374041301488,
+      "ratio": 2.3412756050544905
+    },
+    {
+      "family": "particle",
+      "baselineMedianP75AddedY": 0.05261623057572637,
+      "candidateMedianP75AddedY": 0.09317140480459213,
+      "ratio": 1.7707730824711572
+    }
+  ],
+  "nonUniformChanges": [
+    {
+      "family": "particle",
+      "kind": 2,
+      "p75Ratio": 0.975496342006354,
+      "baselineStrongVisibleFraction": 0.2696953308094465,
+      "candidateStrongVisibleFraction": 0.27312060573282854
+    },
+    {
+      "family": "particle",
+      "kind": 3,
+      "p75Ratio": 1.2224769277920282,
+      "baselineStrongVisibleFraction": 0.21765518899104622,
+      "candidateStrongVisibleFraction": 0.1981251126735172
+    }
+  ],
+  "checksumAndCountParity": true,
+  "browserErrors": 0,
+  "passed": true
+}

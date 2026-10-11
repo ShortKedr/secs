@@ -40,7 +40,7 @@ public struct Boosting { public int UntilTick; }
 public struct ShieldBroken { public int SinceTick; }
 public struct Projectile { public int Serial; public EntityKey Owner, Target; public WeaponKind Kind; public float Damage, Radius; public int ExpiresTick; }
 public struct Debris { public int Serial, ExpiresTick; public float Damage, Radius; }
-public struct Particle { public int Serial, ExpiresTick, Kind; public float Size; public Vector4 Color; }
+public struct Particle { public int Serial, ExpiresTick, Kind, StartTick; public float Size; public Vector4 Color; }
 public struct Lifetime { public int EndTick; }
 public struct InventoryItem { public ItemKind Kind; public int Count; }
 [InlineArray(16)] public struct InventoryItems { private InventoryItem element; }
@@ -58,6 +58,8 @@ public static class ShipCatalog
     public static Weapon TurretWeapon(ShipClass kind, int slot)
     {
         var weapon = Primary(slot % 2 == 0 ? ShipClass.Fighter : ShipClass.Bomber);
+        weapon.Damage *= 0.25f;
+        weapon.Cooldown *= 2;
         weapon.Range = IsCarrier(kind) ? 150 : 120;
         weapon.HeatPerShot *= 0.5f;
         return weapon;
@@ -73,8 +75,8 @@ public static class ShipCatalog
     public static Weapon Primary(ShipClass kind) => IsWeaponsPlatform(kind) ? new()
     {
         Kind = WeaponKind.HeavyCannon, Burst = 1, Speed = 170,
-        Cooldown = kind == ShipClass.Frigate ? 210 : kind == ShipClass.Destroyer ? 240 : 360 + ((int)kind - 8) * 60,
-        Damage = kind == ShipClass.Frigate ? 160 : kind == ShipClass.Destroyer ? 240 : 480 + ((int)kind - 8) * 160,
+        Cooldown = kind == ShipClass.Frigate ? 720 : kind == ShipClass.Destroyer ? 840 : 1080 + ((int)kind - 8) * 240,
+        Damage = kind == ShipClass.Frigate ? 60 : kind == ShipClass.Destroyer ? 80 : 480 + ((int)kind - 8) * 160,
         Range = IsCarrier(kind) ? 220 : 170, HeatPerShot = IsCarrier(kind) ? 40 : 25
     } : ((int)kind % 4) switch
     {

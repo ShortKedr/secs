@@ -24,7 +24,8 @@ public sealed class BattleCounters
 {
     public long ShipsCreated, ShipsDestroyed, Shots, Hits, PlasmaShieldHits, ShieldBreaks,
         Overheats, Dockings, Repairs, Builds, ItemUses, DebrisHits, Explosions, StructuralAdds, StructuralRemoves,
-        AimDecisions, ImpreciseAimDecisions, FriendlyFireHits, SelfHits, HeavyShots, TurretShots;
+        AimDecisions, ImpreciseAimDecisions, FriendlyFireHits, SelfHits, HeavyShots, TurretShots,
+        ReinforcementWaves, ReinforcementShips, ReinforcementPlacementChecks;
     public BattleCounters Copy() => (BattleCounters)MemberwiseClone();
 }
 
@@ -37,6 +38,13 @@ public sealed record BattleConfig
     public float ChurnMultiplier { get; init; } = 1;
     public int TickRate { get; init; } = 60;
     public bool ReplenishCarriers { get; init; } = true;
+    public bool EndlessReinforcements { get; init; }
+    public float ReinforcementThresholdFraction { get; init; } = 0.25f;
+    public float ReinforcementWaveFraction { get; init; } = 0.65f;
+    public int ReinforcementCheckIntervalTicks { get; init; } = 60;
+    public int ReinforcementWarmupTicks { get; init; } = 90;
+    public int ReinforcementSpawnIntervalTicks { get; init; } = 4;
+    public int ReinforcementCooldownTicks { get; init; } = 600;
     public int ParticleMultiplier { get; init; } = 1;
     public int MaxProjectiles { get; init; } = 24000;
     public int MaxDebris { get; init; } = 16000;
@@ -45,7 +53,11 @@ public sealed record BattleConfig
     {
         if (TickRate != 60 || ShipsPerTeam < 8 || ShipsPerTeam > 10000 || CarriersPerTeam is < 2 or > 3 ||
             ArenaHalfSize < 80 || ChurnMultiplier is < 0.1f or > 8 || ParticleMultiplier is < 0 or > 8 ||
-            MaxProjectiles < 1 || MaxDebris < 1 || MaxParticles < 1)
+            MaxProjectiles < 1 || MaxDebris < 1 || MaxParticles < 1 ||
+            !float.IsFinite(ReinforcementThresholdFraction) || ReinforcementThresholdFraction is <= 0 or > 0.5f ||
+            !float.IsFinite(ReinforcementWaveFraction) || ReinforcementWaveFraction is <= 0 or > 1 ||
+            ReinforcementCheckIntervalTicks is < 1 or > 36000 || ReinforcementWarmupTicks is < 1 or > 36000 ||
+            ReinforcementSpawnIntervalTicks is < 1 or > 600 || ReinforcementCooldownTicks is < 1 or > 36000)
             throw new ArgumentOutOfRangeException(nameof(BattleConfig));
     }
 }
