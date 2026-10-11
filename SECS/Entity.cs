@@ -1,5 +1,6 @@
 namespace SECS;
 
+/// <summary>A world-local ID and generation. Handles do not encode or validate world ownership.</summary>
 public readonly struct Entity : System.IEquatable<Entity>
 {
     public Entity(int id, int version)

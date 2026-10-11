@@ -25,9 +25,11 @@ public readonly unsafe struct Query<T1>
             {
                 var chunk = chunks[chunkIndex];
                 var pointer = (T1*)chunk.GetComponentPointer(_component1Id);
+                var entities = chunk.Entities;
+                var versions = chunk.Versions;
                 for (var row = 0; row < chunk.Count; row++)
                 {
-                    processor.Execute(new Entity(chunk.Entities[row], chunk.Versions[row]), ref pointer[row]);
+                    processor.Execute(new Entity(entities[row], versions[row]), ref pointer[row]);
                 }
             }
         }
@@ -63,9 +65,11 @@ public readonly unsafe struct Query<T1, T2>
                 var chunk = chunks[chunkIndex];
                 var pointer1 = (T1*)chunk.GetComponentPointer(_component1Id);
                 var pointer2 = (T2*)chunk.GetComponentPointer(_component2Id);
+                var entities = chunk.Entities;
+                var versions = chunk.Versions;
                 for (var row = 0; row < chunk.Count; row++)
                 {
-                    processor.Execute(new Entity(chunk.Entities[row], chunk.Versions[row]), ref pointer1[row], ref pointer2[row]);
+                    processor.Execute(new Entity(entities[row], versions[row]), ref pointer1[row], ref pointer2[row]);
                 }
             }
         }
@@ -105,9 +109,11 @@ public readonly unsafe struct Query<T1, T2, T3>
                 var pointer1 = (T1*)chunk.GetComponentPointer(_component1Id);
                 var pointer2 = (T2*)chunk.GetComponentPointer(_component2Id);
                 var pointer3 = (T3*)chunk.GetComponentPointer(_component3Id);
+                var entities = chunk.Entities;
+                var versions = chunk.Versions;
                 for (var row = 0; row < chunk.Count; row++)
                 {
-                    processor.Execute(new Entity(chunk.Entities[row], chunk.Versions[row]), ref pointer1[row], ref pointer2[row], ref pointer3[row]);
+                    processor.Execute(new Entity(entities[row], versions[row]), ref pointer1[row], ref pointer2[row], ref pointer3[row]);
                 }
             }
         }

@@ -243,6 +243,9 @@ public abstract class CreateEntityBenchmarkBase
         Entities = Context.PrepareSet(EntityCount);
     }
 
+    [IterationSetup]
+    public void IterationSetup() => Context.DeleteEntities(Entities);
+
     [Benchmark]
     public void Run()
     {
@@ -435,7 +438,6 @@ public class DeleteEntity : IDisposable
     public void Run()
     {
         _context.DeleteEntities(_entities);
-        _entities = Array.Empty<Entity>();
     }
 
     [IterationCleanup]

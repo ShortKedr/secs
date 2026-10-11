@@ -12,6 +12,58 @@ BenchmarkDotNet.Artifacts/
 # Temporary local research
 _other_ecs_benchmarks/
 
+# Local tooling and repeatable verification outputs, never dependency sources
+__pycache__/
+*.pyc
+/Benchmarks.Local/.dotnet/
+/Benchmarks.Local/nuget-packages/
+/Benchmarks.Local/python-packages/
+/Benchmarks.Local/matplotlib-cache/
+/Benchmarks.Local/tmp/
+/Benchmarks.Local/baseline-bin/
+/Benchmarks.Local/bdn-*/
+/Benchmarks.Local/*-bdn-artifacts/
+/Benchmarks.Local/*.zip
+/Benchmarks.Local/*.log
+/Benchmarks.Local/test-results/
+/Benchmarks.Local/repro-*/
+
+# Retain generated measurement tables, not the generated benchmark executables.
+!/Benchmarks.Local/bdn-*/
+/Benchmarks.Local/bdn-*/**
+!/Benchmarks.Local/bdn-*/results/
+!/Benchmarks.Local/bdn-*/results/*.md
+!/Benchmarks.Local/bdn-*/results/*.csv
+!/Benchmarks.Local/optimization-bdn-artifacts/
+/Benchmarks.Local/optimization-bdn-artifacts/**
+!/Benchmarks.Local/optimization-bdn-artifacts/results/
+!/Benchmarks.Local/optimization-bdn-artifacts/results/*.md
+!/Benchmarks.Local/optimization-bdn-artifacts/results/*.csv
+
+# Publish only the pinned runtime source subsets and their original licenses.
+# Keep all other upstream files locally, without distributing docs/assets/tools.
+/Benchmarks.Local/vendor/**
+!/Benchmarks.Local/vendor/ecs/
+!/Benchmarks.Local/vendor/ecslite/
+!/Benchmarks.Local/vendor/morpeh/
+!/Benchmarks.Local/vendor/StaticEcs/
+!/Benchmarks.Local/vendor/StaticPack/
+!/Benchmarks.Local/vendor/*/LICENSE.md
+!/Benchmarks.Local/vendor/ecs/src/
+!/Benchmarks.Local/vendor/ecs/src/*.cs
+!/Benchmarks.Local/vendor/ecslite/src/
+!/Benchmarks.Local/vendor/ecslite/src/*.cs
+!/Benchmarks.Local/vendor/morpeh/Scellecs.Morpeh/
+!/Benchmarks.Local/vendor/morpeh/Scellecs.Morpeh/Core/
+!/Benchmarks.Local/vendor/morpeh/Scellecs.Morpeh/Core/**/
+!/Benchmarks.Local/vendor/morpeh/Scellecs.Morpeh/Core/**/*.cs
+!/Benchmarks.Local/vendor/StaticEcs/Src/
+!/Benchmarks.Local/vendor/StaticEcs/Src/**/
+!/Benchmarks.Local/vendor/StaticEcs/Src/**/*.cs
+!/Benchmarks.Local/vendor/StaticPack/Src/
+!/Benchmarks.Local/vendor/StaticPack/Src/**/
+!/Benchmarks.Local/vendor/StaticPack/Src/**/*.cs
+
 # OS clutter
 .DS_Store
 Thumbs.db

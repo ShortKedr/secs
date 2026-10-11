@@ -1,0 +1,637 @@
+English | [Русский](REPORT.ru.md)
+
+[Repository](../../README.md) | [Methodology](README.md) | [Systems](SYSTEMS.md)
+
+[Key results](#key-results) | [Entity composition](#measured-entity-composition) | [Tick timing](#tick-timing) | [Frontend](#separate-frontend-profile)
+
+![Actual frontend capture](action.png)
+
+OpenGL frontend capture: 1600 x 1000, seed 7331, 256 escorts per team, tick 900, zoom 2. Ships in snapshot: 101; rendered after clipping: 94; live ships by team: 60/65 (docked ships can be excluded from the snapshot list). This is NOT the benchmark configuration with 96 escorts per team and is not a timing result. The PNG sidecar has no seed field. Seed 7331 is confirmed by Options.Seed in the paired [headless capture replay](custom/frontend-capture-parity.json), matching checksum and Core/adapter hashes against the current action sidecar, and the known capture command; it is not a field read from the PNG sidecar.
+
+# Space Battle Results
+
+**PASS: comparability checks passed.** Within each profile, all five frameworks match all 30 checkpoints, final checksum, final Counters and per-minute logical counters/entity counts. Each of the 15 runs contains 108000 measured ticks, 600 separate warmup ticks and 30 full minute windows. Total: 1 620 000 measured ticks; 30 simulated minutes per run and 450 simulated minutes across the suite.
+
+## Key Results
+
+- All 15 cases have 0 ticks above the 16.67 ms budget. This is headless Step, not a realtime FPS guarantee.
+- Morpeh has the lowest observed MeanMs in all three profiles in this suite; this is not a universal winner or a statistically robust ranking.
+- SECS nominal: MeanMs=0.4945 ms, P99Ms=1.0863 ms.
+- physics + hits account for 67-72% of mean Step across the 15 cases; shared combat logic can mask ECS differences.
+
+## Systems and Components
+
+The catalogue below describes the current scenario. Standalone version: [SYSTEMS.md](SYSTEMS.md). Composition counts refer to logical gameplay components, excluding adapters' private LifetimeMarker.
+
+This catalogue describes the current implementation from source code, without measuring performance or access frequency. A component here means an independent value attached to an entity through `IEcsStore.Set<T>`, not every field, nested structure, or type registered in an adapter.
+
+Primary sources: [Battle.cs](../../SpaceBattle.Core/Battle.cs) (`StageNames`, `Step`, `Collect`, `SpawnShip` and processors), [CombatSystems.cs](../../SpaceBattle.Core/CombatSystems.cs) (weapons, carriers, movement, hits and lifecycle), [Components.cs](../../SpaceBattle.Core/Components.cs) (types and ship catalogue), [EcsContract.cs](../../SpaceBattle.Core/EcsContract.cs) (storage contract).
+
+### Nine Timed Stages
+
+`Battle.Step()` increments `Tick` and executes **9 stages strictly in the order below**. These are nine `LastStageMs` intervals, not nine system classes: individual intervals contain multiple processors and helper operations. `lifecycle` timing includes the final `Commit()` and repeated `Collect()`.
+
+In the tables, `A + B` means a query for entities with both components. Additional `Get<T>` and `Has<T>` inside a processor do not expand the query filter. Passing a component by `ref` does not itself mean the processor modifies it. "Write" below means actual field changes; creation, destruction and changes to the component set are listed separately.
+
+| No. | Stage name | Execution and responsibility | Queries / traversal source |
+| --- | --- | --- | --- |
+| 1 | `collect` | `Collect`: refreshes ship, projectile, debris and particle lists; computes team counts and sorts lists by `Serial`. A ship row contains copies of identity and transform, and normalized hull/shield values. | `ShipCollector`: `Identity + Transform`; `ProjectileCollector`: `Projectile`; `DebrisCollector`: `Debris`; `ParticleCollector`: `Particle`. |
+| 2 | `ai` | `AiSystem`: at decision intervals selects the nearest living undocked enemy, updates the home carrier, switches attack/retreat; requests docking when approaching home. Docked ships are skipped. | `Identity + Brain + Transform`. |
+| 3 | `thermal-inventory` | First `ThermalSystem`: cooling, shield regeneration, overheat and state-expiry checks. Then `InventorySystem`: uses one suitable consumable when the inventory is ready. | `Identity + Heat + Shield`; then `Identity + Inventory + Hull`. |
+| 4 | `steering` | `SteeringSystem`: heading home or orbiting a target, returning within arena bounds, acceleration, speed limiting and engine heat. Zeroes velocity and acceleration for docked ships. | `Transform + Motion + Brain`. |
+| 5 | `weapons` | `WeaponSystem`, then `SecondarySystem`: attack, range, readiness and heat checks; generates requests. `FlushShots`: sorts requests by serial and slot, calculates intercept aim and spread, creates burst projectiles and heats the shooter. | `Identity + Weapon + Brain`; `Identity + SecondaryWeapon + Brain`; then the `shots` list. |
+| 6 | `carriers` | `CarrierSystem`: schedules escort construction when the timer and team limit allow. `DockSystem`: moves a docked ship to its carrier, repairs, recharges shields and cools it; requests undocking when ready or when the carrier is lost. | `Identity + Carrier + Transform`; `Identity + Docked + Hull`. |
+| 7 | `physics` | `StepPhysics`: synchronizes ships with the external physics world, steps it and transfers results into ECS. Then moves projectiles (with missile homing), debris and particles. | The `ships` list; then `Transform + Motion + Projectile`, `Transform + Motion + Debris`, `Transform + Motion + Particle`. |
+| 8 | `hits` | `ResolveHits`: physical ship-contact damage, projectile/debris sweep checks, hit effects; marks expired/impacting objects for retirement. `Damage` updates shield, hull, heat for plasma and the combat timestamp. | `physics.Contacts` contacts, `projectiles`, `debris`, `particles` lists; ship access through `serialToShip`. |
+| 9 | `lifecycle` | `FlushLifecycle`: sorts and applies state requests, docking/undocking, ship destruction, transient-object retirement, construction and deferred carrier replenishment. Then `Step` performs `Commit` and `Collect`. | `states`, `retired`, `builds`, `reinforcements` lists; `ships` is used to check dock occupancy and escort ownership; final queries are as in `collect`. |
+
+#### Component Access and Structural Effects
+
+The main direct accesses are listed, including access to targets and home carriers. `AliveShip` checks read `Identity` (presence) and `Hull`; `State` reads `Identity.Serial`. Collections, queues, counters and physics state are not ECS components.
+
+| Stage | Main reads / presence checks | Field writes | Structural action |
+| --- | --- | --- | --- |
+| `collect` | `Identity`, `Transform`, `Hull`, `Shield`, `Projectile`, `Debris`, `Particle`. | No component writes. | None; external working lists are refreshed. |
+| `ai` | `Identity`, `Transform`, `Brain`, `Hull`, `Heat`, `Collider`; `Docked` presence, target/home liveness; snapshots from `ships`. | `Brain.Target`, `Home`, `Mode`, `NextDecisionTick`. | Only a `Dock` request; the component appears in `lifecycle` if checks pass. |
+| `thermal-inventory` | `Identity`, `Heat`, `Shield`, `Inventory`, `Hull`; presence/fields of `Overheated`, `ShieldBroken`, `InCombat`, `Boosting`. | `Heat.Value`, `Shield.Current`, `Hull.Current`; item count inside `Inventory`, `Inventory.NextUseTick`. | Requests to add/remove `Overheated`, remove `ShieldBroken`, `InCombat`, `Boosting`. Consuming an item does not remove the inventory component. |
+| `steering` | `Transform`, `Motion`, `Brain`, `Weapon`, `Identity`, `Heat`; presence of `Docked`, `Boosting`, `Overheated`; target/home transforms and liveness. | `Motion.Velocity`, `Acceleration`, `AngularVelocity`; `Heat.Value`. `Transform` itself is not changed here. | A `Boosting` request; no immediate composition change. |
+| `weapons` | `Identity`, `Brain`, `Weapon` / `SecondaryWeapon.Value`, `Heat`, `Transform`, `Motion`, `Collider`; presence of `Docked`, `Overheated`, target liveness. | `Weapon.NextFireTick` / `SecondaryWeapon.Value.NextFireTick`; shooter's `Heat.Value`; initial components of new projectiles. | `FlushShots` creates entities with `Transform + Motion + Projectile`; an `Overheated` request is possible; `Store.Commit()` is called after the bursts. |
+| `carriers` | `Identity`, `Carrier`, `Transform`, `Docked`, `Hull`, `Shield`, `Heat`; carrier liveness, team-count snapshot. | `Carrier.NextBuildTick`; docked ship's `Transform.Previous/Position`, `Hull.Current`, `Shield.Current`, `Heat.Value`. | Only construction and `Undock` requests; actual creation and `Docked` removal occur in `lifecycle`. |
+| `physics` | `PhysicsLink`, `Docked`, `Transform`, `Motion`; `Projectile` and missile target transform/liveness; `Debris`, `Particle` are in filters, but movement processors do not use their fields. | `Transform.Previous/Position/Angle` (set depends on object type), ships' `Motion.Velocity/AngularVelocity`, missiles' `Motion.Acceleration/Velocity`. | No changes to component sets. External bodies of docked ships are disabled, not removed. |
+| `hits` | `Projectile`, `Debris`, `Particle`, `Transform`, `Motion`; `Identity` for liveness/team checks; ship's `Hull`, `Shield`, `Heat`. | `Hull.Current`, `Shield.Current/LastHitTick`, `Heat.Value` on plasma absorption, `CombatState.LastDamageTick`; initial components of new effects/debris. | Creates `Transform + Motion + Particle` and `Transform + Motion + Debris`. Projectile/debris/particle retirement is deferred through `retired`; `InCombat`, `ShieldBroken`, ship destruction are requested through `states`. |
+| `lifecycle` | Current states and entity liveness; `Identity`, `Heat`, `Docked`, `Carrier`, `Brain`, `Transform`, `Motion`, `Collider`, `PhysicsLink`; optional component presence to count removals. Final reads as in `collect`. | Tag values; `Brain.Mode`, supplies inside `Inventory`, position on undocking; `Carrier.Built`; initial components of spawned ships/effects/debris. | Adds, updates or removes five state components; destroys ships and `retired` objects; creates explosion effects, debris and ships. Removes the external physics body on ship destruction; adds it on creation. Commits make changes visible to subsequent traversals. |
+
+New debris is added to the working list immediately. Therefore debris created by projectile hits can participate in the subsequent debris traversal of the same `hits` stage, before the next `physics`. This does not establish stage cost without measurement.
+
+### Logical Component Catalogue
+
+The battle scenario actually attaches **22 distinct types**: **12 base ship types + 2 specializations + 5 optional states + 3 transient-object types**. One further independent type, `Lifetime`, is declared but not attached by current battle logic: **23 declared component types** in total if this reserve type is counted. The two nested inventory types are excluded from these counts.
+
+| Type | Purpose / main data | Where present |
+| --- | --- | --- |
+| `Identity` | Global serial, team, `ShipClass`. | All ships, including carriers. |
+| `Transform` | Current and previous positions, angle. | All five entity families. |
+| `Motion` | Velocity, acceleration, angular velocity, speed limit, thrust, damping. | All five families; not every family uses every field. |
+| `Hull` | Current/maximum integrity, armor. | All ships. |
+| `Shield` | Current/maximum shield, regeneration, last hit and delay. | All ships. |
+| `Heat` | Heat, limit and cooling. | All ships. |
+| `Brain` | Target, home carrier, mode, next decision tick and orbit sign. | All ships. |
+| `Weapon` | Primary weapon: kind, cooldown, next shot, burst, range, damage, speed and shot heat. | All ships. |
+| `Collider` | Radius, mass, physical shape count. | All ships; actual fixtures are outside ECS. |
+| `PhysicsLink` | Body index in `PhysicsService`. | All ships. |
+| `CombatState` | `LastDamageTick`, last damage timestamp. | All ships; a permanent component, not transient `InCombat`. |
+| `Inventory` | Capacity, next use tick, inline item array. | All ships. |
+| `SecondaryWeapon` | Secondary weapon storing a nested `Weapon` value in its `Value` field. | `Corvette`, `Frigate`, `Destroyer`, `Support` and all carriers. |
+| `Carrier` | Construction timer/interval, own escort limit, build count, repair slots. | `LightCarrier`, `FleetCarrier`, `FoundryCarrier`. |
+| `Docked` | Carrier reference and minimum undocking tick. | Optional escort state; set after checking for a free repair slot. |
+| `Overheated` | Overheat start tick; presence blocks firing and shield regeneration. | Optional ship state. |
+| `InCombat` | Combat-state end tick. | Optional ship state after damage. |
+| `Boosting` | Boost end tick; increases acceleration and speed limit in `steering`. | Optional ship state. |
+| `ShieldBroken` | Shield break tick; removed on recovery above the threshold. | Optional ship state. |
+| `Projectile` | Serial, owner/target, weapon kind, damage, radius, lifetime. | Projectile. |
+| `Debris` | Serial, lifetime, damage and radius. | Debris. |
+| `Particle` | Serial, lifetime, effect kind, size and color. | Particle. |
+| `Lifetime` | `EndTick`. | Declared but unused in battle entity compositions. Transient-object lifetimes are stored in their `ExpiresTick`. |
+
+Optional "tags" contain data, so they are not empty markers. Re-enabling an existing state updates its value through `Set`, but does not add a new component. Removing an absent state does not perform a structural removal.
+
+#### What Is Not a Separate Scenario Component
+
+| Type / data | Why excluded from logical composition |
+| --- | --- |
+| `InventoryItem` | Nested `ItemKind + Count` pair in the `Inventory.Items` array. Items are not created as independent entities or attached as separate components. |
+| `InventoryItems` | `[InlineArray(16)]`, inline array of `InventoryItem` elements; part of one `Inventory` component. |
+| `ShipClass`, `WeaponKind`, `ItemKind`, `BrainMode` | Enums used as component fields. |
+| `EntityKey` | `Id + Generation` handle from `EcsContract`, used for references and store access. |
+| `ShipRow`, `MovingRow`, requests and `StateKind` | Internal working snapshots, queues and command classification in `Battle`, not components. |
+| `RenderEntity`, `BattleFrame`, `CollisionEvent`, `AimSolution`, `RandomStream`, configuration and counters | Presentation, physics messages, calculation result, random generator and supporting data not attached to battle entities. |
+
+[StaticEcsStore.cs](../../SpaceBattle.Adapters/StaticEcsStore.cs) preregisters **25 types** from `Components.cs`: the 23 independent types listed above, plus `InventoryItem` and `InventoryItems`. Registration means a type is allowed by the adapter, not that an entity has a component instance. Registration count therefore cannot be used as the number of components actually involved in battle.
+
+### Typical Entity Compositions
+
+The compositions below are stable after creation/commit completes, not during successive `Set` calls on a new entity.
+
+**Ship base (12):** `Identity`, `Transform`, `Motion`, `Hull`, `Shield`, `Heat`, `Brain`, `Weapon`, `Collider`, `PhysicsLink`, `CombatState`, `Inventory`.
+
+| Family / classes | Permanent composition | Components without states | Possible additional states |
+| --- | --- | --- | --- |
+| Light escort: `Interceptor`, `Fighter`, `Bomber`, `Gunship` | Ship base. | **12** | `Docked`, `Overheated`, `InCombat`, `Boosting`, `ShieldBroken`. |
+| Heavy/service escort: `Corvette`, `Frigate`, `Destroyer`, `Support` | Base + `SecondaryWeapon`. | **13** | The same five. |
+| Carrier: `LightCarrier`, `FleetCarrier`, `FoundryCarrier` | Base + `SecondaryWeapon` + `Carrier`. | **14** | `Overheated`, `InCombat`, `Boosting`, `ShieldBroken`; normal AI logic does not dock carriers. |
+| Projectile | `Transform`, `Motion`, `Projectile`. | **3** | None in the current implementation. |
+| Debris | `Transform`, `Motion`, `Debris`. | **3** | None in the current implementation. |
+| Particle | `Transform`, `Motion`, `Particle`. | **3** | None in the current implementation. |
+
+For a particular ship, the component count equals its class base plus the number of states actually present. Do not assume all possible states necessarily coexist. `Docked` does not remove base components, weapons or `PhysicsLink`: the ship remains in ECS, is excluded from the visual frame, skips AI/firing, and its external body is disabled during the physics step.
+
+`Inventory` counts as one component regardless of occupancy: it physically contains 16 inline slots, while `Capacity` sets the number of usable slots (`2 + (int)ShipClass` for escorts, 16 for carriers). `SecondaryWeapon.Value` likewise is not a second independent `Weapon` component instance on that entity.
+
+### ECS, Physics and Rendering Boundaries
+
+- [PhysicsService.cs](../../SpaceBattle.Core/PhysicsService.cs) owns the external Aether.Physics2D world, ship bodies and their fixtures. `Collider` describes shape creation, `PhysicsLink.Body` links ECS to the body. Bodies and fixtures do not increase ECS component counts. Projectiles, debris and particles are integrated in ECS; projectile/debris hits are checked by `Sweep` against ship shapes, not through their own dynamic Aether bodies.
+- [BattleInspection.cs](../../SpaceBattle.Core/BattleInspection.cs) (`Capture`) reads ECS and builds `BattleFrame`; [Program.cs](../../SpaceBattle.Game/Program.cs) and [Renderer.cs](../../SpaceBattle.Game/Renderer.cs) render outside `Battle.Step()`. Rendering and external frame capture are excluded from the nine `LastStageMs`. `Capture`, `Checksum` and `Validate` can call `Collect` themselves, but this is not an additional stage inside `Step`.
+- [LeoEcsClassicStore.cs](../../SpaceBattle.Adapters/LeoEcsClassicStore.cs), [LeoEcsLiteStore.cs](../../SpaceBattle.Adapters/LeoEcsLiteStore.cs) and [MorpehStore.cs](../../SpaceBattle.Adapters/MorpehStore.cs) add an internal `LifetimeMarker` to each native entity. It is not `SpaceBattle.Lifetime` and is excluded from logical compositions and the counts above. When counting the physical number of native components in these adapters, it is a separate supporting component.
+- Morpeh and StaticEcs store logical values through `Wrapper<T>`. The wrapper is not added to a logical component as another composition element: one `Wrapper<T>` represents one logical `T`. [SecsStore.cs](../../SpaceBattle.SECS/SecsStore.cs) uses SECS components and queries directly.
+
+Type count, components per entity, query count and field-access frequency are different quantities. This catalogue establishes the first two from code and describes access paths, but does not rank the "most used" components, compute a live-population mean or draw performance conclusions. Those require separately defined metrics and measurements of a specific run.
+
+### Mean Stage Times, Nominal
+
+Times in ms come from the original performance runs, not the diagnostic observer. Stages include the traversals, computation and structural effects described above; they do not isolate the cost of one ECS operation.
+
+| Stage | SECS ms | Lite ms | Classic ms | Morpeh ms | Static ms | SECS Step Share % |
+| --- | --- | --- | --- | --- | --- | --- |
+| collect | 0.05678 | 0.05508 | 0.04762 | 0.04622 | 0.05175 | 11.48 |
+| ai | 0.00425 | 0.00424 | 0.00426 | 0.00369 | 0.00446 | 0.86 |
+| thermal-inventory | 0.00739 | 0.00857 | 0.00821 | 0.00682 | 0.00839 | 1.49 |
+| steering | 0.00706 | 0.00811 | 0.00781 | 0.00694 | 0.00860 | 1.43 |
+| weapons | 0.00557 | 0.00532 | 0.00509 | 0.00446 | 0.00489 | 1.13 |
+| carriers | 0.00108 | 0.00102 | 0.00088 | 0.00090 | 0.00129 | 0.22 |
+| physics | 0.08833 | 0.09076 | 0.08465 | 0.08606 | 0.08867 | 17.87 |
+| hits | 0.24745 | 0.25286 | 0.27435 | 0.24829 | 0.24633 | 50.04 |
+| lifecycle | 0.07648 | 0.07899 | 0.07427 | 0.06669 | 0.07002 | 15.47 |
+
+## Measured Entity Composition
+
+Each profile has a separate diagnostic SECS replay of all 108000 ticks, with unchanged measured Core/SECS/Aether DLLs: their SHA256 matches the original JSON. Every tick matches the original CSV's four family counts and StructuralAdds/Removes; all 30 minute checkpoints and final Counters match. At tick 0 and every 3600 ticks, independent native queries additionally verify counts of all 23 declared types. This validates composition in this replay, not every individual entity in all five adapters.
+
+Composition is sampled after Step on every tick 1..108000. Initial tick 0, warmup, Capture, Validate and Checksum are excluded from means and API counters. One entity-tick means one live entity at one sampled tick. Mean components per entity = sum of component instances over ticks / sum of live entities over ticks: a lifetime-weighted population mean, not a mean over unique created entities. Objects created and retired within one Step contribute to structural/API operations but not end-of-tick population. The unweighted mean of per-tick ratios is reported separately. These definitions must not be mixed.
+
+| Profile | Mean Live Entities | Min / Max Entities | Mean Component Instances | Components / Entity | Mean of Per-Tick Ratios | Observed Compositions |
+| --- | --- | --- | --- | --- | --- | --- |
+| low | 875.65 | 118 / 4898 | 3153.29 | 3.6011 | 3.6777 | 64 |
+| nominal | 1110.67 | 136 / 6636 | 3857.36 | 3.4730 | 3.6300 | 71 |
+| high | 1379.76 | 199 / 10292 | 4753.10 | 3.4449 | 3.7513 | 70 |
+
+### By Entity Family
+
+| Family | low Mean Entities | low Components / Entity | nominal Mean Entities | nominal Components / Entity | high Mean Entities | high Components / Entity |
+| --- | --- | --- | --- | --- | --- | --- |
+| Escorts | 42.52 | 13.8612 | 42.88 | 13.9186 | 51.52 | 13.9555 |
+| Carriers | 5.05 | 15.7738 | 4.42 | 15.9233 | 3.84 | 15.8485 |
+| Projectiles | 85.77 | 3.0000 | 106.95 | 3.0000 | 125.29 | 3.0000 |
+| Debris | 237.94 | 3.0000 | 353.39 | 3.0000 | 504.73 | 3.0000 |
+| Particles | 504.36 | 3.0000 | 603.02 | 3.0000 | 694.38 | 3.0000 |
+
+Projectiles, debris and particles always have three components. Numerous transient entities lower the overall mean; a ship's component count cannot be inferred from the whole-ECS average. Docked ships remain live entities even when excluded from the visual BattleFrame.Ships list.
+
+### Component Count Distribution
+
+| Components on Entity | low Share of Entity-Ticks % | nominal % | high % |
+| --- | --- | --- | --- |
+| 3 | 94.5673 | 95.7410 | 95.9875 |
+| 12 | 0.2426 | 0.2706 | 0.3565 |
+| 13 | 1.2659 | 1.0705 | 1.0251 |
+| 14 | 2.4127 | 1.4436 | 1.1518 |
+| 15 | 1.0067 | 0.9655 | 0.9609 |
+| 16 | 0.4212 | 0.4291 | 0.4314 |
+| 17 | 0.0837 | 0.0795 | 0.0844 |
+| 18 | 0.0000 | 0.0002 | 0.0024 |
+
+### Most Prevalent Components
+
+This is prevalence in the live population, not access frequency. Each type shows its mean active instances and the share of entity-ticks containing it. Shares do not sum to 100% because an entity has multiple components. Types are ordered by nominal prevalence. Payload is sizeof(T) of the logical unmanaged value, excluding storage alignment, chunks, sparse maps, the identity bridge, physics and other overhead.
+
+| Component | Payload bytes | low Mean / Share % | nominal Mean / Share % | high Mean / Share % |
+| --- | --- | --- | --- | --- |
+| `Transform` | 20 | 875.65 / 100.000 | 1110.67 / 100.000 | 1379.76 / 100.000 |
+| `Motion` | 32 | 875.65 / 100.000 | 1110.67 / 100.000 | 1379.76 / 100.000 |
+| `Particle` | 32 | 504.36 / 57.599 | 603.02 / 54.293 | 694.38 / 50.326 |
+| `Debris` | 16 | 237.94 / 27.173 | 353.39 / 31.818 | 504.73 / 36.581 |
+| `Projectile` | 36 | 85.77 / 9.796 | 106.95 / 9.630 | 125.29 / 9.080 |
+| `Identity` | 12 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `Hull` | 12 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `Shield` | 20 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `Heat` | 12 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `Brain` | 28 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `Weapon` | 32 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `Collider` | 12 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `PhysicsLink` | 4 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `CombatState` | 4 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `Inventory` | 136 | 47.57 / 5.433 | 47.30 / 4.259 | 55.36 / 4.012 |
+| `InCombat` | 4 | 39.28 / 4.485 | 37.34 / 3.362 | 37.14 / 2.692 |
+| `SecondaryWeapon` | 32 | 36.07 / 4.119 | 32.26 / 2.904 | 35.67 / 2.585 |
+| `Overheated` | 4 | 5.32 / 0.607 | 8.99 / 0.809 | 13.49 / 0.978 |
+| `ShieldBroken` | 4 | 5.51 / 0.629 | 5.83 / 0.525 | 6.39 / 0.463 |
+| `Boosting` | 4 | 3.35 / 0.383 | 5.67 / 0.510 | 11.76 / 0.853 |
+| `Docked` | 12 | 3.63 / 0.414 | 5.12 / 0.461 | 7.25 / 0.525 |
+| `Carrier` | 20 | 5.05 / 0.577 | 4.42 / 0.398 | 3.84 / 0.278 |
+| `Lifetime` | 4 | 0.00 / 0.000 | 0.00 / 0.000 | 0.00 / 0.000 |
+
+Transform and Motion are present on all entities. Lifetime is absent from every end-of-tick sample: transient expiry is stored in the corresponding Projectile/Debris/Particle.ExpiresTick. InventoryItem/InventoryItems and SecondaryWeapon.Value do not add standalone components to an entity.
+
+### Observed API Activity
+
+The table ranks nominal by GetCalls + QueryBindings (delivered refs), not nanoseconds. GetCalls counts IEcsStore.Get<T>; HasCalls counts presence checks. QueryBindings counts each time a type is passed by ref to a native ForEach processor, even when its fields are not read. Reads/writes through an already acquired ref, value copies, adapter-internal access and rendering are excluded. One delivery can serve many field operations. This is logical gameplay API activity, not hardware memory access or an isolated Get/Has/Query benchmark. The observer has its own overhead; its wall time/LastStageMs are not used for performance rankings.
+
+| Component, Nominal | Get, million | Query bindings, million | Has, million | Get + bindings, million |
+| --- | --- | --- | --- | --- |
+| `Particle` | 68.032 | 195.379 | 0.000 | 263.411 |
+| `Transform` | 67.437 | 136.218 | 0.000 | 203.655 |
+| `Debris` | 38.484 | 114.499 | 0.000 | 152.984 |
+| `Motion` | 10.967 | 120.414 | 0.000 | 131.381 |
+| `Projectile` | 12.012 | 35.115 | 0.000 | 47.127 |
+| `Identity` | 6.641 | 35.168 | 11.376 | 41.809 |
+| `Hull` | 22.271 | 5.662 | 0.000 | 27.933 |
+| `Shield` | 14.167 | 5.109 | 0.000 | 19.276 |
+| `Brain` | 0.097 | 18.811 | 0.000 | 18.907 |
+| `Heat` | 9.096 | 5.109 | 0.000 | 14.204 |
+| `PhysicsLink` | 9.667 | 0.000 | 0.000 | 9.667 |
+| `Weapon` | 2.958 | 5.109 | 0.000 | 8.067 |
+| `Inventory` | 0.002 | 5.109 | 0.000 | 5.111 |
+| `InCombat` | 4.032 | 0.000 | 5.934 | 4.032 |
+| `SecondaryWeapon` | 0.000 | 3.484 | 0.002 | 3.484 |
+| `CombatState` | 0.819 | 0.000 | 0.000 | 0.819 |
+| `Boosting` | 0.612 | 0.000 | 9.687 | 0.612 |
+| `Docked` | 0.030 | 0.553 | 24.152 | 0.583 |
+| `Carrier` | 0.008 | 0.478 | 0.002 | 0.486 |
+| `Collider` | 0.358 | 0.000 | 0.000 | 0.358 |
+| `Overheated` | 0.000 | 0.000 | 7.716 | 0.000 |
+| `ShieldBroken` | 0.000 | 0.000 | 5.449 | 0.000 |
+| `Lifetime` | 0.000 | 0.000 | 0.000 | 0.000 |
+
+### Structural Activity by Type
+
+Add / Remove counts cover ticks 1..108000, excluding initial composition. Destroy removes all logical components of the entity; replacing an existing type with Set is not Add. Total Add plus the initial 198 ships' 2484 components matches StructuralAdds; total Remove matches the original run's StructuralRemoves.
+
+| Component | low Add / Remove | nominal Add / Remove | high Add / Remove |
+| --- | --- | --- | --- |
+| `Transform` | 3156864 / 3155746 | 3809835 / 3809897 | 4412797 / 4410482 |
+| `Motion` | 3156864 / 3155746 | 3809835 / 3809897 | 4412797 / 4410482 |
+| `Particle` | 2488397 / 2487510 | 2972604 / 2972604 | 3413919 / 3411923 |
+| `Projectile` | 403519 / 403352 | 461436 / 461436 | 512410 / 512181 |
+| `Debris` | 263747 / 263534 | 373732 / 373662 | 482995 / 482782 |
+| `Boosting` | 11722 / 11716 | 10172 / 10161 | 10859 / 10833 |
+| `ShieldBroken` | 5622 / 5618 | 7441 / 7440 | 9493 / 9471 |
+| `InCombat` | 5573 / 5533 | 6166 / 6166 | 8279 / 8214 |
+| `Overheated` | 1144 / 1141 | 2761 / 2760 | 5880 / 5869 |
+| `Docked` | 1459 / 1459 | 2169 / 2169 | 3250 / 3249 |
+| `Identity` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `Hull` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `Shield` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `Heat` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `Brain` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `Weapon` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `Collider` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `PhysicsLink` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `CombatState` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `Inventory` | 1201 / 1350 | 2063 / 2195 | 3473 / 3596 |
+| `SecondaryWeapon` | 563 / 626 | 963 / 1020 | 1654 / 1711 |
+| `Carrier` | 57 / 57 | 92 / 95 | 128 / 130 |
+| `Lifetime` | 0 / 0 | 0 / 0 | 0 / 0 |
+
+### Frequent Compositions, Nominal
+
+Ship Base is the 12-component base from the catalogue above. The ten most frequent full sets by entity-ticks include transient entities; this is not the number of archetypes created inside a specific ECS. Rare sets and every share are retained in JSON.
+
+| Full Composition | Components | Share of Entity-Ticks % |
+| --- | --- | --- |
+| `Transform` + `Motion` + `Particle` | 3 | 54.2933 |
+| `Transform` + `Motion` + `Debris` | 3 | 31.8180 |
+| `Transform` + `Motion` + `Projectile` | 3 | 9.6297 |
+| Ship Base + `SecondaryWeapon`, `InCombat` | 14 | 0.9654 |
+| Ship Base + `InCombat` | 13 | 0.6220 |
+| Ship Base + `SecondaryWeapon` | 13 | 0.3533 |
+| Ship Base + `SecondaryWeapon`, `Overheated`, `InCombat` | 15 | 0.3126 |
+| Ship Base | 12 | 0.2706 |
+| Ship Base + `SecondaryWeapon`, `Carrier`, `Overheated`, `InCombat` | 16 | 0.2231 |
+| Ship Base + `SecondaryWeapon`, `Docked`, `InCombat` | 15 | 0.1921 |
+
+### Composition Charts
+
+![Mean Entity Counts by Family](charts/composition-families.png)
+
+![Component Count Distribution](charts/composition-histogram.png)
+
+![Component Prevalence](charts/composition-presence.png)
+
+### Diagnostic Sources
+
+| Profile | JSON | Full Per-Tick CSV | JSON SHA256 |
+| --- | --- | --- | --- |
+| low | [low.json](composition/low.json) | [low.ticks.csv](composition/low.ticks.csv) | 1c496dfc75ed02a1c12fdf3a4adfecec0f163348779805cc760e5660ad8bc31f |
+| nominal | [nominal.json](composition/nominal.json) | [nominal.ticks.csv](composition/nominal.ticks.csv) | 401f26140c697c3851530df7c27e29a833545b7bc792de616c55be75d0f0dfc0 |
+| high | [high.json](composition/high.json) | [high.ticks.csv](composition/high.ticks.csv) | cd9f32ec5787f5bb0ec410915582efea965ceb954504495e21e64a6e8f6ed923 |
+
+Composition was directly measured in a SECS diagnostic replay, not five new timing runs. The original checkpoints/Counters establish gameplay trace parity for the other four ports; each port's individual component census was not repeated. Classic, Lite and Morpeh additionally have one native LifetimeMarker per live entity. That does not change the shared logical composition shown here.
+
+## Run Data
+
+| Profile | Framework | Ticks | Windows | Wall Time, s | Date | Final Checksum | JSON | JSON SHA256 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| low | secs | 108000 | 30 | 42.88 | 2026-10-11T14:52:14.2068018+05:00 | BC1ED478AF94A722 | [low-secs.json](results/low-secs.json) | 5e01cabf66f78cddf469a5f1b05f16d4afce42cbe04a81989ed015d3a8957d52 |
+| low | lite | 108000 | 30 | 45.23 | 2026-10-11T14:53:00.9042133+05:00 | BC1ED478AF94A722 | [low-lite.json](results/low-lite.json) | ec5143af5af7e80e6c2595ee6f1b3673510a79c258327023841936d92c239be2 |
+| low | classic | 108000 | 30 | 43.65 | 2026-10-11T14:53:46.0179844+05:00 | BC1ED478AF94A722 | [low-classic.json](results/low-classic.json) | 1fbf2991d233a0a0d1dfdc7745da6604eea1c8522b3374d2ccd061be912ec61b |
+| low | morpeh | 108000 | 30 | 39.70 | 2026-10-11T14:54:27.1267049+05:00 | BC1ED478AF94A722 | [low-morpeh.json](results/low-morpeh.json) | b509c591e5339fd8c14a2c3709acd989957ea1738d48ba27df48ee08c77ed4ee |
+| low | static | 108000 | 30 | 46.41 | 2026-10-11T14:55:15.1760859+05:00 | BC1ED478AF94A722 | [low-static.json](results/low-static.json) | be86a5326409709a1718702b1939c71398c777d3d5fd04a92c54042e795a02f4 |
+| nominal | secs | 108000 | 30 | 53.46 | 2026-10-11T14:58:53.3110155+05:00 | 374773A7D7A76049 | [nominal-secs.json](results/nominal-secs.json) | 3cbe8776024cfd9db958bc3e3e353bddfdba2033142d4414dee37d46a628a1b1 |
+| nominal | lite | 108000 | 30 | 54.60 | 2026-10-11T14:59:49.5309385+05:00 | 374773A7D7A76049 | [nominal-lite.json](results/nominal-lite.json) | 983a2207e3f7b064d6722fa5583c1e933aa780aacb3569fdcc4de6e18baefc46 |
+| nominal | classic | 108000 | 30 | 54.84 | 2026-10-11T14:56:11.6803987+05:00 | 374773A7D7A76049 | [nominal-classic.json](results/nominal-classic.json) | 1be44c49adff02052e6db8b345e38872f65802c26f3ff4da5ef1ccee48d54a92 |
+| nominal | morpeh | 108000 | 30 | 50.84 | 2026-10-11T14:57:04.1186441+05:00 | 374773A7D7A76049 | [nominal-morpeh.json](results/nominal-morpeh.json) | f7d0a5460039b43fda2a57588a9a6e425747f1c447ebe539e2c8be5999e0a1e5 |
+| nominal | static | 108000 | 30 | 52.38 | 2026-10-11T14:57:58.2543959+05:00 | 374773A7D7A76049 | [nominal-static.json](results/nominal-static.json) | 0c3127ea3e4336b866a3e924b89f2f125f75529abc18140fd5e985f617b7ea5a |
+| high | secs | 108000 | 30 | 65.69 | 2026-10-11T15:02:05.4081584+05:00 | D359225CC9541DE1 | [high-secs.json](results/high-secs.json) | 1f0123188d14686b7a2a6ef59d91627dae4cd99b523f67724cb86f014f101bbd |
+| high | lite | 108000 | 30 | 71.95 | 2026-10-11T15:03:19.0151513+05:00 | D359225CC9541DE1 | [high-lite.json](results/high-lite.json) | da1983c0564b167a844448d08e125a3a32f897e463ca1e1c7d74bdbfff283bb4 |
+| high | classic | 108000 | 30 | 66.29 | 2026-10-11T15:04:26.9721727+05:00 | D359225CC9541DE1 | [high-classic.json](results/high-classic.json) | ced4525a003a10c12e4f7e85470584331245a2a460924b423e938a4690845230 |
+| high | morpeh | 108000 | 30 | 63.17 | 2026-10-11T15:05:31.7833263+05:00 | D359225CC9541DE1 | [high-morpeh.json](results/high-morpeh.json) | 6b7ff80019b423d4845a4dac5bf6dc808edefc03ee90012cdcefcca6fafcdd7e |
+| high | static | 108000 | 30 | 66.64 | 2026-10-11T15:00:57.9463337+05:00 | D359225CC9541DE1 | [high-static.json](results/high-static.json) | f510fcacc0fcad7c24f55b71436851d3985713a62c9405225474d722043fa1fa |
+
+Configuration: seed 7331, 96 escorts and 3 carriers per team (198 initial ships), churn low/nominal/high = 0.5/1/2, particles 1, no realtime pacing. All remaining BattleConfig parameters are checked against defaults.
+
+ChurnMultiplier changes firing cooldown, production interval and boost duration. Combat has feedback: more frequent firing affects heat, ship destruction and subsequent participant/operation counts. This is not a pure component-operation frequency multiplier: high=2 does not mean twice the actual churn. Use measured StructuralAdds/StructuralRemoves and their per-minute rates in rate-StructuralAdds/rate-StructuralRemoves charts, not the number in the profile name. All five frameworks are compared WITHIN each profile on the same battle trace, verified by checkpoints and Counters. Different profiles intentionally have different traces and workloads; they are not an isolated experiment doubling one operation.
+
+Current methodology: GameplayRules.Revision=predictive-neutral-v1 is verified in all 15 runs. Predictive AI aim solves a constant-velocity quadratic intercept, including muzzle offset and inherited shooter velocity. A small deterministic spread up to 0.03 rad is selected by a hash decision with probability 0.25 per firing decision/burst; the entire burst shares its offset. This does not promise exactly a quarter of decisions in short samples or a quarter of projectiles/hits. Projectile and Debris have no Team; Owner is telemetry-only and Target is for homing, not immunity. Collision objects here are enabled ship fixtures. Particles/Debris have no health/body; projectile interception of other projectiles is not claimed. Projectiles damage any such ship they collide with, without team immunity. These rules change trajectories, hits and combat feedback. Changing them requires a rebuild and a full repeat of the 15 runs; old results are not evidence for new rules. Result SHA256 is checked against current Release binaries. Checkpoints/Counters establish port trace consistency; revision records the stated methodology but does not replace Core implementation validation.
+
+### Matching Logical Counters
+
+| Metric | low | nominal | high |
+| --- | --- | --- | --- |
+| ShipsCreated | 1399 | 2261 | 3671 |
+| ShipsDestroyed | 1350 | 2195 | 3596 |
+| Shots | 403519 | 461436 | 512410 |
+| Hits | 393165 | 445409 | 487230 |
+| PlasmaShieldHits | 20818 | 20826 | 22492 |
+| ShieldBreaks | 5622 | 7441 | 9493 |
+| Overheats | 1144 | 2761 | 5880 |
+| Dockings | 1459 | 2169 | 3250 |
+| Repairs | 342611 | 449415 | 578294 |
+| Builds | 1144 | 1971 | 3345 |
+| ItemUses | 12623 | 15189 | 17110 |
+| DebrisHits | 240839 | 339539 | 434928 |
+| Explosions | 1350 | 2195 | 3596 |
+| StructuralAdds | 9510025 | 11480320 | 13311675 |
+| StructuralRemoves | 9505538 | 11479257 | 13303287 |
+| AimDecisions | 224352 | 257550 | 293654 |
+| ImpreciseAimDecisions | 55863 | 64189 | 73618 |
+| FriendlyFireHits | 131265 | 161096 | 202845 |
+| SelfHits | 59 | 80 | 120 |
+
+Each row is identical across all five frameworks, not their sum. Per-minute structural rates are cumulative counter differences / 60 simulated seconds. The first window includes initial composition because the original timing run has no tick-zero counter snapshot. Later windows show differences over their respective minutes.
+
+### Observed Gameplay Events
+
+A supported or previously validated mechanism need not occur in every long-run profile. The table is computed from Counters: >0 confirms recorded events in this profile; 0 means no recorded events, not lack of support. JSON does not contain prior --validate/--validate-adapters/--validate-ports status, so their success is not established by these fields alone. The minimum is across three profiles, not independent repeats.
+
+| Mechanism | Counter | low | nominal | high | Minimum Across Profiles |
+| --- | --- | --- | --- | --- | --- |
+| Shots | Shots | 403519 | 461436 | 512410 | 403519 |
+| Hits | Hits | 393165 | 445409 | 487230 | 393165 |
+| Plasma Shield Hits | PlasmaShieldHits | 20818 | 20826 | 22492 | 20818 |
+| Shield Breaks | ShieldBreaks | 5622 | 7441 | 9493 | 5622 |
+| Overheats | Overheats | 1144 | 2761 | 5880 | 1144 |
+| Dockings | Dockings | 1459 | 2169 | 3250 | 1459 |
+| Repairs | Repairs | 342611 | 449415 | 578294 | 342611 |
+| Builds | Builds | 1144 | 1971 | 3345 | 1144 |
+| Item Uses | ItemUses | 12623 | 15189 | 17110 | 12623 |
+| Debris Hits | DebrisHits | 240839 | 339539 | 434928 | 240839 |
+| Explosions | Explosions | 1350 | 2195 | 3596 | 1350 |
+| Firing Decisions | AimDecisions | 224352 | 257550 | 293654 | 224352 |
+| Spread Decisions | ImpreciseAimDecisions | 55863 | 64189 | 73618 | 55863 |
+| Observed Friendly Hits | FriendlyFireHits | 131265 | 161096 | 202845 | 131265 |
+| Self Hits | SelfHits | 59 | 80 | 120 | 59 |
+
+### Aiming and Observed Friendly Fire
+
+| Profile | AimDecisions | ImpreciseAimDecisions | Observed Share % | FriendlyFireHits | SelfHits |
+| --- | --- | --- | --- | --- | --- |
+| low | 224352 | 55863 | 24.900 | 131265 | 59 |
+| nominal | 257550 | 64189 | 24.923 | 161096 | 80 |
+| high | 293654 | 73618 | 25.070 | 202845 | 120 |
+
+Values match all five frameworks within a profile. Observed share = ImpreciseAimDecisions / AimDecisions, not ImpreciseAimDecisions / Shots: one burst may emit several projectiles or be limited by heat/caps. FriendlyFireHits attributes hits only while the owner's Identity is still in ECS, before Destroy/Commit; that does not necessarily imply positive hull. Full attribution is not retained after Identity removal. This is an incomplete friendly-hit count, not complete attribution or zero hits after owner destruction. SelfHits is a subset of FriendlyFireHits; do not add them. Zero values are retained without assuming every mechanism must occur.
+
+Environment: NIKOLAY-PC; Microsoft Windows 10.0.26200; .NET 8.0.31; TieredCompilation='0'.
+RAM: 61.49 GiB; OS inventory: Microsoft Windows 11 Pro 10.0.26200; logical processors visible to PowerShell: 24.
+Frontend GPU/driver: NVIDIA Corporation; NVIDIA GeForce RTX 5070 Ti/PCIe/SSE2; 3.3.0 NVIDIA 596.36.
+
+| CPU | Vendor | Cores | Logical Processors | MaxClockSpeed, MHz (nominal) |
+| --- | --- | --- | --- | --- |
+| AMD Ryzen 9 9900X 12-Core Processor             | AuthenticAMD | 12 | 24 | 4400 |
+
+[hardware.json](hardware.json), CapturedAt=2026-10-11T15:06:23.1344696+05:00, SHA256=88c37980646f070dfc72518191164060eacab3a2e36aa5ecab717f876ced5d76. Inventory was captured after measurement; Machine matches headless. MaxClockSpeed is the nominal maximum from CIM, not measured clock speed during the benchmark.
+Measurement scope (original metadata fields): TimingScope=Step includes all systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization; MemoryScope=Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers.
+
+## Tick Timing
+
+| Profile | Framework | Mean ms | p95 ms | p99 ms | Max ms | Ticks >16.67ms | Miss % | Step managed alloc B/tick |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| low | secs | 0.3966 | 0.5952 | 1.0000 | 3.3685 | 0 | 0.00000 | 296.75 |
+| low | lite | 0.4183 | 0.6389 | 1.0607 | 4.1879 | 0 | 0.00000 | 338.97 |
+| low | classic | 0.4037 | 0.6144 | 1.0411 | 3.6632 | 0 | 0.00000 | 332.43 |
+| low | morpeh | 0.3671 | 0.5648 | 0.9766 | 3.2843 | 0 | 0.00000 | 352.99 |
+| low | static | 0.4291 | 0.6803 | 1.1193 | 3.7314 | 0 | 0.00000 | 299.21 |
+| nominal | secs | 0.4945 | 0.7874 | 1.0863 | 5.4774 | 0 | 0.00000 | 444.00 |
+| nominal | lite | 0.5050 | 0.8095 | 1.1391 | 5.1888 | 0 | 0.00000 | 485.65 |
+| nominal | classic | 0.5072 | 0.8347 | 1.1696 | 5.6009 | 0 | 0.00000 | 487.84 |
+| nominal | morpeh | 0.4701 | 0.7585 | 1.0540 | 4.5252 | 0 | 0.00000 | 503.74 |
+| nominal | static | 0.4845 | 0.7838 | 1.0605 | 3.7494 | 0 | 0.00000 | 447.69 |
+| high | secs | 0.6077 | 1.1922 | 1.6188 | 5.8415 | 0 | 0.00000 | 666.08 |
+| high | lite | 0.6656 | 1.3187 | 1.8535 | 7.2050 | 0 | 0.00000 | 754.10 |
+| high | classic | 0.6133 | 1.2087 | 1.6922 | 6.2805 | 0 | 0.00000 | 741.54 |
+| high | morpeh | 0.5844 | 1.1642 | 1.5711 | 6.2446 | 0 | 0.00000 | 737.26 |
+| high | static | 0.6164 | 1.2096 | 1.5914 | 9.4549 | 0 | 0.00000 | 672.20 |
+
+Global quantiles come directly from the full-run JSON, not averages of per-minute quantiles. AllocatedBytes and B/tick mean current-thread managed allocations strictly inside Step; timing quantiles and this allocation metric exclude subsequent result processing.
+
+### GC and Broader Harness Intervals
+
+| Profile | Framework | GC Sample After Tick 1 (0/1/2) | GC Sample After Tick 108000 (0/1/2) | CSV GC delta tick 1→108000 (0/1/2) | JSON GC Broad Interval (0/1/2) | HarnessAndSimulationAllocatedBytes Broad Interval, B |
+| --- | --- | --- | --- | --- | --- | --- |
+| low | secs | 4/4/4 | 6/5/4 | 2/1/0 | 2/1/0 | 36977272 |
+| low | lite | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | 41536912 |
+| low | classic | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | 40830552 |
+| low | morpeh | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | 43051232 |
+| low | static | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | 37275392 |
+| nominal | secs | 4/4/4 | 6/5/4 | 2/1/0 | 3/1/0 | 52838760 |
+| nominal | lite | 4/4/4 | 7/4/4 | 3/0/0 | 3/0/0 | 57325024 |
+| nominal | classic | 4/4/4 | 7/5/4 | 3/1/0 | 3/1/0 | 57561896 |
+| nominal | morpeh | 4/4/4 | 7/5/5 | 3/1/1 | 3/1/1 | 59278840 |
+| nominal | static | 4/4/4 | 7/4/4 | 3/0/0 | 3/0/0 | 53282400 |
+| high | secs | 4/4/4 | 8/5/4 | 4/1/0 | 4/1/0 | 76940296 |
+| high | lite | 4/4/4 | 8/4/4 | 4/0/0 | 4/0/0 | 86434896 |
+| high | classic | 4/4/4 | 9/6/5 | 5/2/1 | 5/2/1 | 85079304 |
+| high | morpeh | 4/4/4 | 8/6/6 | 4/2/2 | 4/2/2 | 84616104 |
+| high | static | 4/4/4 | 8/4/4 | 4/0/0 | 4/0/0 | 77621784 |
+
+CSV GC delta = last post-Step GC sample minus first post-Step sample, ticks 1→108000. The interval includes between-Step telemetry but excludes unknown first-Step collections. Initial tick-zero baseline was not saved: exact gameplay-loop-only collections cannot be recovered from these data. Minute-window Gc fields are also absolute cumulative values.
+
+JSON GcCollections is computed later, after battle.Validate, DLL/SHA256 provenance reads and global Stats(timing). It covers a broader interval including this post-loop work, not gameplay/loop alone. The difference between JSON GcCollections and CSV sample delta cannot be attributed: it may include collections before the first post-Step sample (including first Step) and after the last sample (telemetry/post-loop work). Without tick-zero baseline these sources cannot be separated. Even a broad JSON count exactly one greater does not prove one extra post-loop collection. HarnessAndSimulationAllocatedBytes is also captured after these operations and includes in-scope harness work, per-minute telemetry and post-loop validation/hashing/global timing aggregation; it is not Step allocation. Original JSON/CSV are unchanged; broad counts are not subtracted to invent a tick-zero baseline.
+
+## Memory Samples
+
+| Profile | Framework | Metric | Sample Peak MiB @ Minute | Last MiB | Last - First MiB | OLS MiB/min |
+| --- | --- | --- | --- | --- | --- | --- |
+| low | secs | ManagedHeapBytes | 32.81 @ 29 | 8.23 | -10.87 | +0.092 |
+| low | secs | PrivateBytes | 59.48 @ 29 | 56.23 | +15.50 | +0.632 |
+| low | secs | WorkingSetBytes | 78.91 @ 29 | 75.91 | +27.82 | +1.051 |
+| low | secs | NativeBytes | 6.17 @ 29 | 6.17 | +1.86 | +0.054 |
+| low | lite | ManagedHeapBytes | 36.12 @ 27 | 23.86 | -0.05 | +0.102 |
+| low | lite | PrivateBytes | 51.82 @ 13 | 51.73 | +10.21 | +0.386 |
+| low | lite | WorkingSetBytes | 72.68 @ 30 | 72.68 | +21.75 | +0.774 |
+| low | lite | NativeBytes | unknown | unknown | unknown | unknown |
+| low | classic | ManagedHeapBytes | 35.00 @ 27 | 22.82 | -0.06 | +0.080 |
+| low | classic | PrivateBytes | 51.19 @ 14 | 51.16 | +11.63 | +0.454 |
+| low | classic | WorkingSetBytes | 72.29 @ 30 | 72.29 | +24.20 | +0.875 |
+| low | classic | NativeBytes | unknown | unknown | unknown | unknown |
+| low | morpeh | ManagedHeapBytes | 38.41 @ 27 | 17.46 | -7.48 | +0.003 |
+| low | morpeh | PrivateBytes | 61.19 @ 28 | 61.19 | +16.20 | +0.605 |
+| low | morpeh | WorkingSetBytes | 82.55 @ 30 | 82.55 | +30.50 | +1.087 |
+| low | morpeh | NativeBytes | unknown | unknown | unknown | unknown |
+| low | static | ManagedHeapBytes | 32.80 @ 28 | 19.18 | -0.55 | +0.137 |
+| low | static | PrivateBytes | 50.38 @ 29 | 50.38 | +13.48 | +0.545 |
+| low | static | WorkingSetBytes | 75.98 @ 30 | 75.98 | +27.39 | +1.017 |
+| low | static | NativeBytes | unknown | unknown | unknown | unknown |
+| nominal | secs | ManagedHeapBytes | 33.02 @ 30 | 33.02 | +13.75 | -0.027 |
+| nominal | secs | PrivateBytes | 60.17 @ 20 | 57.59 | +15.78 | +0.495 |
+| nominal | secs | WorkingSetBytes | 76.64 @ 30 | 76.64 | +27.57 | +0.904 |
+| nominal | secs | NativeBytes | 6.93 @ 28 | 6.93 | +2.13 | +0.053 |
+| nominal | lite | ManagedHeapBytes | 35.69 @ 28 | 22.94 | -1.09 | +0.063 |
+| nominal | lite | PrivateBytes | 51.80 @ 29 | 51.80 | +10.02 | +0.276 |
+| nominal | lite | WorkingSetBytes | 73.08 @ 30 | 73.08 | +21.60 | +0.666 |
+| nominal | lite | NativeBytes | unknown | unknown | unknown | unknown |
+| nominal | classic | ManagedHeapBytes | 35.84 @ 28 | 23.00 | -0.75 | +0.078 |
+| nominal | classic | PrivateBytes | 51.77 @ 9 | 48.94 | +7.96 | +0.273 |
+| nominal | classic | WorkingSetBytes | 72.58 @ 28 | 70.98 | +20.48 | +0.677 |
+| nominal | classic | NativeBytes | unknown | unknown | unknown | unknown |
+| nominal | morpeh | ManagedHeapBytes | 38.66 @ 28 | 25.15 | +2.52 | -0.107 |
+| nominal | morpeh | PrivateBytes | 61.81 @ 28 | 61.75 | +16.64 | +0.635 |
+| nominal | morpeh | WorkingSetBytes | 83.89 @ 30 | 83.89 | +31.62 | +1.124 |
+| nominal | morpeh | NativeBytes | unknown | unknown | unknown | unknown |
+| nominal | static | ManagedHeapBytes | 33.18 @ 29 | 18.62 | -1.43 | +0.131 |
+| nominal | static | PrivateBytes | 50.75 @ 30 | 50.75 | +13.29 | +0.415 |
+| nominal | static | WorkingSetBytes | 76.25 @ 30 | 76.25 | +27.22 | +0.885 |
+| nominal | static | NativeBytes | unknown | unknown | unknown | unknown |
+| high | secs | ManagedHeapBytes | 33.51 @ 27 | 18.85 | -2.23 | -0.105 |
+| high | secs | PrivateBytes | 59.02 @ 13 | 57.30 | +14.90 | +0.440 |
+| high | secs | WorkingSetBytes | 76.65 @ 30 | 76.65 | +26.68 | +0.843 |
+| high | secs | NativeBytes | 7.11 @ 30 | 7.11 | +1.49 | +0.033 |
+| high | lite | ManagedHeapBytes | 41.06 @ 18 | 36.20 | +4.87 | +0.108 |
+| high | lite | PrivateBytes | 55.56 @ 19 | 55.56 | +5.29 | +0.077 |
+| high | lite | WorkingSetBytes | 76.70 @ 30 | 76.70 | +19.33 | +0.551 |
+| high | lite | NativeBytes | unknown | unknown | unknown | unknown |
+| high | classic | ManagedHeapBytes | 38.75 @ 18 | 31.59 | +2.41 | -0.098 |
+| high | classic | PrivateBytes | 54.87 @ 5 | 50.41 | +2.95 | -0.131 |
+| high | classic | WorkingSetBytes | 72.64 @ 30 | 72.64 | +18.02 | +0.385 |
+| high | classic | NativeBytes | unknown | unknown | unknown | unknown |
+| high | morpeh | ManagedHeapBytes | 37.87 @ 11 | 33.53 | +6.21 | +0.130 |
+| high | morpeh | PrivateBytes | 75.75 @ 30 | 75.75 | +29.07 | +0.830 |
+| high | morpeh | WorkingSetBytes | 97.78 @ 30 | 97.78 | +43.40 | +1.322 |
+| high | morpeh | NativeBytes | unknown | unknown | unknown | unknown |
+| high | static | ManagedHeapBytes | 35.92 @ 27 | 26.65 | +3.87 | +0.117 |
+| high | static | PrivateBytes | 52.20 @ 21 | 52.20 | +12.02 | +0.252 |
+| high | static | WorkingSetBytes | 77.71 @ 30 | 77.71 | +25.23 | +0.698 |
+| high | static | NativeBytes | unknown | unknown | unknown | unknown |
+
+Peaks are maxima of end-of-minute samples, not continuously measured process peaks. Trends are descriptive OLS fits, not leak diagnosis. Managed heap, process private bytes and working set are different metrics and cannot be added. SECS native storage is separate; unavailable diagnostics from other frameworks remain null, not zero. Process memory includes measurement harness buffers.
+
+## Phase Effects
+
+| Profile | Framework | Minutes 1-10 Mean ms | Minutes 11-20 Mean ms | Minutes 21-30 Mean ms | Late / Early | Largest Stage | Stage % of Step | physics % of Step | physics + hits % of Step |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| low | secs | 0.4085 | 0.3807 | 0.4005 | 0.980 | hits | 46.6 | 22.4 | 69.0 |
+| low | lite | 0.4333 | 0.3960 | 0.4255 | 0.982 | hits | 46.7 | 22.6 | 69.3 |
+| low | classic | 0.4273 | 0.3887 | 0.3951 | 0.925 | hits | 50.2 | 21.5 | 71.7 |
+| low | morpeh | 0.3958 | 0.3512 | 0.3541 | 0.895 | hits | 49.4 | 22.9 | 72.3 |
+| low | static | 0.4456 | 0.4124 | 0.4294 | 0.964 | hits | 46.6 | 23.4 | 70.0 |
+| nominal | secs | 0.5251 | 0.4665 | 0.4918 | 0.937 | hits | 50.0 | 17.9 | 67.9 |
+| nominal | lite | 0.5465 | 0.4810 | 0.4876 | 0.892 | hits | 50.1 | 18.0 | 68.0 |
+| nominal | classic | 0.5568 | 0.4715 | 0.4933 | 0.886 | hits | 54.1 | 16.7 | 70.8 |
+| nominal | morpeh | 0.5063 | 0.4381 | 0.4660 | 0.920 | hits | 52.8 | 18.3 | 71.1 |
+| nominal | static | 0.5125 | 0.4517 | 0.4892 | 0.955 | hits | 50.8 | 18.3 | 69.1 |
+| high | secs | 0.6750 | 0.5738 | 0.5744 | 0.851 | hits | 50.2 | 16.9 | 67.1 |
+| high | lite | 0.7314 | 0.6262 | 0.6393 | 0.874 | hits | 49.7 | 17.4 | 67.1 |
+| high | classic | 0.6905 | 0.5760 | 0.5734 | 0.830 | hits | 54.6 | 15.6 | 70.3 |
+| high | morpeh | 0.6575 | 0.5584 | 0.5372 | 0.817 | hits | 52.7 | 17.4 | 70.1 |
+| high | static | 0.7077 | 0.5733 | 0.5683 | 0.803 | hits | 51.0 | 17.6 | 68.6 |
+
+Fixed simulated-time phases describe observations, not a causal experiment. Stage means can be added; stage p95/p99 cannot. The physics + hits share is their summed mean divided by mean Step separately for each run, not a preset percentage. A large share means shared physics/hit processing dominates this workload and can hide ECS differences. This is not direct evidence of a universal framework advantage. One run per profile/framework combination does not establish ranking confidence.
+
+## Charts
+
+![timing-MeanMs.png](charts/timing-MeanMs.png)
+
+![timing-P95Ms.png](charts/timing-P95Ms.png)
+
+![timing-P99Ms.png](charts/timing-P99Ms.png)
+
+![memory-ManagedHeapBytes.png](charts/memory-ManagedHeapBytes.png)
+
+![memory-PrivateBytes.png](charts/memory-PrivateBytes.png)
+
+![memory-WorkingSetBytes.png](charts/memory-WorkingSetBytes.png)
+
+![native-secs.png](charts/native-secs.png)
+
+![entities-Ships.png](charts/entities-Ships.png)
+
+![entities-Projectiles.png](charts/entities-Projectiles.png)
+
+![entities-Debris.png](charts/entities-Debris.png)
+
+![entities-Particles.png](charts/entities-Particles.png)
+
+![rate-StructuralAdds.png](charts/rate-StructuralAdds.png)
+
+![rate-StructuralRemoves.png](charts/rate-StructuralRemoves.png)
+
+![stages.png](charts/stages.png)
+
+## Separate Frontend Profile
+
+Frontend JSON/CSV are validated separately from the 15 headless runs: SchemaVersion=1, 3600 measured frames, 120 warmup frames after ReplayStartTick=900, measured ticks 1021-4620. One Step per frame, uncapped, VSync off: deterministic replay throughput, not realtime gameplay FPS. RealTimeGameplayFpsMeasured=false.
+
+Configuration: 1440 x 900, zoom 1, Hidden=True, Atlas=True, seed 7331, 96 escorts/team, Framework=SECS.
+GPU/driver: NVIDIA Corporation; NVIDIA GeForce RTX 5070 Ti/PCIe/SSE2; 3.3.0 NVIDIA 596.36.
+
+| Metric | Units | Count | Min | Mean | P50 | P95 | P99 | Max |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| SimulationCpuMs | ms | 3600 | 0.35240 | 0.64895 | 0.55620 | 1.10340 | 1.44390 | 2.45580 |
+| SnapshotCaptureCpuMs | ms | 3600 | 0.06300 | 0.14692 | 0.12440 | 0.26270 | 0.35230 | 0.76630 |
+| RenderSubmissionCpuMs | ms | 3600 | 0.45590 | 0.79985 | 0.75280 | 1.25910 | 1.61370 | 6.29120 |
+| TotalCpuFrameMs | ms | 3600 | 1.16620 | 2.06339 | 1.92070 | 3.25940 | 4.11310 | 8.27280 |
+| WallFrameIntervalMs | ms | 3600 | 1.19250 | 2.10530 | 1.96440 | 3.32080 | 4.20570 | 8.30940 |
+| ReplayWallFramesPerSecond | frames/s | 3600 | 120.34563 | 504.29009 | 509.06129 | 683.99453 | 739.37153 | 838.57442 |
+| Gpu.RenderMs | ms | 3600 | 0.04291 | 0.52438 | 0.48931 | 0.81098 | 1.06845 | 1.85110 |
+
+Replay wall throughput: 474.991 frames/s over 7579.090 ms. This is frame count / total duration, not mean instantaneous FPS. All statistics are recomputed from CSV with nearest-rank ceil(p*N)-1 and checked against JSON, including budget flags, GPU null/zero accounting and timing boundaries.
+
+Frontend budget 16.67 ms: CPU frame misses=0, wall interval misses=0 (0.000%). This is a separate profiler threshold, not proof of sustained realtime 60 FPS.
+
+Gpu.Supported=True; GpuDataValid=True; Samples=3600; NullCount=0; ZeroSamples=0; CounterBits=64; QueryRingExhaustedFrames=0; UnavailableReason=None. GlErrors=[]; GlErrorOverflow=0; ValidationPass=True.
+
+SimulationCpuMs covers Step and the rolling HUD timing queue, excluding snapshot/render. SnapshotCaptureCpuMs covers Battle.Capture only. RenderSubmissionCpuMs covers scene/HUD generation, telemetry queries, title and GL clear/upload/draw, excluding Step, Capture and timer-query bookkeeping. TotalCpuFrameMs covers the callback through query/error bookkeeping, including polling but excluding auto-present, saving the sample and callback return. WallFrameIntervalMs spans successive callback entries, including auto-present/event loop; the last interval closes without an extra Step.
+
+Asynchronous GL_TIME_ELAPSED spans clear through the final scene/HUD draw: elapsed GPU timeline including possible idle gaps while CPU geometry is generated, not pure device busy time/utilization. GPU and CPU overlap; they cannot be added or subtracted to infer present time. PresentCpuMs and PresentWaitMs are null: Silk auto-present runs after the callback and is not separately measured. Unsupported GPU timing is neither replaced with CPU time nor treated as zero. Full GL.Finish GPU tail drain is excluded from throughput, along with fast-forward, warmup, framebuffer readback, hashes/checkpoints, aggregation and file writing.
+
+### State and Provenance Validation
+
+Current Game/Core/SECS adapter DLL SHA256 values are verified; Core/adapter also match the headless suite. Custom parity runs validate state only: capture tick 900 / 256 escorts (76139FC912B8B3E7) and profile tick 4620 / 96 escorts (D4DEA4EA08683883). Their warmup=0 timings/JIT tails are excluded from performance metrics and the suite's 1 620 000 ticks.
+
+| Artifact | SHA256 |
+| --- | --- |
+| [frontend.json](frontend.json) | 95b7f0887e9900717c1638bb118980b1596b7e7d8bffc41cb7f9cf06d898ac87 |
+| [frontend.csv](frontend.csv) | dcb763bb337a6d221702e6ef383950cdde26814b5ad6f5765b9d2628337d77c7 |
+| [action.png](action.png) | f8ae624e21fdeb1bacd5b9901a6ed3cacc396d8f722a93ea2f5628342d585541 |
+| [action.png.json](action.png.json) | f1e4b86ae78f0c359f5d4e0217a75f5eeada42cb044d1f9b5b3a0db651a408a3 |
+| [custom/frontend-capture-parity.json](custom/frontend-capture-parity.json) | 83037d83183f7b7b2b0ed61df10c2a4c5fe0b5fab59552ae17234be5521b0c5a |
+| [custom/frontend-profile-parity.json](custom/frontend-profile-parity.json) | 369ad12fdad56b53481a43ed96b563d8841840925ba2ffcc5da34dbb21912e64 |
+
+CoreDllSha256=C33F0C46BD5725E342233BF456E2EACF412FDDAD2EF91C43827E513D3E9D4120; GameDllSha256=1F00945060A72CEA5062DE90475E0A99E51745A06E9A7E7EC539E13011EC1296; SecsAdapterDllSha256=5896308C178CE8FD87680540B70CAB72CEFF4D37EECC704C761B1FC17990E0D8.
+
+Prior validation in [PLAN.md, E7](PLAN.md): the main implementation owner reports Core --validate PASS for the new rules, short five-port parity (3000 ticks, 10 checkpoints, checksum 666A96DD2647E74D) and SECS.Tests 16/16 PASS in Debug and Release. This is reported verification evidence; the analyzer did not rerun those tests. It does not replace the full measured suite or separate frontend CSV validation.
+
+## Relationship to Microbenchmarks
+
+ShipsCreated/ShipsDestroyed in the matching-counter table are logical ship Create/Destroy totals, not every ECS entity lifecycle operation. Ship creation includes initial composition, replenishment and builds. Shots counts projectile creation, but the original timing JSON does not record cumulative particle/debris creation or total transient destruction. End-of-minute live counts cannot recover creation/destruction between samples: the original timing schema has no full transient-operation count or Create/Destroy denominator.
+
+StructuralAdds/StructuralRemoves and their minute-increment rates count shared logical component operations, not entity Create/Destroy calls. They include real state changes: overheating, combat, boost, shield breaks and docking. Lifecycle mixes state changes, entity retirement, effects, builds, structural commits and final collection/sorting. Dividing its time by ships, shots or component operations does not yield an isolated primitive's Create/Destroy ns/op.
+
+A prior flat-iteration microbenchmark advantage does not predict total Step performance: Step includes shared physics, five-ray CCD, AI, sorting and random state/component access through native stores and the identity bridge. Stage means and churn rates describe this workload, not isolated ECS primitives; aggregate differences cannot be attributed to iteration alone.
+
+## Adapters and Limitations
+
+All five use NativeStore identity translation with bounded reusable slots and reverse live-entity lookup. Shared identity-layer cost, including dictionary lookup, exists in all five and can mask native API differences. Components and queries belong to the native frameworks, not a parallel shadow ECS. Classic, Lite and Morpeh add a private LifetimeMarker to keep an empty entity alive during composition, including before Commit. These three adapters therefore have one extra native component; shared structural counters count logical components only and exclude markers. Morpeh/Static Wrapper<T> preserves sizeof(T) unmanaged payload. Other logical layouts match. Special SECS accessor/factory benchmark APIs are not used. Aether free-ID slots are bounded by the highest number of slots ever allocated (high-water mark).
+
+Shared Aether.Physics2D uses compound fixtures and a five-ray projectile CCD approximation, not exact swept collision. Debris has no damping and is retired after 3600 ticks, on impact or outside 2.5 * ArenaHalfSize on either axis. This is lifecycle cleanup, not drag. Validate rejects NaN/non-finite states; automatic NaN retirement is not claimed. One machine, one seed and no repeats do not establish statistically robust results; confidence intervals and universal rankings are not claimed. Thirty minutes means simulated time, not wall duration. Networking, rendering cost, input latency, replay and other hardware are not covered by headless measurements. UI/rendering is separately examined in a fixed frontend replay, not the headless ranking. Neither spare headless Step budget, a capture nor uncapped replay proves realtime frontend 60 FPS. Matching checkpoints confirm the recorded deterministic workload, not every possible state or correctness property.
+
+Source pins and binary SHA256 are included in every JSON and checked for consistency; SECS was built from the optimized working tree, not a clean pinned commit. JSON SHA256 above identifies the analyzed data. Generated sprite provenance and full prompt: [Asset provenance](../../SpaceBattle.Game/Assets/PROVENANCE.md). [Frontend and Capture Contract](../../SpaceBattle.Game/README.md).

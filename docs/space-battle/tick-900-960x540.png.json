@@ -1,0 +1,20 @@
+{
+  "Tick": 900,
+  "Width": 960,
+  "Height": 540,
+  "Ships": 71,
+  "AliveCyan": 36,
+  "AliveRed": 45,
+  "Projectiles": 728,
+  "Debris": 942,
+  "Particles": 462,
+  "BrightPixels": 17647,
+  "UniqueColors": 1226,
+  "SceneBrightPixels": 8949,
+  "SceneUniqueColors": 1216,
+  "Nonblank": true,
+  "Atlas": true,
+  "ControlsVerified": true,
+  "LastTickMs": 0.8243,
+  "P99": 2.3534
+}

@@ -1,0 +1,19 @@
+{
+  "width": 1448,
+  "height": 1086,
+  "alphaThreshold": 32,
+  "sprites": [
+    { "class": 0, "x": 95, "y": 47, "width": 182, "height": 227 },
+    { "class": 1, "x": 393, "y": 44, "width": 261, "height": 222 },
+    { "class": 2, "x": 727, "y": 26, "width": 379, "height": 269 },
+    { "class": 3, "x": 1162, "y": 32, "width": 249, "height": 248 },
+    { "class": 4, "x": 89, "y": 317, "width": 196, "height": 319 },
+    { "class": 5, "x": 415, "y": 318, "width": 238, "height": 321 },
+    { "class": 6, "x": 789, "y": 317, "width": 239, "height": 326 },
+    { "class": 7, "x": 1135, "y": 317, "width": 291, "height": 329 },
+    { "class": 8, "x": 31, "y": 657, "width": 318, "height": 363 },
+    { "class": 9, "x": 370, "y": 654, "width": 350, "height": 398 },
+    { "class": 10, "x": 733, "y": 649, "width": 409, "height": 412 },
+    { "class": 11, "x": 1187, "y": 736, "width": 217, "height": 218 }
+  ]
+}

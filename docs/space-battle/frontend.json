@@ -1,0 +1,151 @@
+{
+  "SchemaVersion": 1,
+  "Mode": "deterministic fixed replay: exactly one simulation Step per rendered frame, uncapped, VSync off",
+  "RealTimeGameplayFpsMeasured": false,
+  "SampleFrames": 3600,
+  "WarmupFrames": 120,
+  "StepsPerFrame": 1,
+  "ReplayStartTick": 900,
+  "FirstMeasuredTick": 1021,
+  "LastMeasuredTick": 4620,
+  "Width": 1440,
+  "Height": 900,
+  "Zoom": 1,
+  "Hidden": true,
+  "Atlas": true,
+  "VSync": false,
+  "FrameRateCap": 0,
+  "UpdateRateCap": 0,
+  "ControlsVerified": true,
+  "Config": {
+    "Seed": 7331,
+    "ShipsPerTeam": 96,
+    "CarriersPerTeam": 3,
+    "ArenaHalfSize": 210,
+    "ChurnMultiplier": 1,
+    "TickRate": 60,
+    "ReplenishCarriers": true,
+    "ParticleMultiplier": 1,
+    "MaxProjectiles": 24000,
+    "MaxDebris": 16000,
+    "MaxParticles": 32000
+  },
+  "Framework": "SECS",
+  "Driver": {
+    "Vendor": "NVIDIA Corporation",
+    "Renderer": "NVIDIA GeForce RTX 5070 Ti/PCIe/SSE2",
+    "Version": "3.3.0 NVIDIA 596.36"
+  },
+  "CoreDllSha256": "C33F0C46BD5725E342233BF456E2EACF412FDDAD2EF91C43827E513D3E9D4120",
+  "GameDllSha256": "1F00945060A72CEA5062DE90475E0A99E51745A06E9A7E7EC539E13011EC1296",
+  "SecsAdapterDllSha256": "5896308C178CE8FD87680540B70CAB72CEFF4D37EECC704C761B1FC17990E0D8",
+  "FinalBattleChecksum": "D4DEA4EA08683883",
+  "StopwatchFrequencyHz": 10000000,
+  "FirstMeasuredStartTimestamp": 1518307034237,
+  "LastMeasuredBoundaryTimestamp": 1518382825133,
+  "Definitions": {
+    "SimulationCPU": "Step wrapper, including its rolling HUD timing queue; no snapshot or render",
+    "SnapshotCaptureCPU": "Battle.Capture only",
+    "RenderSubmissionCPU": "Scene/HUD generation, telemetry queries, window title and GL clear/upload/draw submission; no Step, Capture or timer-query bookkeeping",
+    "TotalCPUFrame": "Render callback entry through post-draw query/error bookkeeping, before sample storage and callback return; includes query polling but excludes auto-present",
+    "WallFrameInterval": "Render callback entry to next callback entry, including auto-present, event loop and callback bookkeeping; final interval collected without an extra Step",
+    "GPU": "GL_TIME_ELAPSED around clear through final scene/HUD draw; elapsed GPU timeline, can include idle gaps while CPU generates geometry; not pure device busy utilization",
+    "Present": "Unavailable: Silk auto-present follows Render callback. No CPU/GPU subtraction is used to infer present or VSync wait",
+    "Percentiles": "Nearest-rank; milliseconds unless metric name specifies frames per second",
+    "Excluded": "Initial fast-forward, warmup, GL.Finish query-tail drain, framebuffer readback, checkpoint/hash calculation, aggregation and file writing"
+  },
+  "PresentCpuMs": null,
+  "PresentWaitMs": null,
+  "SimulationCpuMs": {
+    "Count": 3600,
+    "Min": 0.3524,
+    "Mean": 0.6489531666666666,
+    "P50": 0.5562,
+    "P95": 1.1034,
+    "P99": 1.4439,
+    "Max": 2.4558
+  },
+  "SnapshotCaptureCpuMs": {
+    "Count": 3600,
+    "Min": 0.063,
+    "Mean": 0.14692211111111125,
+    "P50": 0.1244,
+    "P95": 0.2627,
+    "P99": 0.3523,
+    "Max": 0.7663
+  },
+  "RenderSubmissionCpuMs": {
+    "Count": 3600,
+    "Min": 0.4559,
+    "Mean": 0.7998488888888928,
+    "P50": 0.7528,
+    "P95": 1.2591,
+    "P99": 1.6137,
+    "Max": 6.2912
+  },
+  "TotalCpuFrameMs": {
+    "Count": 3600,
+    "Min": 1.1662,
+    "Mean": 2.0633867222222206,
+    "P50": 1.9207,
+    "P95": 3.2594,
+    "P99": 4.1131,
+    "Max": 8.2728
+  },
+  "WallFrameIntervalMs": {
+    "Count": 3600,
+    "Min": 1.1925,
+    "Mean": 2.105302666666661,
+    "P50": 1.9644,
+    "P95": 3.3208,
+    "P99": 4.2057,
+    "Max": 8.3094
+  },
+  "ReplayWallFramesPerSecond": {
+    "Count": 3600,
+    "Min": 120.34563265699087,
+    "Mean": 504.2900899614967,
+    "P50": 509.0612909794339,
+    "P95": 683.9945280437756,
+    "P99": 739.3715341959335,
+    "Max": 838.574423480084
+  },
+  "ReplayWallThroughputFramesPerSecond": 474.9910860006209,
+  "MeasuredWallDurationMs": 7579.089599999976,
+  "Budget": {
+    "ThresholdMs": 16.67,
+    "CpuFrameMisses": 0,
+    "WallIntervalMisses": 0,
+    "WallIntervalMissPercent": 0
+  },
+  "Gpu": {
+    "Supported": true,
+    "UnavailableReason": null,
+    "CounterBits": 64,
+    "QueryRingSize": 32,
+    "QueryRingExhaustedFrames": 0,
+    "Samples": 3600,
+    "NullCount": 0,
+    "ZeroSamples": 0,
+    "RenderMs": {
+      "Count": 3600,
+      "Min": 0.042912,
+      "Mean": 0.5243785599999995,
+      "P50": 0.489312,
+      "P95": 0.810976,
+      "P99": 1.068448,
+      "Max": 1.851104
+    }
+  },
+  "GlErrors": [],
+  "GlErrorOverflow": 0,
+  "GpuDataValid": true,
+  "ValidationPass": true,
+  "FinalEntities": {
+    "Ships": 31,
+    "Projectiles": 108,
+    "Debris": 570,
+    "Particles": 452
+  },
+  "RawCsvPath": "C:\\Workspace\\_VibeCodeProjects\\ecs\\docs\\space-battle\\frontend.csv"
+}

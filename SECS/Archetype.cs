@@ -8,27 +8,35 @@ namespace SECS;
 internal sealed unsafe class Archetype : IDisposable
 {
     private readonly World _world;
-    private readonly Dictionary<int, int> _typeIndexLookup;
+    private readonly int[] _columnByType;
+    private readonly int[] _offsetByType;
     private readonly int[] _offsets;
     private readonly int _stride;
-    private readonly Dictionary<int, ComponentSetKey> _addEdges = new();
-    private readonly Dictionary<int, ComponentSetKey> _removeEdges = new();
+    private readonly Dictionary<int, Transition> _addEdges = new();
+    private readonly Dictionary<int, Transition> _removeEdges = new();
     private readonly List<Chunk> _chunks = new();
+    private readonly Stack<int> _availableChunks = new();
 
     public Archetype(World world, ComponentSetKey key, ComponentType[] componentTypes)
     {
         _world = world;
         Key = key;
         ComponentTypes = componentTypes;
-        _typeIndexLookup = new Dictionary<int, int>(componentTypes.Length);
+        var maxTypeId = -1;
+        foreach (var type in componentTypes) maxTypeId = Math.Max(maxTypeId, type.Id);
+        _columnByType = new int[maxTypeId + 1];
+        _offsetByType = new int[maxTypeId + 1];
+        Array.Fill(_columnByType, -1);
+        Array.Fill(_offsetByType, -1);
         _offsets = new int[componentTypes.Length];
 
         var offset = 0;
         for (var i = 0; i < componentTypes.Length; i++)
         {
-            _typeIndexLookup.Add(componentTypes[i].Id, i);
+            _columnByType[componentTypes[i].Id] = i;
             offset = Align(offset, componentTypes[i].Alignment);
             _offsets[i] = offset;
+            _offsetByType[componentTypes[i].Id] = offset;
             offset += componentTypes[i].Size * world.ChunkCapacity;
         }
 
@@ -41,62 +49,53 @@ internal sealed unsafe class Archetype : IDisposable
 
     public List<Chunk> Chunks => _chunks;
 
-    public bool HasComponent(int componentTypeId) => _typeIndexLookup.ContainsKey(componentTypeId);
+    public bool HasComponent(int componentTypeId) => (uint)componentTypeId < (uint)_columnByType.Length && _columnByType[componentTypeId] >= 0;
 
-    public ComponentSetKey GetAddKey(int componentTypeId)
+    internal int ComponentSize(int typeId) => ComponentTypes[_columnByType[typeId]].Size;
+
+    public Transition GetAddTransition(int componentTypeId)
     {
-        if (!_addEdges.TryGetValue(componentTypeId, out var key))
+        if (!_addEdges.TryGetValue(componentTypeId, out var transition))
         {
-            key = Key.Add(componentTypeId);
-            _addEdges.Add(componentTypeId, key);
+            transition = new Transition(this, _world.GetArchetype(Key.Add(componentTypeId)));
+            _addEdges.Add(componentTypeId, transition);
         }
 
-        return key;
+        return transition;
     }
 
-    public ComponentSetKey GetRemoveKey(int componentTypeId)
+    public Transition GetRemoveTransition(int componentTypeId)
     {
-        if (!_removeEdges.TryGetValue(componentTypeId, out var key))
+        if (!_removeEdges.TryGetValue(componentTypeId, out var transition))
         {
-            key = Key.Remove(componentTypeId);
-            _removeEdges.Add(componentTypeId, key);
+            transition = new Transition(this, _world.GetArchetype(Key.Remove(componentTypeId)));
+            _removeEdges.Add(componentTypeId, transition);
         }
 
-        return key;
+        return transition;
     }
 
     public World.EntitySlot AddEntity(Entity entity)
     {
-        var chunkIndex = _chunks.Count - 1;
-        if (chunkIndex < 0 || _chunks[chunkIndex].Count == _world.ChunkCapacity)
+        if (_availableChunks.Count == 0)
         {
-            _chunks.Add(new Chunk(_stride, _world.ChunkCapacity, _offsets, ComponentTypes));
-            chunkIndex = _chunks.Count - 1;
+            _chunks.Add(new Chunk(_stride, _world.ChunkCapacity, _offsets, ComponentTypes, _offsetByType));
+            _availableChunks.Push(_chunks.Count - 1);
         }
 
+        var chunkIndex = _availableChunks.Peek();
         var chunk = _chunks[chunkIndex];
         var rowIndex = chunk.Count++;
+        if (chunk.Count == _world.ChunkCapacity) _availableChunks.Pop();
         chunk.Entities[rowIndex] = entity.Id;
         chunk.Versions[rowIndex] = entity.Version;
         return new World.EntitySlot(chunkIndex, rowIndex);
     }
 
-    public void CopyToWith<T>(int sourceChunkIndex, int sourceRowIndex, Archetype destination, World.EntitySlot destinationSlot, int newComponentTypeId, in T component)
-        where T : unmanaged
-    {
-        CopySharedColumns(sourceChunkIndex, sourceRowIndex, destination, destinationSlot);
-        destination.WriteComponent(destinationSlot.ChunkIndex, destinationSlot.RowIndex, newComponentTypeId, component);
-    }
-
-    public void CopyToWithout(int sourceChunkIndex, int sourceRowIndex, Archetype destination, World.EntitySlot destinationSlot, int removedComponentTypeId)
-    {
-        _ = removedComponentTypeId;
-        CopySharedColumns(sourceChunkIndex, sourceRowIndex, destination, destinationSlot);
-    }
-
     public RemovalResult RemoveAt(int chunkIndex, int rowIndex)
     {
         var chunk = _chunks[chunkIndex];
+        if (chunk.Count == _world.ChunkCapacity) _availableChunks.Push(chunkIndex);
         var lastRow = chunk.Count - 1;
 
         if (rowIndex != lastRow)
@@ -107,11 +106,8 @@ internal sealed unsafe class Archetype : IDisposable
             for (var i = 0; i < ComponentTypes.Length; i++)
             {
                 var size = ComponentTypes[i].Size;
-                Buffer.MemoryCopy(
-                    chunk.Memory + _offsets[i] + (lastRow * size),
-                    chunk.Memory + _offsets[i] + (rowIndex * size),
-                    size,
-                    size);
+                CopyComponent(chunk.Memory + _offsets[i] + lastRow * size,
+                    chunk.Memory + _offsets[i] + rowIndex * size, size);
             }
         }
 
@@ -119,10 +115,11 @@ internal sealed unsafe class Archetype : IDisposable
         chunk.Count--;
 
         return rowIndex == lastRow
-            ? default
+            ? new RemovalResult(this, -1, chunkIndex, rowIndex)
             : new RemovalResult(this, movedEntityId, chunkIndex, rowIndex);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref T GetComponentRef<T>(int chunkIndex, int rowIndex, int componentTypeId)
         where T : unmanaged
     {
@@ -150,32 +147,71 @@ internal sealed unsafe class Archetype : IDisposable
         }
     }
 
-    private void CopySharedColumns(int sourceChunkIndex, int sourceRowIndex, Archetype destination, World.EntitySlot destinationSlot)
+    public long NativeBytes => (long)_stride * _chunks.Count;
+
+    internal sealed class Transition
     {
-        var source = _chunks[sourceChunkIndex];
-        var target = destination._chunks[destinationSlot.ChunkIndex];
+        private readonly Archetype _source;
+        private readonly CopyColumn[] _columns;
+        public Archetype Destination { get; }
 
-        for (var i = 0; i < ComponentTypes.Length; i++)
+        public Transition(Archetype source, Archetype destination)
         {
-            var componentType = ComponentTypes[i];
-            if (!destination._typeIndexLookup.TryGetValue(componentType.Id, out var destinationIndex))
+            _source = source;
+            Destination = destination;
+            var columns = new List<CopyColumn>(source.ComponentTypes.Length);
+            for (var i = 0; i < source.ComponentTypes.Length; i++)
             {
-                continue;
+                var type = source.ComponentTypes[i];
+                if (destination.HasComponent(type.Id))
+                    columns.Add(new CopyColumn(source._offsets[i], destination._offsets[destination._columnByType[type.Id]], type.Size));
             }
+            _columns = columns.ToArray();
+        }
 
-            var size = componentType.Size;
-            Buffer.MemoryCopy(
-                source.Memory + _offsets[i] + (sourceRowIndex * size),
-                target.Memory + destination._offsets[destinationIndex] + (destinationSlot.RowIndex * size),
-                size,
-                size);
+        public void Copy(int sourceChunkIndex, int sourceRowIndex, World.EntitySlot destinationSlot)
+        {
+            var source = _source._chunks[sourceChunkIndex].Memory;
+            var target = Destination._chunks[destinationSlot.ChunkIndex].Memory;
+            foreach (var column in _columns)
+            {
+                CopyComponent(source + column.SourceOffset + sourceRowIndex * column.Size,
+                    target + column.DestinationOffset + destinationSlot.RowIndex * column.Size, column.Size);
+            }
+        }
+
+        private readonly struct CopyColumn
+        {
+            public CopyColumn(int sourceOffset, int destinationOffset, int size)
+            { SourceOffset = sourceOffset; DestinationOffset = destinationOffset; Size = size; }
+            public readonly int SourceOffset;
+            public readonly int DestinationOffset;
+            public readonly int Size;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void* GetComponentPointer(int chunkIndex, int componentTypeId)
+    private static void CopyComponent(byte* source, byte* destination, int size)
     {
-        return _chunks[chunkIndex].Memory + _offsets[_typeIndexLookup[componentTypeId]];
+        // Small columns are common in transitions; avoid a general-purpose memmove per field.
+        switch (size)
+        {
+            case 4: Unsafe.WriteUnaligned(destination, Unsafe.ReadUnaligned<int>(source)); break;
+            case 8: Unsafe.WriteUnaligned(destination, Unsafe.ReadUnaligned<long>(source)); break;
+            case 12:
+                Unsafe.WriteUnaligned(destination, Unsafe.ReadUnaligned<long>(source));
+                Unsafe.WriteUnaligned(destination + 8, Unsafe.ReadUnaligned<int>(source + 8));
+                break;
+            default: Buffer.MemoryCopy(source, destination, size, size); break;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal void* GetComponentPointer(int chunkIndex, int componentTypeId)
+    {
+        if ((uint)componentTypeId >= (uint)_offsetByType.Length || _offsetByType[componentTypeId] < 0)
+            throw new InvalidOperationException($"Component {componentTypeId} is not in archetype.");
+        return _chunks[chunkIndex].Memory + _offsetByType[componentTypeId];
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -208,13 +244,15 @@ internal sealed unsafe class Archetype : IDisposable
     {
         private GCHandle _entitiesHandle;
         private GCHandle _versionsHandle;
+        private readonly int[] _offsetByType;
 
-        public Chunk(int stride, int capacity, int[] offsets, ComponentType[] components)
+        public Chunk(int stride, int capacity, int[] offsets, ComponentType[] components, int[] offsetByType)
         {
             Memory = (byte*)Marshal.AllocHGlobal(stride);
             Capacity = capacity;
             Offsets = offsets;
             Components = components;
+            _offsetByType = offsetByType;
             Entities = new int[capacity];
             Versions = new int[capacity];
             _entitiesHandle = GCHandle.Alloc(Entities, GCHandleType.Pinned);
@@ -235,17 +273,12 @@ internal sealed unsafe class Archetype : IDisposable
 
         public ComponentType[] Components { get; }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void* GetComponentPointer(int componentTypeId)
         {
-            for (var i = 0; i < Components.Length; i++)
-            {
-                if (Components[i].Id == componentTypeId)
-                {
-                    return Memory + Offsets[i];
-                }
-            }
-
-            throw new InvalidOperationException($"Component {componentTypeId} is not in chunk.");
+            if ((uint)componentTypeId >= (uint)_offsetByType.Length || _offsetByType[componentTypeId] < 0)
+                throw new InvalidOperationException($"Component {componentTypeId} is not in chunk.");
+            return Memory + _offsetByType[componentTypeId];
         }
 
         public RawChunkView AsRawView()

@@ -1,0 +1,246 @@
+{
+  "Metadata": {
+    "Framework": "SECS",
+    "Runtime": ".NET 8.0.31",
+    "Os": "Microsoft Windows 10.0.26200",
+    "Machine": "NIKOLAY-PC",
+    "Date": "2026-10-11T14:13:17.7210089+05:00",
+    "TieredCompilation": null,
+    "TargetTickRate": 60,
+    "BudgetMs": 16.666666666666668,
+    "Ticks": 3600,
+    "WarmupTicks": 600,
+    "Realtime": false,
+    "SimulatedSeconds": 60,
+    "WallSeconds": 3.5490083,
+    "Options": {
+      "Seed": 7331,
+      "ShipsPerTeam": 96,
+      "CarriersPerTeam": 3,
+      "ArenaHalfSize": 210,
+      "ChurnMultiplier": 1,
+      "TickRate": 60,
+      "ReplenishCarriers": true,
+      "ParticleMultiplier": 1,
+      "MaxProjectiles": 24000,
+      "MaxDebris": 16000,
+      "MaxParticles": 32000
+    },
+    "TimingScope": "Step includes all systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
+    "MemoryScope": "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
+    "Collision": "Aether.Physics2D 2.2.0; compound ship fixtures; five-ray approximate projectile CCD"
+  },
+  "Timing": {
+    "MeanMs": 0.9801749444444455,
+    "StddevMs": 0.6496525821753399,
+    "MedianMs": 0.7969,
+    "P95Ms": 2.4088,
+    "P99Ms": 3.2197,
+    "MaxMs": 17.3024,
+    "BudgetMisses": 1,
+    "BudgetMissPercent": 0.027777777777777776
+  },
+  "AllocatedBytes": 53291184,
+  "HarnessAndSimulationAllocatedBytes": 53485392,
+  "GcCollections": [
+    3,
+    2,
+    1
+  ],
+  "Stages": [
+    {
+      "Name": "collect",
+      "Timing": {
+        "MeanMs": 0.16911261111111123,
+        "StddevMs": 0.07888927533296607,
+        "MedianMs": 0.1483,
+        "P95Ms": 0.3582,
+        "P99Ms": 0.4712,
+        "MaxMs": 0.8421,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "ai",
+      "Timing": {
+        "MeanMs": 0.01292422222222226,
+        "StddevMs": 0.022205824851949028,
+        "MedianMs": 0.0086,
+        "P95Ms": 0.0301,
+        "P99Ms": 0.1051,
+        "MaxMs": 0.7866,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "thermal-inventory",
+      "Timing": {
+        "MeanMs": 0.011189250000000062,
+        "StddevMs": 0.004460796287862752,
+        "MedianMs": 0.0101,
+        "P95Ms": 0.0191,
+        "P99Ms": 0.0236,
+        "MaxMs": 0.1299,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "steering",
+      "Timing": {
+        "MeanMs": 0.013967833333333244,
+        "StddevMs": 0.1555794557829265,
+        "MedianMs": 0.0096,
+        "P95Ms": 0.0191,
+        "P99Ms": 0.0239,
+        "MaxMs": 9.2778,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "weapons",
+      "Timing": {
+        "MeanMs": 0.014177777777777713,
+        "StddevMs": 0.26972262954494924,
+        "MedianMs": 0.0087,
+        "P95Ms": 0.0158,
+        "P99Ms": 0.0245,
+        "MaxMs": 16.19,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "carriers",
+      "Timing": {
+        "MeanMs": 0.003474555555555537,
+        "StddevMs": 0.001508666202920227,
+        "MedianMs": 0.0033,
+        "P95Ms": 0.0051,
+        "P99Ms": 0.0065,
+        "MaxMs": 0.0667,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "physics",
+      "Timing": {
+        "MeanMs": 0.16613086111111106,
+        "StddevMs": 0.1077971180298977,
+        "MedianMs": 0.1289,
+        "P95Ms": 0.4364,
+        "P99Ms": 0.6263,
+        "MaxMs": 1.3375,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "hits",
+      "Timing": {
+        "MeanMs": 0.5779964722222218,
+        "StddevMs": 0.379339314276427,
+        "MedianMs": 0.462,
+        "P95Ms": 1.5041,
+        "P99Ms": 2.0757,
+        "MaxMs": 2.8594,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "lifecycle",
+      "Timing": {
+        "MeanMs": 0.01112897222222222,
+        "StddevMs": 0.08480513024692653,
+        "MedianMs": 0.0029,
+        "P95Ms": 0.0197,
+        "P99Ms": 0.0855,
+        "MaxMs": 2.8739,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    }
+  ],
+  "Windows": [
+    {
+      "StartTick": 1,
+      "EndTick": 3600,
+      "Timing": {
+        "MeanMs": 0.9801749444444455,
+        "StddevMs": 0.6496525821753399,
+        "MedianMs": 0.7969,
+        "P95Ms": 2.4088,
+        "P99Ms": 3.2197,
+        "MaxMs": 17.3024,
+        "BudgetMisses": 1,
+        "BudgetMissPercent": 0.027777777777777776
+      },
+      "AllocatedBytes": 53291184,
+      "Ships": 64,
+      "Projectiles": 479,
+      "Debris": 490,
+      "Particles": 617,
+      "Gc": [
+        5,
+        4,
+        3
+      ],
+      "ManagedHeapBytes": 37145800,
+      "WorkingSetBytes": 87511040,
+      "PrivateBytes": 65638400,
+      "Store": {
+        "Entities": 1611,
+        "Archetypes": 64,
+        "Chunks": 91,
+        "NativeBytes": 5288961,
+        "AccessorBytes": 0
+      },
+      "Counters": {
+        "ShipsCreated": 288,
+        "ShipsDestroyed": 224,
+        "Shots": 26003,
+        "Hits": 15647,
+        "PlasmaShieldHits": 1116,
+        "ShieldBreaks": 498,
+        "Overheats": 199,
+        "Dockings": 102,
+        "Repairs": 20732,
+        "Builds": 90,
+        "ItemUses": 963,
+        "DebrisHits": 16277,
+        "Explosions": 224,
+        "StructuralAdds": 489988,
+        "StructuralRemoves": 484432
+      }
+    }
+  ],
+  "Checkpoints": [
+    {
+      "Tick": 3600,
+      "Checksum": "0EFD25BFDCC2D956"
+    }
+  ],
+  "Counters": {
+    "ShipsCreated": 288,
+    "ShipsDestroyed": 224,
+    "Shots": 26003,
+    "Hits": 15647,
+    "PlasmaShieldHits": 1116,
+    "ShieldBreaks": 498,
+    "Overheats": 199,
+    "Dockings": 102,
+    "Repairs": 20732,
+    "Builds": 90,
+    "ItemUses": 963,
+    "DebrisHits": 16277,
+    "Explosions": 224,
+    "StructuralAdds": 489988,
+    "StructuralRemoves": 484432
+  },
+  "Checksum": "0EFD25BFDCC2D956"
+}

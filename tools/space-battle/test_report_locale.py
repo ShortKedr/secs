@@ -1,0 +1,37 @@
+import unittest
+
+import analyze
+import report_locale
+
+
+class ReportLocaleTests(unittest.TestCase):
+    def source(self, prose):
+        return report_locale.catalogue_body(analyze.DOCS, "ru") + "\n\n" + prose
+
+    def test_locale_navigation_and_data_preservation(self):
+        en, ru = report_locale.report_versions(self.source("## Время тика\n\n| low | 0.3966 | BC1ED478AF94A722 |\n[SYSTEMS.md](SYSTEMS.md)"), analyze.DOCS)
+        self.assertTrue(en.startswith("English | [Русский](REPORT.ru.md)"))
+        self.assertTrue(ru.startswith("[English](REPORT.md) | Русский"))
+        self.assertIn("| low | 0.3966 | BC1ED478AF94A722 |", en)
+        self.assertIn("| low | 0.3966 | BC1ED478AF94A722 |", ru)
+        self.assertIn("](SYSTEMS.ru.md)", ru)
+        self.assertIn("## Tick Timing", en)
+
+    def test_missing_translation_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "Missing English"):
+            report_locale.report_versions(self.source("Новая непереведённая фраза"), analyze.DOCS)
+
+    def test_missing_catalogue_is_rejected(self):
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            report_locale.report_versions("## Время тика", analyze.DOCS)
+
+    def test_dynamic_misses_and_ranking(self):
+        text = ("- Суммарно во всех 15 случаях: 7 тиков с превышением бюджета 16.67 ms; подробности по случаям ниже.\n"
+                "- Наблюдаемый минимум MeanMs по профилям: low: secs; high: lite. Это не универсальное ранжирование.")
+        en, _ = report_locale.report_versions(self.source(text), analyze.DOCS)
+        self.assertIn("7 ticks above the 16.67 ms budget", en)
+        self.assertIn("low: secs; high: lite", en)
+
+
+if __name__ == "__main__":
+    unittest.main()

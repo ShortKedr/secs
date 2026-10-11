@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SECS;
 
@@ -15,6 +17,8 @@ public sealed class World : IDisposable
     private readonly Stack<int> _freeEntityIds = new();
     private readonly Dictionary<SystemStage, List<Action<World>>> _systems = new();
     private readonly Archetype _rootArchetype;
+    private readonly Dictionary<(int, int, int), Archetype> _creationArchetypes = new();
+    private readonly List<AccessorStorage> _accessors = new();
     private bool _disposed;
 
     public World(WorldOptions options = default)
@@ -34,7 +38,11 @@ public sealed class World : IDisposable
     public bool DiagnosticsEnabled => _options.DiagnosticsEnabled;
 
     public Entity CreateEntity()
+        => CreateEntityIn(_rootArchetype);
+
+    internal Entity CreateEntityIn(Archetype archetype)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         var id = _freeEntityIds.Count > 0 ? _freeEntityIds.Pop() : _entityRecords.Count;
         var version = id < _entityRecords.Count ? _entityRecords[id].Version : 1;
 
@@ -47,13 +55,109 @@ public sealed class World : IDisposable
         record.Version = version;
         record.Alive = true;
 
-        var slot = _rootArchetype.AddEntity(new Entity(id, version));
-        record.Archetype = _rootArchetype;
+        var slot = archetype.AddEntity(new Entity(id, version));
+        record.Archetype = archetype;
         record.ChunkIndex = slot.ChunkIndex;
         record.RowIndex = slot.RowIndex;
         _entityRecords[id] = record;
+        RefreshAccessors(id, record);
 
         return new Entity(id, version);
+    }
+
+    public Entity CreateEntity<T1>(in T1 component1) where T1 : unmanaged
+    {
+        var type1 = _componentTypes.GetOrCreate<T1>().Id;
+        var archetype = GetCreationArchetype(type1, -1, -1);
+        var entity = CreateEntityIn(archetype);
+        var record = _entityRecords[entity.Id];
+        archetype.WriteComponent(record.ChunkIndex, record.RowIndex, type1, component1);
+        return entity;
+    }
+
+    public Entity CreateEntity<T1, T2>(in T1 component1, in T2 component2)
+        where T1 : unmanaged where T2 : unmanaged
+        => PrepareEntity<T1, T2>().Create(component1, component2);
+
+    public Entity CreateEntity<T1, T2, T3>(in T1 component1, in T2 component2, in T3 component3)
+        where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged
+    {
+        var type1 = _componentTypes.GetOrCreate<T1>().Id;
+        var type2 = _componentTypes.GetOrCreate<T2>().Id;
+        var type3 = _componentTypes.GetOrCreate<T3>().Id;
+        var archetype = GetCreationArchetype(type1, type2, type3);
+        var entity = CreateEntityIn(archetype);
+        var record = _entityRecords[entity.Id];
+        archetype.WriteComponent(record.ChunkIndex, record.RowIndex, type1, component1);
+        archetype.WriteComponent(record.ChunkIndex, record.RowIndex, type2, component2);
+        archetype.WriteComponent(record.ChunkIndex, record.RowIndex, type3, component3);
+        return entity;
+    }
+
+    public EntityFactory<T1, T2> PrepareEntity<T1, T2>() where T1 : unmanaged where T2 : unmanaged
+    {
+        var type1 = _componentTypes.GetOrCreate<T1>().Id;
+        var type2 = _componentTypes.GetOrCreate<T2>().Id;
+        return new EntityFactory<T1, T2>(this, GetCreationArchetype(type1, type2, -1), type1, type2);
+    }
+
+    public void CreateEntities<T1, T2>(Span<Entity> output, in T1 component1, in T2 component2)
+        where T1 : unmanaged where T2 : unmanaged
+        => PrepareEntity<T1, T2>().CreateBatch(output, component1, component2);
+
+    private unsafe Archetype GetCreationArchetype(int type1, int type2, int type3)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (type1 == type2 || type1 == type3 || (type2 >= 0 && type2 == type3))
+            throw new ArgumentException("A creation template cannot contain duplicate component types.");
+        var key = (type1, type2, type3);
+        if (_creationArchetypes.TryGetValue(key, out var archetype)) return archetype;
+        var ids = stackalloc int[3];
+        ids[0] = type1;
+        ids[1] = type2;
+        ids[2] = type3;
+        archetype = GetArchetype(ComponentSetKey.Create(ids, type3 >= 0 ? 3 : type2 >= 0 ? 2 : 1));
+        _creationArchetypes.Add(key, archetype);
+        return archetype;
+    }
+
+    internal Entity CreateEntityIn<T1, T2>(Archetype archetype, int type1, int type2, in T1 component1, in T2 component2)
+        where T1 : unmanaged where T2 : unmanaged
+    {
+        var entity = CreateEntityIn(archetype);
+        var record = _entityRecords[entity.Id];
+        archetype.WriteComponent(record.ChunkIndex, record.RowIndex, type1, component1);
+        archetype.WriteComponent(record.ChunkIndex, record.RowIndex, type2, component2);
+        return entity;
+    }
+
+    public ComponentAccessor<T> GetAccessor<T>() where T : unmanaged
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var typeId = _componentTypes.GetOrCreate<T>().Id;
+        foreach (var accessor in _accessors)
+            if (accessor.TypeId == typeId) return new ComponentAccessor<T>(accessor);
+        var storage = new AccessorStorage(typeId);
+        for (var id = 0; id < _entityRecords.Count; id++) storage.Update(id, _entityRecords[id]);
+        _accessors.Add(storage);
+        return new ComponentAccessor<T>(storage);
+    }
+
+    public StorageStatistics GetStorageStatistics()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        var chunks = 0;
+        var entities = 0;
+        long nativeBytes = 0;
+        foreach (var archetype in _archetypeList)
+        {
+            chunks += archetype.Chunks.Count;
+            nativeBytes += archetype.NativeBytes;
+            foreach (var chunk in archetype.Chunks) entities += chunk.Count;
+        }
+        long accessorBytes = 0;
+        foreach (var accessor in _accessors) accessorBytes += accessor.ManagedBufferBytes;
+        return new StorageStatistics(_archetypeList.Count, chunks, entities, nativeBytes, accessorBytes);
     }
 
     public bool IsAlive(Entity entity)
@@ -81,6 +185,7 @@ public sealed class World : IDisposable
         record.Alive = false;
         record.Version++;
         _entityRecords[entity.Id] = record;
+        RefreshAccessors(entity.Id, record);
         _freeEntityIds.Push(entity.Id);
     }
 
@@ -93,11 +198,11 @@ public sealed class World : IDisposable
     public void Set<T>(Entity entity, in T component)
         where T : unmanaged
     {
-        var type = _componentTypes.GetOrCreate<T>();
+        var typeId = _componentTypes.GetId<T>();
         var record = GetRecord(entity);
-        if (record.Archetype!.HasComponent(type.Id))
+        if (record.Archetype!.HasComponent(typeId))
         {
-            record.Archetype.WriteComponent(record.ChunkIndex, record.RowIndex, type.Id, component);
+            record.Archetype.WriteComponent(record.ChunkIndex, record.RowIndex, typeId, component);
             return;
         }
 
@@ -108,24 +213,25 @@ public sealed class World : IDisposable
         where T : unmanaged
     {
         ValidateEntity(entity);
-        var type = _componentTypes.GetOrCreate<T>();
-        return _entityRecords[entity.Id].Archetype!.HasComponent(type.Id);
+        var typeId = _componentTypes.GetId<T>();
+        return _entityRecords[entity.Id].Archetype!.HasComponent(typeId);
     }
 
     public bool Remove<T>(Entity entity)
         where T : unmanaged
     {
         ValidateEntity(entity);
-        var type = _componentTypes.GetOrCreate<T>();
+        var typeId = _componentTypes.GetId<T>();
         var record = _entityRecords[entity.Id];
-        if (!record.Archetype!.HasComponent(type.Id))
+        if (!record.Archetype!.HasComponent(typeId))
         {
             return false;
         }
 
-        var destination = GetArchetype(record.Archetype.GetRemoveKey(type.Id));
+        var transition = record.Archetype.GetRemoveTransition(typeId);
+        var destination = transition.Destination;
         var slot = destination.AddEntity(entity);
-        record.Archetype.CopyToWithout(record.ChunkIndex, record.RowIndex, destination, slot, type.Id);
+        transition.Copy(record.ChunkIndex, record.RowIndex, slot);
         var removed = record.Archetype.RemoveAt(record.ChunkIndex, record.RowIndex);
         UpdateMovedEntity(removed);
 
@@ -133,16 +239,18 @@ public sealed class World : IDisposable
         record.ChunkIndex = slot.ChunkIndex;
         record.RowIndex = slot.RowIndex;
         _entityRecords[entity.Id] = record;
+        RefreshAccessors(entity.Id, record);
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ref T Get<T>(Entity entity)
         where T : unmanaged
     {
         ValidateEntity(entity);
-        var type = _componentTypes.GetOrCreate<T>();
-        var record = _entityRecords[entity.Id];
-        return ref record.Archetype!.GetComponentRef<T>(record.ChunkIndex, record.RowIndex, type.Id);
+        var typeId = _componentTypes.GetId<T>();
+        ref var record = ref CollectionsMarshal.AsSpan(_entityRecords)[entity.Id];
+        return ref record.Archetype!.GetComponentRef<T>(record.ChunkIndex, record.RowIndex, typeId);
     }
 
     public bool TryGet<T>(Entity entity, out T value)
@@ -154,15 +262,15 @@ public sealed class World : IDisposable
             return false;
         }
 
-        var type = _componentTypes.GetOrCreate<T>();
+        var typeId = _componentTypes.GetId<T>();
         var record = _entityRecords[entity.Id];
-        if (!record.Archetype!.HasComponent(type.Id))
+        if (!record.Archetype!.HasComponent(typeId))
         {
             value = default;
             return false;
         }
 
-        value = record.Archetype.ReadComponent<T>(record.ChunkIndex, record.RowIndex, type.Id);
+        value = record.Archetype.ReadComponent<T>(record.ChunkIndex, record.RowIndex, typeId);
         return true;
     }
 
@@ -263,7 +371,7 @@ public sealed class World : IDisposable
         }
     }
 
-    private Archetype GetArchetype(ComponentSetKey key)
+    internal Archetype GetArchetype(ComponentSetKey key)
     {
         if (_archetypes.TryGetValue(key, out var archetype))
         {
@@ -279,24 +387,26 @@ public sealed class World : IDisposable
         where T : unmanaged
     {
         ValidateEntity(entity);
-        var type = _componentTypes.GetOrCreate<T>();
+        var typeId = _componentTypes.GetId<T>();
         var record = _entityRecords[entity.Id];
         var source = record.Archetype!;
 
-        if (source.HasComponent(type.Id))
+        if (source.HasComponent(typeId))
         {
             if (!overwriteExisting)
             {
-                throw new InvalidOperationException($"Entity {entity} already has component {type.RuntimeType.Name}.");
+                throw new InvalidOperationException($"Entity {entity} already has component {typeof(T).Name}.");
             }
 
-            source.WriteComponent(record.ChunkIndex, record.RowIndex, type.Id, component);
+            source.WriteComponent(record.ChunkIndex, record.RowIndex, typeId, component);
             return;
         }
 
-        var destination = GetArchetype(source.GetAddKey(type.Id));
+        var transition = source.GetAddTransition(typeId);
+        var destination = transition.Destination;
         var slot = destination.AddEntity(entity);
-        source.CopyToWith(record.ChunkIndex, record.RowIndex, destination, slot, type.Id, component);
+        transition.Copy(record.ChunkIndex, record.RowIndex, slot);
+        destination.WriteComponent(slot.ChunkIndex, slot.RowIndex, typeId, component);
         var removed = source.RemoveAt(record.ChunkIndex, record.RowIndex);
         UpdateMovedEntity(removed);
 
@@ -304,6 +414,7 @@ public sealed class World : IDisposable
         record.ChunkIndex = slot.ChunkIndex;
         record.RowIndex = slot.RowIndex;
         _entityRecords[entity.Id] = record;
+        RefreshAccessors(entity.Id, record);
     }
 
     private EntityRecord GetRecord(Entity entity)
@@ -329,6 +440,12 @@ public sealed class World : IDisposable
         moved.ChunkIndex = removed.MovedChunkIndex;
         moved.RowIndex = removed.MovedRowIndex;
         _entityRecords[removed.MovedEntityId] = moved;
+        RefreshAccessors(removed.MovedEntityId, moved);
+    }
+
+    private void RefreshAccessors(int id, EntityRecord record)
+    {
+        for (var i = 0; i < _accessors.Count; i++) _accessors[i].Update(id, record);
     }
 
     [Conditional("DEBUG")]
@@ -353,6 +470,7 @@ public sealed class World : IDisposable
         }
 
         _disposed = true;
+        foreach (var accessor in _accessors) accessor.Invalidate();
     }
 
     internal readonly struct EntitySlot

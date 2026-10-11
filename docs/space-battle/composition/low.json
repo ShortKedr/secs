@@ -1,0 +1,2042 @@
+{
+  "SchemaVersion": 1,
+  "Profile": "low",
+  "Config": {
+    "Seed": 7331,
+    "ShipsPerTeam": 96,
+    "CarriersPerTeam": 3,
+    "ArenaHalfSize": 210,
+    "ChurnMultiplier": 0.5,
+    "TickRate": 60,
+    "ReplenishCarriers": true,
+    "ParticleMultiplier": 1,
+    "MaxProjectiles": 24000,
+    "MaxDebris": 16000,
+    "MaxParticles": 32000
+  },
+  "Ticks": 108000,
+  "SimulatedSeconds": 1800,
+  "Scope": "Separate diagnostic replay, every end-of-Step tick 1..108000; setup excluded from sums and API operations; no performance measurement",
+  "SourceResult": "results/low-secs.json",
+  "SourceSha256": "5E01CABF66F78CDDF469A5F1B05F16D4AFCE42CBE04A81989ED015D3A8957D52",
+  "TickCsvSha256": "41EC0F31677109ED9DE89355AE18F62A259DF2A228FDF7A385AA6BE4EB9F57F3",
+  "BinaryHashes": {
+    "SpaceBattle.Core.dll": "C33F0C46BD5725E342233BF456E2EACF412FDDAD2EF91C43827E513D3E9D4120",
+    "SpaceBattle.SECS.dll": "5896308C178CE8FD87680540B70CAB72CEFF4D37EECC704C761B1FC17990E0D8",
+    "SECS.dll": "3848BFF3E9D65815AEC89B2B3E746215E5AF94CDFBA82F87CD5D40C8A4358AFF",
+    "Aether.Physics2D.dll": "A35C71A9BACA513C0B50BBE29EBCED17719DE0349115C4C32A88F6F09AE0C121"
+  },
+  "Checkpoints": [
+    {
+      "Tick": 3600,
+      "Checksum": "4C65101D2CE6AD1D",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 7200,
+      "Checksum": "03D31115A19EE4BF",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 10800,
+      "Checksum": "074BDAA5C5DAA100",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 14400,
+      "Checksum": "C4F12B976EEB2D32",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 18000,
+      "Checksum": "97B950BAF8AC8551",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 21600,
+      "Checksum": "48853BA3C50A2FDE",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 25200,
+      "Checksum": "5C2C84307CB61FBB",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 28800,
+      "Checksum": "14653CF8C4477648",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 32400,
+      "Checksum": "20F72219E969E33F",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 36000,
+      "Checksum": "F9EBB20C0CB56C90",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 39600,
+      "Checksum": "694CCA1E9AD2A37F",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 43200,
+      "Checksum": "897258B2B84113C6",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 46800,
+      "Checksum": "5EB2F8A85206FDC9",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 50400,
+      "Checksum": "44A3D6924AFE3E4F",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 54000,
+      "Checksum": "A67A89B13C604EF5",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 57600,
+      "Checksum": "91190B5785FB1141",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 61200,
+      "Checksum": "1224BEA3F63F3820",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 64800,
+      "Checksum": "1D5466D9FB8F6FB1",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 68400,
+      "Checksum": "1C028979175E272F",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 72000,
+      "Checksum": "B469536A0494E85A",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 75600,
+      "Checksum": "2C3A54DF57962262",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 79200,
+      "Checksum": "AA3C6ECC97090700",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 82800,
+      "Checksum": "EB515A8C44C55FA3",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 86400,
+      "Checksum": "BB68264984A056D0",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 90000,
+      "Checksum": "5DAD372E7A71D662",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 93600,
+      "Checksum": "E7E97722A3A99BA4",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 97200,
+      "Checksum": "0E0A4DB94B4E69D0",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 100800,
+      "Checksum": "F4A67E0E91BCD3A1",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 104400,
+      "Checksum": "530C58992DF9AEDC",
+      "NativeComponentCountsVerified": true
+    },
+    {
+      "Tick": 108000,
+      "Checksum": "BC1ED478AF94A722",
+      "NativeComponentCountsVerified": true
+    }
+  ],
+  "Checksum": "BC1ED478AF94A722",
+  "ObserverSha256": "D074B983423F90D4E976B5E2A5FA6003F1CEF0EC2D37E778BF0F8C255A26EE79",
+  "Summary": {
+    "EntityTicks": 94570168,
+    "ComponentTicks": 340555644,
+    "MeanEntities": 875.6497037037037,
+    "MeanComponents": 3153.293,
+    "MeanComponentsPerEntity": 3.601089552891563,
+    "MeanOfPerTickMeans": 3.6777257902707765,
+    "MinEntities": 118,
+    "MaxEntities": 4898,
+    "MinComponents": 826,
+    "MaxComponents": 16651,
+    "ObservedCompositions": 64
+  },
+  "Groups": [
+    {
+      "Name": "Escorts",
+      "EntityTicks": 4592327,
+      "ComponentTicks": 63655289,
+      "MeanEntities": 42.52154629629629,
+      "MeanComponentsPerEntity": 13.861227434370418,
+      "MinEntities": 18,
+      "MaxEntities": 192,
+      "EntitySharePercent": 4.855999621360512
+    },
+    {
+      "Name": "Carriers",
+      "EntityTicks": 545400,
+      "ComponentTicks": 8603032,
+      "MeanEntities": 5.05,
+      "MeanComponentsPerEntity": 15.773802713604693,
+      "MinEntities": 3,
+      "MaxEntities": 6,
+      "EntitySharePercent": 0.5767146358458409
+    },
+    {
+      "Name": "Projectiles",
+      "EntityTicks": 9263628,
+      "ComponentTicks": 27790884,
+      "MeanEntities": 85.77433333333333,
+      "MeanComponentsPerEntity": 3,
+      "MinEntities": 0,
+      "MaxEntities": 422,
+      "EntitySharePercent": 9.795507606584774
+    },
+    {
+      "Name": "Debris",
+      "EntityTicks": 25697814,
+      "ComponentTicks": 77093442,
+      "MeanEntities": 237.94272222222222,
+      "MeanComponentsPerEntity": 3,
+      "MinEntities": 3,
+      "MaxEntities": 1192,
+      "EntitySharePercent": 27.173277306644945
+    },
+    {
+      "Name": "Particles",
+      "EntityTicks": 54470999,
+      "ComponentTicks": 163412997,
+      "MeanEntities": 504.36110185185186,
+      "MeanComponentsPerEntity": 3,
+      "MinEntities": 0,
+      "MaxEntities": 4235,
+      "EntitySharePercent": 57.598500829563925
+    },
+    {
+      "Name": "Unclassified",
+      "EntityTicks": 0,
+      "ComponentTicks": 0,
+      "MeanEntities": 0,
+      "MeanComponentsPerEntity": null,
+      "MinEntities": 0,
+      "MaxEntities": 0,
+      "EntitySharePercent": 0
+    }
+  ],
+  "Components": [
+    {
+      "Name": "Identity",
+      "LogicalPayloadBytes": 12,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 6463881,
+      "HasCalls": 11916262,
+      "QueryBindings": 35659517
+    },
+    {
+      "Name": "Transform",
+      "LogicalPayloadBytes": 20,
+      "Initial": 198,
+      "Final": 1316,
+      "MeanActive": 875.6497037037037,
+      "MinActive": 118,
+      "MaxActive": 4898,
+      "EntityTicks": 94570168,
+      "EntityPresencePercent": 100,
+      "AddsDuringSimulation": 3156864,
+      "RemovesDuringSimulation": 3155746,
+      "GetCalls": 52757615,
+      "HasCalls": 0,
+      "QueryBindings": 110931448
+    },
+    {
+      "Name": "Motion",
+      "LogicalPayloadBytes": 32,
+      "Initial": 198,
+      "Final": 1316,
+      "MeanActive": 875.6497037037037,
+      "MinActive": 118,
+      "MaxActive": 4898,
+      "EntityTicks": 94570168,
+      "EntityPresencePercent": 100,
+      "AddsDuringSimulation": 3156864,
+      "RemovesDuringSimulation": 3155746,
+      "GetCalls": 10968236,
+      "HasCalls": 0,
+      "QueryBindings": 94972569
+    },
+    {
+      "Name": "Hull",
+      "LogicalPayloadBytes": 12,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 22776062,
+      "HasCalls": 0,
+      "QueryBindings": 5529450
+    },
+    {
+      "Name": "Shield",
+      "LogicalPayloadBytes": 20,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 14312910,
+      "HasCalls": 0,
+      "QueryBindings": 5137876
+    },
+    {
+      "Name": "Heat",
+      "LogicalPayloadBytes": 12,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 9512684,
+      "HasCalls": 0,
+      "QueryBindings": 5137876
+    },
+    {
+      "Name": "Brain",
+      "LogicalPayloadBytes": 28,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 57175,
+      "HasCalls": 0,
+      "QueryBindings": 19309064
+    },
+    {
+      "Name": "Weapon",
+      "LogicalPayloadBytes": 32,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 3938053,
+      "HasCalls": 0,
+      "QueryBindings": 5137876
+    },
+    {
+      "Name": "SecondaryWeapon",
+      "LogicalPayloadBytes": 32,
+      "Initial": 102,
+      "Final": 39,
+      "MeanActive": 36.068268518518515,
+      "MinActive": 16,
+      "MaxActive": 102,
+      "EntityTicks": 3895373,
+      "EntityPresencePercent": 4.119029375098498,
+      "AddsDuringSimulation": 563,
+      "RemovesDuringSimulation": 626,
+      "GetCalls": 0,
+      "HasCalls": 1350,
+      "QueryBindings": 3895436
+    },
+    {
+      "Name": "Collider",
+      "LogicalPayloadBytes": 12,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 290754,
+      "HasCalls": 0,
+      "QueryBindings": 0
+    },
+    {
+      "Name": "PhysicsLink",
+      "LogicalPayloadBytes": 4,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 9885528,
+      "HasCalls": 0,
+      "QueryBindings": 0
+    },
+    {
+      "Name": "CombatState",
+      "LogicalPayloadBytes": 4,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 665294,
+      "HasCalls": 0,
+      "QueryBindings": 0
+    },
+    {
+      "Name": "Carrier",
+      "LogicalPayloadBytes": 20,
+      "Initial": 6,
+      "Final": 6,
+      "MeanActive": 5.05,
+      "MinActive": 3,
+      "MaxActive": 6,
+      "EntityTicks": 545400,
+      "EntityPresencePercent": 0.5767146358458409,
+      "AddsDuringSimulation": 57,
+      "RemovesDuringSimulation": 57,
+      "GetCalls": 3897,
+      "HasCalls": 1350,
+      "QueryBindings": 545400
+    },
+    {
+      "Name": "Docked",
+      "LogicalPayloadBytes": 12,
+      "Initial": 0,
+      "Final": 0,
+      "MeanActive": 3.6256851851851852,
+      "MinActive": 0,
+      "MaxActive": 19,
+      "EntityTicks": 391574,
+      "EntityPresencePercent": 0.41405657648826427,
+      "AddsDuringSimulation": 1459,
+      "RemovesDuringSimulation": 1459,
+      "GetCalls": 8900,
+      "HasCalls": 24857619,
+      "QueryBindings": 391574
+    },
+    {
+      "Name": "Overheated",
+      "LogicalPayloadBytes": 4,
+      "Initial": 0,
+      "Final": 3,
+      "MeanActive": 5.319462962962963,
+      "MinActive": 0,
+      "MaxActive": 21,
+      "EntityTicks": 574502,
+      "EntityPresencePercent": 0.6074875535803215,
+      "AddsDuringSimulation": 1144,
+      "RemovesDuringSimulation": 1141,
+      "GetCalls": 0,
+      "HasCalls": 7272660,
+      "QueryBindings": 0
+    },
+    {
+      "Name": "InCombat",
+      "LogicalPayloadBytes": 4,
+      "Initial": 0,
+      "Final": 40,
+      "MeanActive": 39.27525,
+      "MinActive": 0,
+      "MaxActive": 183,
+      "EntityTicks": 4241727,
+      "EntityPresencePercent": 4.48526960425829,
+      "AddsDuringSimulation": 5573,
+      "RemovesDuringSimulation": 5533,
+      "GetCalls": 4241687,
+      "HasCalls": 5808703,
+      "QueryBindings": 0
+    },
+    {
+      "Name": "Boosting",
+      "LogicalPayloadBytes": 4,
+      "Initial": 0,
+      "Final": 6,
+      "MeanActive": 3.3500185185185187,
+      "MinActive": 0,
+      "MaxActive": 31,
+      "EntityTicks": 361802,
+      "EntityPresencePercent": 0.3825751900958873,
+      "AddsDuringSimulation": 11722,
+      "RemovesDuringSimulation": 11716,
+      "GetCalls": 361796,
+      "HasCalls": 9908877,
+      "QueryBindings": 0
+    },
+    {
+      "Name": "ShieldBroken",
+      "LogicalPayloadBytes": 4,
+      "Initial": 0,
+      "Final": 4,
+      "MeanActive": 5.511287037037037,
+      "MinActive": 0,
+      "MaxActive": 53,
+      "EntityTicks": 595219,
+      "EntityPresencePercent": 0.6293940389320235,
+      "AddsDuringSimulation": 5622,
+      "RemovesDuringSimulation": 5618,
+      "GetCalls": 0,
+      "HasCalls": 5370836,
+      "QueryBindings": 0
+    },
+    {
+      "Name": "Projectile",
+      "LogicalPayloadBytes": 36,
+      "Initial": 0,
+      "Final": 167,
+      "MeanActive": 85.77433333333333,
+      "MinActive": 0,
+      "MaxActive": 422,
+      "EntityTicks": 9263628,
+      "EntityPresencePercent": 9.795507606584774,
+      "AddsDuringSimulation": 403519,
+      "RemovesDuringSimulation": 403352,
+      "GetCalls": 9666980,
+      "HasCalls": 0,
+      "QueryBindings": 28194069
+    },
+    {
+      "Name": "Debris",
+      "LogicalPayloadBytes": 16,
+      "Initial": 0,
+      "Final": 213,
+      "MeanActive": 237.94272222222222,
+      "MinActive": 3,
+      "MaxActive": 1192,
+      "EntityTicks": 25697814,
+      "EntityPresencePercent": 27.173277306644945,
+      "AddsDuringSimulation": 263747,
+      "RemovesDuringSimulation": 263534,
+      "GetCalls": 25926963,
+      "HasCalls": 0,
+      "QueryBindings": 77093016
+    },
+    {
+      "Name": "Particle",
+      "LogicalPayloadBytes": 32,
+      "Initial": 0,
+      "Final": 887,
+      "MeanActive": 504.36110185185186,
+      "MinActive": 0,
+      "MaxActive": 4235,
+      "EntityTicks": 54470999,
+      "EntityPresencePercent": 57.598500829563925,
+      "AddsDuringSimulation": 2488397,
+      "RemovesDuringSimulation": 2487510,
+      "GetCalls": 56917615,
+      "HasCalls": 0,
+      "QueryBindings": 163411223
+    },
+    {
+      "Name": "Lifetime",
+      "LogicalPayloadBytes": 4,
+      "Initial": 0,
+      "Final": 0,
+      "MeanActive": 0,
+      "MinActive": 0,
+      "MaxActive": 0,
+      "EntityTicks": 0,
+      "EntityPresencePercent": 0,
+      "AddsDuringSimulation": 0,
+      "RemovesDuringSimulation": 0,
+      "GetCalls": 0,
+      "HasCalls": 0,
+      "QueryBindings": 0
+    },
+    {
+      "Name": "Inventory",
+      "LogicalPayloadBytes": 136,
+      "Initial": 198,
+      "Final": 49,
+      "MeanActive": 47.5715462962963,
+      "MinActive": 24,
+      "MaxActive": 198,
+      "EntityTicks": 5137727,
+      "EntityPresencePercent": 5.432714257206353,
+      "AddsDuringSimulation": 1201,
+      "RemovesDuringSimulation": 1350,
+      "GetCalls": 1454,
+      "HasCalls": 0,
+      "QueryBindings": 5137876
+    }
+  ],
+  "ComponentCountHistogram": [
+    {
+      "Components": 3,
+      "EntityTicks": 89432441,
+      "Percent": 94.56728574279364
+    },
+    {
+      "Components": 12,
+      "EntityTicks": 229391,
+      "Percent": 0.2425616923933137
+    },
+    {
+      "Components": 13,
+      "EntityTicks": 1197130,
+      "Percent": 1.2658643051157528
+    },
+    {
+      "Components": 14,
+      "EntityTicks": 2281704,
+      "Percent": 2.4127101053685345
+    },
+    {
+      "Components": 15,
+      "EntityTicks": 952075,
+      "Percent": 1.006739249950365
+    },
+    {
+      "Components": 16,
+      "EntityTicks": 398301,
+      "Percent": 0.42116981329672587
+    },
+    {
+      "Components": 17,
+      "EntityTicks": 79126,
+      "Percent": 0.08366909108166118
+    }
+  ],
+  "Compositions": [
+    {
+      "Components": [
+        "Transform",
+        "Motion",
+        "Particle"
+      ],
+      "ComponentCount": 3,
+      "EntityTicks": 54470999,
+      "Percent": 57.598500829563925
+    },
+    {
+      "Components": [
+        "Transform",
+        "Motion",
+        "Debris"
+      ],
+      "ComponentCount": 3,
+      "EntityTicks": 25697814,
+      "Percent": 27.173277306644945
+    },
+    {
+      "Components": [
+        "Transform",
+        "Motion",
+        "Projectile"
+      ],
+      "ComponentCount": 3,
+      "EntityTicks": 9263628,
+      "Percent": 9.795507606584774
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 1894887,
+      "Percent": 2.0036836563513347
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 13,
+      "EntityTicks": 683526,
+      "Percent": 0.7227712654586804
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Inventory"
+      ],
+      "ComponentCount": 13,
+      "EntityTicks": 455924,
+      "Percent": 0.48210129012354086
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "Overheated",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 251287,
+      "Percent": 0.265714871099732
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 247767,
+      "Percent": 0.26199276710600744
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Inventory"
+      ],
+      "ComponentCount": 12,
+      "EntityTicks": 229391,
+      "Percent": 0.2425616923933137
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 177770,
+      "Percent": 0.187976825842162
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 173012,
+      "Percent": 0.18294564095519
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 163143,
+      "Percent": 0.1725100033659663
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 154828,
+      "Percent": 0.16371759009669942
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 123272,
+      "Percent": 0.13034977372568482
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 77275,
+      "Percent": 0.08171181423723388
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "Overheated",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 17,
+      "EntityTicks": 72249,
+      "Percent": 0.07639724188710334
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 63882,
+      "Percent": 0.06754984299065642
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 49050,
+      "Percent": 0.051866250253462594
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 43479,
+      "Percent": 0.045975386233849135
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 40640,
+      "Percent": 0.04297338247300142
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Inventory"
+      ],
+      "ComponentCount": 13,
+      "EntityTicks": 32702,
+      "Percent": 0.034579615000789675
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "InCombat",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 24356,
+      "Percent": 0.025754421838396227
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 13,
+      "EntityTicks": 20937,
+      "Percent": 0.02213911685130981
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 20541,
+      "Percent": 0.021720380152015804
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 20402,
+      "Percent": 0.021573399340899975
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Overheated",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 19300,
+      "Percent": 0.020408127011046443
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 15038,
+      "Percent": 0.015901420414099296
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 14520,
+      "Percent": 0.015353678974113697
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "InCombat",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 11769,
+      "Percent": 0.012444727813109098
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 10207,
+      "Percent": 0.010793044165893837
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 10155,
+      "Percent": 0.010738058538713815
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 5382,
+      "Percent": 0.005691012413132226
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 4305,
+      "Percent": 0.004552175480961396
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 13,
+      "EntityTicks": 4041,
+      "Percent": 0.004273017681432056
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Overheated",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 17,
+      "EntityTicks": 4030,
+      "Percent": 0.004261386106451667
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "Overheated",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 3154,
+      "Percent": 0.003335089771649766
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Overheated",
+        "InCombat",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 2323,
+      "Percent": 0.00245637715267673
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 2241,
+      "Percent": 0.0023696690482774654
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "InCombat",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 17,
+      "EntityTicks": 1829,
+      "Percent": 0.0019340136944665256
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 1413,
+      "Percent": 0.0014941286770263535
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "Overheated",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 1063,
+      "Percent": 0.0011240331094685165
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 1010,
+      "Percent": 0.001067990066381187
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 905,
+      "Percent": 0.0009569613961138358
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 846,
+      "Percent": 0.0008945738575826575
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Overheated",
+        "InCombat",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 752,
+      "Percent": 0.0007951767622956956
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "InCombat",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 17,
+      "EntityTicks": 622,
+      "Percent": 0.0006577126943456418
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Overheated",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 328,
+      "Percent": 0.0003468324175970587
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 310,
+      "Percent": 0.0003277989312655128
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 262,
+      "Percent": 0.00027704296771472375
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 257,
+      "Percent": 0.0002717558881781832
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 238,
+      "Percent": 0.0002516649859393292
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 220,
+      "Percent": 0.0002326314996077833
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "Overheated",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 17,
+      "EntityTicks": 209,
+      "Percent": 0.00022099992462739412
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "InCombat",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 164,
+      "Percent": 0.00017341620879852935
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "InCombat",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 17,
+      "EntityTicks": 162,
+      "Percent": 0.00017130137698391314
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 113,
+      "Percent": 0.00011948799752581597
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 78,
+      "Percent": 8.247844077003225E-05
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Carrier",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 49,
+      "Percent": 5.181337945809719E-05
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Overheated",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 15,
+      "EntityTicks": 35,
+      "Percent": 3.7009556755783706E-05
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 31,
+      "Percent": 3.2779893126551285E-05
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Overheated",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 17,
+      "EntityTicks": 25,
+      "Percent": 2.6435397682702646E-05
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "SecondaryWeapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Boosting",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 10,
+      "Percent": 1.0574159073081058E-05
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "ShieldBroken",
+        "Inventory"
+      ],
+      "ComponentCount": 14,
+      "EntityTicks": 7,
+      "Percent": 7.401911351156741E-06
+    },
+    {
+      "Components": [
+        "Identity",
+        "Transform",
+        "Motion",
+        "Hull",
+        "Shield",
+        "Heat",
+        "Brain",
+        "Weapon",
+        "Collider",
+        "PhysicsLink",
+        "CombatState",
+        "Docked",
+        "Overheated",
+        "InCombat",
+        "Boosting",
+        "Inventory"
+      ],
+      "ComponentCount": 16,
+      "EntityTicks": 4,
+      "Percent": 4.229663629232424E-06
+    }
+  ]
+}

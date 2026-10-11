@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8619;CS8625;CS8765</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SpaceBattle.Core/SpaceBattle.Core.csproj" />
+    <ProjectReference Include="../Benchmarks.Local/StaticLibrary.csproj" />
+    <ProjectReference Include="../Benchmarks.Local/MorpehLibrary.csproj" />
+    <Compile Include="../Benchmarks.Local/vendor/ecs/src/**/*.cs" Link="Vendor/Classic/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../Benchmarks.Local/vendor/ecslite/src/**/*.cs" Link="Vendor/Lite/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

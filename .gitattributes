@@ -1,0 +1,2 @@
+# Hash-verified upstream files must keep their original bytes on every platform.
+Benchmarks.Local/vendor/** -text

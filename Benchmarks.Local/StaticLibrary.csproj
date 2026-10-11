@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <Version>1.2.01</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="vendor/StaticEcs/Src/**/*.cs" />
+    <Compile Include="vendor/StaticPack/Src/**/*.cs" />
+  </ItemGroup>
+</Project>

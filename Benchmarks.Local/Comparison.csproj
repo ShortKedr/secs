@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>$(NoWarn);CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8619;CS8625;CS8765</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SECS/SECS.csproj" />
+    <ProjectReference Include="StaticLibrary.csproj" />
+    <ProjectReference Include="MorpehLibrary.csproj" />
+    <Compile Include="*.cs" />
+    <Compile Include="../SECS.Benchmarks/ComparisonWorkload.cs" Link="ComparisonWorkload.cs" />
+    <Compile Include="../SECS.Benchmarks/StressContract.cs" Link="StressContract.cs" />
+    <Compile Include="../SECS.Benchmarks/SecsStressBackend.cs" Link="SecsStressBackend.cs" />
+    <Compile Include="../SECS.Benchmarks/StressWorkload.cs" Link="StressWorkload.cs" />
+    <Compile Include="vendor/ecs/src/**/*.cs" />
+    <Compile Include="vendor/ecslite/src/**/*.cs" />
+  </ItemGroup>
+</Project>

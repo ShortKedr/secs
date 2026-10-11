@@ -1,0 +1,1994 @@
+{
+  "Metadata": {
+    "Framework": "LeoECS Classic",
+    "Runtime": ".NET 8.0.31",
+    "Os": "Microsoft Windows 10.0.26200",
+    "Machine": "NIKOLAY-PC",
+    "Date": "2026-10-11T14:53:46.0179844+05:00",
+    "TieredCompilation": "0",
+    "TargetTickRate": 60,
+    "BudgetMs": 16.666666666666668,
+    "Ticks": 108000,
+    "WarmupTicks": 600,
+    "Realtime": false,
+    "SimulatedSeconds": 1800,
+    "WallSeconds": 43.6548392,
+    "Options": {
+      "Seed": 7331,
+      "ShipsPerTeam": 96,
+      "CarriersPerTeam": 3,
+      "ArenaHalfSize": 210,
+      "ChurnMultiplier": 0.5,
+      "TickRate": 60,
+      "ReplenishCarriers": true,
+      "ParticleMultiplier": 1,
+      "MaxProjectiles": 24000,
+      "MaxDebris": 16000,
+      "MaxParticles": 32000
+    },
+    "TimingScope": "Step includes all systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
+    "MemoryScope": "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
+    "Collision": "Aether.Physics2D 2.2.0; compound ship fixtures; five-ray approximate projectile CCD",
+    "GameplayRules": {
+      "Revision": "predictive-neutral-v1",
+      "Aim": "constant-velocity intercept including inherited shooter velocity and muzzle offset",
+      "ImpreciseAimProbability": 0.25,
+      "MaxSpreadRadians": 0.03,
+      "ProjectileTeam": "none",
+      "CollisionImmunity": "none; all enabled ship fixtures can be hit, including the shooter",
+      "FriendlyFireCounter": "observed hits with a still-live owner identity; excludes attribution after owner destruction"
+    }
+  },
+  "Provenance": {
+    "Sources": {
+      "SECS": "optimized working tree \u002B default WorldOptions fix",
+      "Lite": "5053141d7d663c6b1855c8409ac93dfac807b239",
+      "Classic": "1213c31c9ef8325d48e74a52b345c4db242d038b",
+      "Morpeh": "9f6369384792a01d74df24efd35b08ae313e4f12",
+      "StaticEcs": "6323d710c22cfff70100fe3748de432cb5fc70c8",
+      "StaticPack": "72ce8b993593e5cfd24c6a9289a4b132305ef493"
+    },
+    "Binaries": {
+      "Aether.Physics2D.dll": "A35C71A9BACA513C0B50BBE29EBCED17719DE0349115C4C32A88F6F09AE0C121",
+      "Scellecs.Morpeh.dll": "355710D208DF84ECE86BA16D785B369DAFC1BF8F01FC07588BF93399EE285606",
+      "SECS.dll": "3848BFF3E9D65815AEC89B2B3E746215E5AF94CDFBA82F87CD5D40C8A4358AFF",
+      "SpaceBattle.Adapters.dll": "7F486BA3EC2DCD0445D46002159E03283BDA606C26167208BD05077F20CEE22F",
+      "SpaceBattle.Core.dll": "C33F0C46BD5725E342233BF456E2EACF412FDDAD2EF91C43827E513D3E9D4120",
+      "SpaceBattle.Headless.dll": "C7658B71F3E67AFE64D8E653B5E3DD7AE436B53B18CEF562F7CF1B757C4F6145",
+      "SpaceBattle.SECS.dll": "5896308C178CE8FD87680540B70CAB72CEFF4D37EECC704C761B1FC17990E0D8",
+      "StaticLibrary.dll": "866557A6DBF2E4F52EA8AB2FEE06A5DD0251E591CCBF3C2D7266502D8A2A4546"
+    }
+  },
+  "Timing": {
+    "MeanMs": 0.40367709629630316,
+    "StddevMs": 0.16688577723633427,
+    "MedianMs": 0.387,
+    "P95Ms": 0.6144,
+    "P99Ms": 1.0411,
+    "MaxMs": 3.6632,
+    "BudgetMisses": 0,
+    "BudgetMissPercent": 0
+  },
+  "AllocatedBytes": 35902200,
+  "HarnessAndSimulationAllocatedBytes": 40830552,
+  "GcCollections": [
+    2,
+    0,
+    0
+  ],
+  "Stages": [
+    {
+      "Name": "collect",
+      "Timing": {
+        "MeanMs": 0.03384786944444651,
+        "StddevMs": 0.016046687718080953,
+        "MedianMs": 0.032,
+        "P95Ms": 0.054,
+        "P99Ms": 0.1012,
+        "MaxMs": 0.5748,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "ai",
+      "Timing": {
+        "MeanMs": 0.004468561111110831,
+        "StddevMs": 0.007685332745836443,
+        "MedianMs": 0.0035,
+        "P95Ms": 0.0086,
+        "P99Ms": 0.0134,
+        "MaxMs": 1.0235,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "thermal-inventory",
+      "Timing": {
+        "MeanMs": 0.007809577777777276,
+        "StddevMs": 0.002905303983486985,
+        "MedianMs": 0.0073,
+        "P95Ms": 0.0119,
+        "P99Ms": 0.0165,
+        "MaxMs": 0.2183,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "steering",
+      "Timing": {
+        "MeanMs": 0.008401742592592404,
+        "StddevMs": 0.003231244475585557,
+        "MedianMs": 0.0082,
+        "P95Ms": 0.0128,
+        "P99Ms": 0.0167,
+        "MaxMs": 0.179,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "weapons",
+      "Timing": {
+        "MeanMs": 0.0042130666666666036,
+        "StddevMs": 0.0028577452375694373,
+        "MedianMs": 0.0038,
+        "P95Ms": 0.0082,
+        "P99Ms": 0.0116,
+        "MaxMs": 0.1884,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "carriers",
+      "Timing": {
+        "MeanMs": 0.0006896935185180613,
+        "StddevMs": 0.0007874046553782479,
+        "MedianMs": 0.0006,
+        "P95Ms": 0.0014,
+        "P99Ms": 0.0019,
+        "MaxMs": 0.1695,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "physics",
+      "Timing": {
+        "MeanMs": 0.08678346111110452,
+        "StddevMs": 0.040727424485219335,
+        "MedianMs": 0.0833,
+        "P95Ms": 0.132,
+        "P99Ms": 0.2056,
+        "MaxMs": 1.3269,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "hits",
+      "Timing": {
+        "MeanMs": 0.20277186944443987,
+        "StddevMs": 0.09731246402518283,
+        "MedianMs": 0.1892,
+        "P95Ms": 0.3416,
+        "P99Ms": 0.5811,
+        "MaxMs": 1.8421,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    },
+    {
+      "Name": "lifecycle",
+      "Timing": {
+        "MeanMs": 0.054622930555556955,
+        "StddevMs": 0.024470151033060165,
+        "MedianMs": 0.0527,
+        "P95Ms": 0.0871,
+        "P99Ms": 0.1472,
+        "MaxMs": 1.2906,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      }
+    }
+  ],
+  "Windows": [
+    {
+      "StartTick": 1,
+      "EndTick": 3600,
+      "Timing": {
+        "MeanMs": 0.8876240555555551,
+        "StddevMs": 0.46796303848647675,
+        "MedianMs": 0.787,
+        "P95Ms": 1.8417,
+        "P99Ms": 2.2215,
+        "MaxMs": 3.6632,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 7413256,
+      "Ships": 37,
+      "Projectiles": 68,
+      "Debris": 449,
+      "Particles": 497,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 23991296,
+      "WorkingSetBytes": 50417664,
+      "PrivateBytes": 41447424,
+      "Store": {
+        "Entities": 1051,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 246,
+        "ShipsDestroyed": 209,
+        "Shots": 17983,
+        "Hits": 16553,
+        "PlasmaShieldHits": 1124,
+        "ShieldBreaks": 556,
+        "Overheats": 75,
+        "Dockings": 74,
+        "Repairs": 20014,
+        "Builds": 48,
+        "ItemUses": 860,
+        "DebrisHits": 13206,
+        "Explosions": 209,
+        "StructuralAdds": 450416,
+        "StructuralRemoves": 446851,
+        "AimDecisions": 10297,
+        "ImpreciseAimDecisions": 2492,
+        "FriendlyFireHits": 6140,
+        "SelfHits": 3
+      }
+    },
+    {
+      "StartTick": 3601,
+      "EndTick": 7200,
+      "Timing": {
+        "MeanMs": 0.2957482222222213,
+        "StddevMs": 0.06775660227316935,
+        "MedianMs": 0.2857,
+        "P95Ms": 0.4097,
+        "P99Ms": 0.4719,
+        "MaxMs": 1.3219,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 448480,
+      "Ships": 33,
+      "Projectiles": 45,
+      "Debris": 237,
+      "Particles": 244,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 24531776,
+      "WorkingSetBytes": 51073024,
+      "PrivateBytes": 40988672,
+      "Store": {
+        "Entities": 559,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 288,
+        "ShipsDestroyed": 255,
+        "Shots": 26091,
+        "Hits": 24157,
+        "PlasmaShieldHits": 1693,
+        "ShieldBreaks": 700,
+        "Overheats": 106,
+        "Dockings": 100,
+        "Repairs": 26747,
+        "Builds": 90,
+        "ItemUses": 1197,
+        "DebrisHits": 18346,
+        "Explosions": 255,
+        "StructuralAdds": 642643,
+        "StructuralRemoves": 640600,
+        "AimDecisions": 14928,
+        "ImpreciseAimDecisions": 3646,
+        "FriendlyFireHits": 6926,
+        "SelfHits": 3
+      }
+    },
+    {
+      "StartTick": 7201,
+      "EndTick": 10800,
+      "Timing": {
+        "MeanMs": 0.2916692777777777,
+        "StddevMs": 0.05256679314576127,
+        "MedianMs": 0.283,
+        "P95Ms": 0.3929,
+        "P99Ms": 0.4471,
+        "MaxMs": 0.6803,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 495792,
+      "Ships": 38,
+      "Projectiles": 79,
+      "Debris": 338,
+      "Particles": 366,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 25121600,
+      "WorkingSetBytes": 52236288,
+      "PrivateBytes": 41582592,
+      "Store": {
+        "Entities": 821,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 336,
+        "ShipsDestroyed": 298,
+        "Shots": 35093,
+        "Hits": 32762,
+        "PlasmaShieldHits": 2390,
+        "ShieldBreaks": 842,
+        "Overheats": 139,
+        "Dockings": 136,
+        "Repairs": 35095,
+        "Builds": 138,
+        "ItemUses": 1552,
+        "DebrisHits": 23982,
+        "Explosions": 298,
+        "StructuralAdds": 857159,
+        "StructuralRemoves": 854279,
+        "AimDecisions": 20091,
+        "ImpreciseAimDecisions": 4920,
+        "FriendlyFireHits": 8308,
+        "SelfHits": 6
+      }
+    },
+    {
+      "StartTick": 10801,
+      "EndTick": 14400,
+      "Timing": {
+        "MeanMs": 0.33767280555555557,
+        "StddevMs": 0.0721794328550408,
+        "MedianMs": 0.3242,
+        "P95Ms": 0.4854,
+        "P99Ms": 0.5651,
+        "MaxMs": 0.9779,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 606104,
+      "Ships": 48,
+      "Projectiles": 66,
+      "Debris": 229,
+      "Particles": 408,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 25826304,
+      "WorkingSetBytes": 53403648,
+      "PrivateBytes": 42237952,
+      "Store": {
+        "Entities": 751,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 378,
+        "ShipsDestroyed": 330,
+        "Shots": 46870,
+        "Hits": 44063,
+        "PlasmaShieldHits": 3413,
+        "ShieldBreaks": 1027,
+        "Overheats": 175,
+        "Dockings": 206,
+        "Repairs": 49521,
+        "Builds": 180,
+        "ItemUses": 2007,
+        "DebrisHits": 31547,
+        "Explosions": 330,
+        "StructuralAdds": 1135763,
+        "StructuralRemoves": 1132974,
+        "AimDecisions": 26856,
+        "ImpreciseAimDecisions": 6609,
+        "FriendlyFireHits": 11334,
+        "SelfHits": 11
+      }
+    },
+    {
+      "StartTick": 14401,
+      "EndTick": 18000,
+      "Timing": {
+        "MeanMs": 0.4204936111111111,
+        "StddevMs": 0.08681865767278597,
+        "MedianMs": 0.405,
+        "P95Ms": 0.5707,
+        "P99Ms": 0.667,
+        "MaxMs": 1.1923,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 783584,
+      "Ships": 47,
+      "Projectiles": 86,
+      "Debris": 337,
+      "Particles": 510,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 26702688,
+      "WorkingSetBytes": 54779904,
+      "PrivateBytes": 43155456,
+      "Store": {
+        "Entities": 980,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 426,
+        "ShipsDestroyed": 379,
+        "Shots": 58912,
+        "Hits": 55668,
+        "PlasmaShieldHits": 4574,
+        "ShieldBreaks": 1253,
+        "Overheats": 238,
+        "Dockings": 282,
+        "Repairs": 66341,
+        "Builds": 228,
+        "ItemUses": 2499,
+        "DebrisHits": 39602,
+        "Explosions": 379,
+        "StructuralAdds": 1427062,
+        "StructuralRemoves": 1423596,
+        "AimDecisions": 33931,
+        "ImpreciseAimDecisions": 8374,
+        "FriendlyFireHits": 14032,
+        "SelfHits": 14
+      }
+    },
+    {
+      "StartTick": 18001,
+      "EndTick": 21600,
+      "Timing": {
+        "MeanMs": 0.3859482777777779,
+        "StddevMs": 0.07756106115601653,
+        "MedianMs": 0.372,
+        "P95Ms": 0.5425,
+        "P99Ms": 0.627,
+        "MaxMs": 0.9548,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 710200,
+      "Ships": 47,
+      "Projectiles": 92,
+      "Debris": 177,
+      "Particles": 555,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 27505480,
+      "WorkingSetBytes": 56057856,
+      "PrivateBytes": 43970560,
+      "Store": {
+        "Entities": 871,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 465,
+        "ShipsDestroyed": 418,
+        "Shots": 70471,
+        "Hits": 66834,
+        "PlasmaShieldHits": 5578,
+        "ShieldBreaks": 1424,
+        "Overheats": 285,
+        "Dockings": 332,
+        "Repairs": 77588,
+        "Builds": 266,
+        "ItemUses": 2911,
+        "DebrisHits": 47320,
+        "Explosions": 418,
+        "StructuralAdds": 1706402,
+        "StructuralRemoves": 1703272,
+        "AimDecisions": 40705,
+        "ImpreciseAimDecisions": 10072,
+        "FriendlyFireHits": 16514,
+        "SelfHits": 15
+      }
+    },
+    {
+      "StartTick": 21601,
+      "EndTick": 25200,
+      "Timing": {
+        "MeanMs": 0.416048222222223,
+        "StddevMs": 0.08496135572617729,
+        "MedianMs": 0.4049,
+        "P95Ms": 0.5657,
+        "P99Ms": 0.6991,
+        "MaxMs": 1.121,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 979056,
+      "Ships": 54,
+      "Projectiles": 33,
+      "Debris": 296,
+      "Particles": 341,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 28578728,
+      "WorkingSetBytes": 57532416,
+      "PrivateBytes": 45019136,
+      "Store": {
+        "Entities": 724,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 512,
+        "ShipsDestroyed": 458,
+        "Shots": 83052,
+        "Hits": 79143,
+        "PlasmaShieldHits": 6614,
+        "ShieldBreaks": 1603,
+        "Overheats": 334,
+        "Dockings": 399,
+        "Repairs": 90230,
+        "Builds": 313,
+        "ItemUses": 3355,
+        "DebrisHits": 55689,
+        "Explosions": 458,
+        "StructuralAdds": 2011934,
+        "StructuralRemoves": 2009177,
+        "AimDecisions": 48067,
+        "ImpreciseAimDecisions": 11886,
+        "FriendlyFireHits": 20737,
+        "SelfHits": 15
+      }
+    },
+    {
+      "StartTick": 25201,
+      "EndTick": 28800,
+      "Timing": {
+        "MeanMs": 0.3960451388888886,
+        "StddevMs": 0.11810714016835491,
+        "MedianMs": 0.365,
+        "P95Ms": 0.6415,
+        "P99Ms": 0.7822,
+        "MaxMs": 1.6452,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 773864,
+      "Ships": 49,
+      "Projectiles": 74,
+      "Debris": 260,
+      "Particles": 702,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 29446888,
+      "WorkingSetBytes": 58843136,
+      "PrivateBytes": 45940736,
+      "Store": {
+        "Entities": 1085,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 551,
+        "ShipsDestroyed": 502,
+        "Shots": 94496,
+        "Hits": 90283,
+        "PlasmaShieldHits": 7538,
+        "ShieldBreaks": 1817,
+        "Overheats": 378,
+        "Dockings": 464,
+        "Repairs": 104309,
+        "Builds": 350,
+        "ItemUses": 3820,
+        "DebrisHits": 63164,
+        "Explosions": 502,
+        "StructuralAdds": 2287965,
+        "StructuralRemoves": 2284167,
+        "AimDecisions": 54665,
+        "ImpreciseAimDecisions": 13498,
+        "FriendlyFireHits": 24772,
+        "SelfHits": 15
+      }
+    },
+    {
+      "StartTick": 28801,
+      "EndTick": 32400,
+      "Timing": {
+        "MeanMs": 0.4446873055555563,
+        "StddevMs": 0.11767571415117647,
+        "MedianMs": 0.4351,
+        "P95Ms": 0.6308,
+        "P99Ms": 0.8035,
+        "MaxMs": 1.85,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1022256,
+      "Ships": 50,
+      "Projectiles": 74,
+      "Debris": 135,
+      "Particles": 418,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 30569224,
+      "WorkingSetBytes": 60260352,
+      "PrivateBytes": 47054848,
+      "Store": {
+        "Entities": 677,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 591,
+        "ShipsDestroyed": 541,
+        "Shots": 107206,
+        "Hits": 102811,
+        "PlasmaShieldHits": 8425,
+        "ShieldBreaks": 1995,
+        "Overheats": 424,
+        "Dockings": 523,
+        "Repairs": 118406,
+        "Builds": 389,
+        "ItemUses": 4287,
+        "DebrisHits": 71982,
+        "Explosions": 541,
+        "StructuralAdds": 2600355,
+        "StructuralRemoves": 2597771,
+        "AimDecisions": 62034,
+        "ImpreciseAimDecisions": 15346,
+        "FriendlyFireHits": 29053,
+        "SelfHits": 24
+      }
+    },
+    {
+      "StartTick": 32401,
+      "EndTick": 36000,
+      "Timing": {
+        "MeanMs": 0.3969857500000012,
+        "StddevMs": 0.08785677468950231,
+        "MedianMs": 0.3765,
+        "P95Ms": 0.5844,
+        "P99Ms": 0.6925,
+        "MaxMs": 0.9084,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1153952,
+      "Ships": 46,
+      "Projectiles": 56,
+      "Debris": 188,
+      "Particles": 553,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 31814304,
+      "WorkingSetBytes": 62029824,
+      "PrivateBytes": 48336896,
+      "Store": {
+        "Entities": 843,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 625,
+        "ShipsDestroyed": 579,
+        "Shots": 120706,
+        "Hits": 116089,
+        "PlasmaShieldHits": 9178,
+        "ShieldBreaks": 2170,
+        "Overheats": 479,
+        "Dockings": 573,
+        "Repairs": 129097,
+        "Builds": 420,
+        "ItemUses": 4708,
+        "DebrisHits": 80039,
+        "Explosions": 579,
+        "StructuralAdds": 2919765,
+        "StructuralRemoves": 2916719,
+        "AimDecisions": 69688,
+        "ImpreciseAimDecisions": 17175,
+        "FriendlyFireHits": 33781,
+        "SelfHits": 24
+      }
+    },
+    {
+      "StartTick": 36001,
+      "EndTick": 39600,
+      "Timing": {
+        "MeanMs": 0.37927416666666597,
+        "StddevMs": 0.07725419029883449,
+        "MedianMs": 0.3702,
+        "P95Ms": 0.515,
+        "P99Ms": 0.6055,
+        "MaxMs": 1.1532,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1061920,
+      "Ships": 44,
+      "Projectiles": 53,
+      "Debris": 239,
+      "Particles": 533,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 32977504,
+      "WorkingSetBytes": 63627264,
+      "PrivateBytes": 49451008,
+      "Store": {
+        "Entities": 869,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 664,
+        "ShipsDestroyed": 620,
+        "Shots": 133926,
+        "Hits": 129076,
+        "PlasmaShieldHits": 9926,
+        "ShieldBreaks": 2362,
+        "Overheats": 519,
+        "Dockings": 627,
+        "Repairs": 141064,
+        "Builds": 455,
+        "ItemUses": 5130,
+        "DebrisHits": 88686,
+        "Explosions": 620,
+        "StructuralAdds": 3239370,
+        "StructuralRemoves": 3236280,
+        "AimDecisions": 77133,
+        "ImpreciseAimDecisions": 19047,
+        "FriendlyFireHits": 38353,
+        "SelfHits": 26
+      }
+    },
+    {
+      "StartTick": 39601,
+      "EndTick": 43200,
+      "Timing": {
+        "MeanMs": 0.3741122222222226,
+        "StddevMs": 0.08564790132543115,
+        "MedianMs": 0.3554,
+        "P95Ms": 0.5371,
+        "P99Ms": 0.6746,
+        "MaxMs": 1.0782,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 963080,
+      "Ships": 41,
+      "Projectiles": 132,
+      "Debris": 328,
+      "Particles": 491,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 34034304,
+      "WorkingSetBytes": 65200128,
+      "PrivateBytes": 50569216,
+      "Store": {
+        "Entities": 992,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 701,
+        "ShipsDestroyed": 660,
+        "Shots": 146954,
+        "Hits": 141877,
+        "PlasmaShieldHits": 10725,
+        "ShieldBreaks": 2539,
+        "Overheats": 565,
+        "Dockings": 670,
+        "Repairs": 150652,
+        "Builds": 490,
+        "ItemUses": 5517,
+        "DebrisHits": 96499,
+        "Explosions": 660,
+        "StructuralAdds": 3547911,
+        "StructuralRemoves": 3544471,
+        "AimDecisions": 84484,
+        "ImpreciseAimDecisions": 20885,
+        "FriendlyFireHits": 42449,
+        "SelfHits": 28
+      }
+    },
+    {
+      "StartTick": 43201,
+      "EndTick": 46800,
+      "Timing": {
+        "MeanMs": 0.35623244444444363,
+        "StddevMs": 0.06746340963426511,
+        "MedianMs": 0.3486,
+        "P95Ms": 0.4611,
+        "P99Ms": 0.5496,
+        "MaxMs": 1.4193,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 939896,
+      "Ships": 48,
+      "Projectiles": 80,
+      "Debris": 124,
+      "Particles": 511,
+      "Gc": [
+        4,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 35066688,
+      "WorkingSetBytes": 66576384,
+      "PrivateBytes": 51552256,
+      "Store": {
+        "Entities": 763,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 743,
+        "ShipsDestroyed": 695,
+        "Shots": 160336,
+        "Hits": 154992,
+        "PlasmaShieldHits": 11371,
+        "ShieldBreaks": 2679,
+        "Overheats": 599,
+        "Dockings": 711,
+        "Repairs": 158297,
+        "Builds": 529,
+        "ItemUses": 5893,
+        "DebrisHits": 103863,
+        "Explosions": 695,
+        "StructuralAdds": 3856972,
+        "StructuralRemoves": 3854147,
+        "AimDecisions": 91858,
+        "ImpreciseAimDecisions": 22740,
+        "FriendlyFireHits": 46801,
+        "SelfHits": 32
+      }
+    },
+    {
+      "StartTick": 46801,
+      "EndTick": 50400,
+      "Timing": {
+        "MeanMs": 0.3655938333333321,
+        "StddevMs": 0.06618359282048968,
+        "MedianMs": 0.3612,
+        "P95Ms": 0.4709,
+        "P99Ms": 0.5455,
+        "MaxMs": 1.6042,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 938080,
+      "Ships": 41,
+      "Projectiles": 59,
+      "Debris": 238,
+      "Particles": 627,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 21342496,
+      "WorkingSetBytes": 69271552,
+      "PrivateBytes": 53673984,
+      "Store": {
+        "Entities": 965,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 781,
+        "ShipsDestroyed": 740,
+        "Shots": 172286,
+        "Hits": 166490,
+        "PlasmaShieldHits": 12046,
+        "ShieldBreaks": 2842,
+        "Overheats": 630,
+        "Dockings": 759,
+        "Repairs": 168439,
+        "Builds": 565,
+        "ItemUses": 6272,
+        "DebrisHits": 111242,
+        "Explosions": 740,
+        "StructuralAdds": 4140239,
+        "StructuralRemoves": 4136885,
+        "AimDecisions": 98603,
+        "ImpreciseAimDecisions": 24420,
+        "FriendlyFireHits": 51092,
+        "SelfHits": 39
+      }
+    },
+    {
+      "StartTick": 50401,
+      "EndTick": 54000,
+      "Timing": {
+        "MeanMs": 0.35347249999999986,
+        "StddevMs": 0.06014827344039908,
+        "MedianMs": 0.345,
+        "P95Ms": 0.4634,
+        "P99Ms": 0.5459,
+        "MaxMs": 1.0858,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 912640,
+      "Ships": 40,
+      "Projectiles": 170,
+      "Debris": 370,
+      "Particles": 471,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 22341904,
+      "WorkingSetBytes": 69734400,
+      "PrivateBytes": 53673984,
+      "Store": {
+        "Entities": 1051,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 825,
+        "ShipsDestroyed": 785,
+        "Shots": 185430,
+        "Hits": 179214,
+        "PlasmaShieldHits": 12642,
+        "ShieldBreaks": 3023,
+        "Overheats": 667,
+        "Dockings": 807,
+        "Repairs": 179158,
+        "Builds": 608,
+        "ItemUses": 6675,
+        "DebrisHits": 118622,
+        "Explosions": 785,
+        "StructuralAdds": 4444921,
+        "StructuralRemoves": 4441324,
+        "AimDecisions": 105826,
+        "ImpreciseAimDecisions": 26273,
+        "FriendlyFireHits": 54766,
+        "SelfHits": 41
+      }
+    },
+    {
+      "StartTick": 54001,
+      "EndTick": 57600,
+      "Timing": {
+        "MeanMs": 0.38758119444444483,
+        "StddevMs": 0.10106530140350295,
+        "MedianMs": 0.3597,
+        "P95Ms": 0.5763,
+        "P99Ms": 0.7221,
+        "MaxMs": 1.1509,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 816096,
+      "Ships": 47,
+      "Projectiles": 104,
+      "Debris": 131,
+      "Particles": 615,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 23259072,
+      "WorkingSetBytes": 70119424,
+      "PrivateBytes": 53673984,
+      "Store": {
+        "Entities": 897,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 865,
+        "ShipsDestroyed": 818,
+        "Shots": 199540,
+        "Hits": 192944,
+        "PlasmaShieldHits": 13132,
+        "ShieldBreaks": 3155,
+        "Overheats": 689,
+        "Dockings": 831,
+        "Repairs": 185176,
+        "Builds": 646,
+        "ItemUses": 7010,
+        "DebrisHits": 125820,
+        "Explosions": 818,
+        "StructuralAdds": 4763266,
+        "StructuralRemoves": 4760056,
+        "AimDecisions": 113451,
+        "ImpreciseAimDecisions": 28196,
+        "FriendlyFireHits": 58404,
+        "SelfHits": 42
+      }
+    },
+    {
+      "StartTick": 57601,
+      "EndTick": 61200,
+      "Timing": {
+        "MeanMs": 0.38747205555555486,
+        "StddevMs": 0.1572223868775694,
+        "MedianMs": 0.3905,
+        "P95Ms": 0.6389,
+        "P99Ms": 0.716,
+        "MaxMs": 1.695,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1008472,
+      "Ships": 57,
+      "Projectiles": 69,
+      "Debris": 163,
+      "Particles": 635,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 24357168,
+      "WorkingSetBytes": 70647808,
+      "PrivateBytes": 53673984,
+      "Store": {
+        "Entities": 924,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 904,
+        "ShipsDestroyed": 847,
+        "Shots": 211043,
+        "Hits": 204202,
+        "PlasmaShieldHits": 13623,
+        "ShieldBreaks": 3305,
+        "Overheats": 712,
+        "Dockings": 869,
+        "Repairs": 194775,
+        "Builds": 682,
+        "ItemUses": 7321,
+        "DebrisHits": 132938,
+        "Explosions": 847,
+        "StructuralAdds": 5037204,
+        "StructuralRemoves": 5033803,
+        "AimDecisions": 119831,
+        "ImpreciseAimDecisions": 29731,
+        "FriendlyFireHits": 62108,
+        "SelfHits": 42
+      }
+    },
+    {
+      "StartTick": 61201,
+      "EndTick": 64800,
+      "Timing": {
+        "MeanMs": 0.42657416666666736,
+        "StddevMs": 0.07496650551051258,
+        "MedianMs": 0.4199,
+        "P95Ms": 0.5647,
+        "P99Ms": 0.6526,
+        "MaxMs": 1.1542,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1254464,
+      "Ships": 51,
+      "Projectiles": 58,
+      "Debris": 279,
+      "Particles": 503,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 25709400,
+      "WorkingSetBytes": 70975488,
+      "PrivateBytes": 53673984,
+      "Store": {
+        "Entities": 891,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 941,
+        "ShipsDestroyed": 890,
+        "Shots": 225918,
+        "Hits": 218824,
+        "PlasmaShieldHits": 14282,
+        "ShieldBreaks": 3515,
+        "Overheats": 755,
+        "Dockings": 923,
+        "Repairs": 208227,
+        "Builds": 717,
+        "ItemUses": 7798,
+        "DebrisHits": 142209,
+        "Explosions": 890,
+        "StructuralAdds": 5392522,
+        "StructuralRemoves": 5389286,
+        "AimDecisions": 128064,
+        "ImpreciseAimDecisions": 31771,
+        "FriendlyFireHits": 67473,
+        "SelfHits": 42
+      }
+    },
+    {
+      "StartTick": 64801,
+      "EndTick": 68400,
+      "Timing": {
+        "MeanMs": 0.42705902777777793,
+        "StddevMs": 0.09089895147600745,
+        "MedianMs": 0.4219,
+        "P95Ms": 0.5527,
+        "P99Ms": 0.6703,
+        "MaxMs": 2.469,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1052016,
+      "Ships": 55,
+      "Projectiles": 50,
+      "Debris": 168,
+      "Particles": 542,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 26856840,
+      "WorkingSetBytes": 71434240,
+      "PrivateBytes": 53673984,
+      "Store": {
+        "Entities": 815,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 981,
+        "ShipsDestroyed": 926,
+        "Shots": 241171,
+        "Hits": 233825,
+        "PlasmaShieldHits": 15010,
+        "ShieldBreaks": 3722,
+        "Overheats": 798,
+        "Dockings": 980,
+        "Repairs": 223874,
+        "Builds": 754,
+        "ItemUses": 8298,
+        "DebrisHits": 151621,
+        "Explosions": 926,
+        "StructuralAdds": 5753909,
+        "StructuralRemoves": 5750850,
+        "AimDecisions": 136478,
+        "ImpreciseAimDecisions": 33939,
+        "FriendlyFireHits": 73879,
+        "SelfHits": 45
+      }
+    },
+    {
+      "StartTick": 68401,
+      "EndTick": 72000,
+      "Timing": {
+        "MeanMs": 0.42920425000000034,
+        "StddevMs": 0.10598527972276921,
+        "MedianMs": 0.431,
+        "P95Ms": 0.5909,
+        "P99Ms": 0.714,
+        "MaxMs": 1.0728,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1232200,
+      "Ships": 46,
+      "Projectiles": 0,
+      "Debris": 203,
+      "Particles": 0,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 28185208,
+      "WorkingSetBytes": 71843840,
+      "PrivateBytes": 53579776,
+      "Store": {
+        "Entities": 249,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1015,
+        "ShipsDestroyed": 969,
+        "Shots": 255987,
+        "Hits": 248446,
+        "PlasmaShieldHits": 15496,
+        "ShieldBreaks": 3922,
+        "Overheats": 842,
+        "Dockings": 1034,
+        "Repairs": 239172,
+        "Builds": 787,
+        "ItemUses": 8758,
+        "DebrisHits": 160490,
+        "Explosions": 969,
+        "StructuralAdds": 6105575,
+        "StructuralRemoves": 6104344,
+        "AimDecisions": 144525,
+        "ImpreciseAimDecisions": 35936,
+        "FriendlyFireHits": 79665,
+        "SelfHits": 46
+      }
+    },
+    {
+      "StartTick": 72001,
+      "EndTick": 75600,
+      "Timing": {
+        "MeanMs": 0.4049848611111107,
+        "StddevMs": 0.09441601507399915,
+        "MedianMs": 0.4112,
+        "P95Ms": 0.5329,
+        "P99Ms": 0.6,
+        "MaxMs": 0.8722,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1101944,
+      "Ships": 50,
+      "Projectiles": 70,
+      "Debris": 226,
+      "Particles": 661,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 29385496,
+      "WorkingSetBytes": 72237056,
+      "PrivateBytes": 53579776,
+      "Store": {
+        "Entities": 1007,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1057,
+        "ShipsDestroyed": 1007,
+        "Shots": 271457,
+        "Hits": 263612,
+        "PlasmaShieldHits": 16166,
+        "ShieldBreaks": 4079,
+        "Overheats": 873,
+        "Dockings": 1071,
+        "Repairs": 247650,
+        "Builds": 826,
+        "ItemUses": 9125,
+        "DebrisHits": 168686,
+        "Explosions": 1007,
+        "StructuralAdds": 6459606,
+        "StructuralRemoves": 6456037,
+        "AimDecisions": 152961,
+        "ImpreciseAimDecisions": 38100,
+        "FriendlyFireHits": 84257,
+        "SelfHits": 46
+      }
+    },
+    {
+      "StartTick": 75601,
+      "EndTick": 79200,
+      "Timing": {
+        "MeanMs": 0.3866050833333335,
+        "StddevMs": 0.1471278219525151,
+        "MedianMs": 0.4109,
+        "P95Ms": 0.5886,
+        "P99Ms": 0.7159,
+        "MaxMs": 1.1275,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 976992,
+      "Ships": 49,
+      "Projectiles": 133,
+      "Debris": 227,
+      "Particles": 680,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 30450696,
+      "WorkingSetBytes": 72712192,
+      "PrivateBytes": 53579776,
+      "Store": {
+        "Entities": 1089,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1093,
+        "ShipsDestroyed": 1044,
+        "Shots": 286531,
+        "Hits": 278430,
+        "PlasmaShieldHits": 16795,
+        "ShieldBreaks": 4246,
+        "Overheats": 907,
+        "Dockings": 1119,
+        "Repairs": 258049,
+        "Builds": 859,
+        "ItemUses": 9535,
+        "DebrisHits": 176637,
+        "Explosions": 1044,
+        "StructuralAdds": 6804928,
+        "StructuralRemoves": 6801109,
+        "AimDecisions": 161189,
+        "ImpreciseAimDecisions": 40117,
+        "FriendlyFireHits": 89438,
+        "SelfHits": 49
+      }
+    },
+    {
+      "StartTick": 79201,
+      "EndTick": 82800,
+      "Timing": {
+        "MeanMs": 0.42262052777777676,
+        "StddevMs": 0.11999845561778158,
+        "MedianMs": 0.4183,
+        "P95Ms": 0.6353,
+        "P99Ms": 0.7638,
+        "MaxMs": 1.2774,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1160440,
+      "Ships": 45,
+      "Projectiles": 129,
+      "Debris": 131,
+      "Particles": 821,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 31713272,
+      "WorkingSetBytes": 73175040,
+      "PrivateBytes": 53645312,
+      "Store": {
+        "Entities": 1126,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1130,
+        "ShipsDestroyed": 1085,
+        "Shots": 300572,
+        "Hits": 292116,
+        "PlasmaShieldHits": 17237,
+        "ShieldBreaks": 4414,
+        "Overheats": 933,
+        "Dockings": 1154,
+        "Repairs": 267511,
+        "Builds": 893,
+        "ItemUses": 9888,
+        "DebrisHits": 184740,
+        "Explosions": 1085,
+        "StructuralAdds": 7132705,
+        "StructuralRemoves": 7128833,
+        "AimDecisions": 168779,
+        "ImpreciseAimDecisions": 42011,
+        "FriendlyFireHits": 94715,
+        "SelfHits": 49
+      }
+    },
+    {
+      "StartTick": 82801,
+      "EndTick": 86400,
+      "Timing": {
+        "MeanMs": 0.36369674999999985,
+        "StddevMs": 0.1263125385583236,
+        "MedianMs": 0.3823,
+        "P95Ms": 0.5401,
+        "P99Ms": 0.6157,
+        "MaxMs": 1.2499,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1136896,
+      "Ships": 49,
+      "Projectiles": 0,
+      "Debris": 146,
+      "Particles": 0,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 32942952,
+      "WorkingSetBytes": 73654272,
+      "PrivateBytes": 53645312,
+      "Store": {
+        "Entities": 195,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1166,
+        "ShipsDestroyed": 1117,
+        "Shots": 313540,
+        "Hits": 304894,
+        "PlasmaShieldHits": 17698,
+        "ShieldBreaks": 4571,
+        "Overheats": 964,
+        "Dockings": 1203,
+        "Repairs": 279401,
+        "Builds": 928,
+        "ItemUses": 10261,
+        "DebrisHits": 192075,
+        "Explosions": 1117,
+        "StructuralAdds": 7435646,
+        "StructuralRemoves": 7434576,
+        "AimDecisions": 175846,
+        "ImpreciseAimDecisions": 43807,
+        "FriendlyFireHits": 98883,
+        "SelfHits": 49
+      }
+    },
+    {
+      "StartTick": 86401,
+      "EndTick": 90000,
+      "Timing": {
+        "MeanMs": 0.4286197777777779,
+        "StddevMs": 0.11493351685155158,
+        "MedianMs": 0.4424,
+        "P95Ms": 0.5772,
+        "P99Ms": 0.6501,
+        "MaxMs": 0.8332,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1324952,
+      "Ships": 52,
+      "Projectiles": 112,
+      "Debris": 343,
+      "Particles": 448,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 34360984,
+      "WorkingSetBytes": 73981952,
+      "PrivateBytes": 53645312,
+      "Store": {
+        "Entities": 955,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1209,
+        "ShipsDestroyed": 1157,
+        "Shots": 331459,
+        "Hits": 322514,
+        "PlasmaShieldHits": 18414,
+        "ShieldBreaks": 4779,
+        "Overheats": 1007,
+        "Dockings": 1253,
+        "Repairs": 291720,
+        "Builds": 967,
+        "ItemUses": 10744,
+        "DebrisHits": 201811,
+        "Explosions": 1157,
+        "StructuralAdds": 7848129,
+        "StructuralRemoves": 7844686,
+        "AimDecisions": 185605,
+        "ImpreciseAimDecisions": 46282,
+        "FriendlyFireHits": 105885,
+        "SelfHits": 52
+      }
+    },
+    {
+      "StartTick": 90001,
+      "EndTick": 93600,
+      "Timing": {
+        "MeanMs": 0.37706622222222197,
+        "StddevMs": 0.15718055977918804,
+        "MedianMs": 0.4055,
+        "P95Ms": 0.5969,
+        "P99Ms": 0.7597,
+        "MaxMs": 1.2299,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 957024,
+      "Ships": 52,
+      "Projectiles": 98,
+      "Debris": 126,
+      "Particles": 579,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 35417960,
+      "WorkingSetBytes": 74383360,
+      "PrivateBytes": 53645312,
+      "Store": {
+        "Entities": 855,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1245,
+        "ShipsDestroyed": 1193,
+        "Shots": 344530,
+        "Hits": 335360,
+        "PlasmaShieldHits": 18976,
+        "ShieldBreaks": 4953,
+        "Overheats": 1033,
+        "Dockings": 1294,
+        "Repairs": 301209,
+        "Builds": 1000,
+        "ItemUses": 11120,
+        "DebrisHits": 209412,
+        "Explosions": 1193,
+        "StructuralAdds": 8154377,
+        "StructuralRemoves": 8151239,
+        "AimDecisions": 192709,
+        "ImpreciseAimDecisions": 48063,
+        "FriendlyFireHits": 111058,
+        "SelfHits": 52
+      }
+    },
+    {
+      "StartTick": 93601,
+      "EndTick": 97200,
+      "Timing": {
+        "MeanMs": 0.3716597222222219,
+        "StddevMs": 0.12126748648591568,
+        "MedianMs": 0.3974,
+        "P95Ms": 0.5207,
+        "P99Ms": 0.5947,
+        "MaxMs": 1.0698,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1187256,
+      "Ships": 52,
+      "Projectiles": 89,
+      "Debris": 97,
+      "Particles": 724,
+      "Gc": [
+        5,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 36696984,
+      "WorkingSetBytes": 74870784,
+      "PrivateBytes": 53645312,
+      "Store": {
+        "Entities": 962,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1284,
+        "ShipsDestroyed": 1232,
+        "Shots": 357634,
+        "Hits": 348166,
+        "PlasmaShieldHits": 19445,
+        "ShieldBreaks": 5106,
+        "Overheats": 1060,
+        "Dockings": 1339,
+        "Repairs": 312784,
+        "Builds": 1038,
+        "ItemUses": 11462,
+        "DebrisHits": 216996,
+        "Explosions": 1232,
+        "StructuralAdds": 8461605,
+        "StructuralRemoves": 8458148,
+        "AimDecisions": 199842,
+        "ImpreciseAimDecisions": 49815,
+        "FriendlyFireHits": 115925,
+        "SelfHits": 52
+      }
+    },
+    {
+      "StartTick": 97201,
+      "EndTick": 100800,
+      "Timing": {
+        "MeanMs": 0.41758599999999985,
+        "StddevMs": 0.12776153542650168,
+        "MedianMs": 0.4251,
+        "P95Ms": 0.6022,
+        "P99Ms": 0.6928,
+        "MaxMs": 1.4501,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1336264,
+      "Ships": 51,
+      "Projectiles": 0,
+      "Debris": 185,
+      "Particles": 0,
+      "Gc": [
+        6,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 21579712,
+      "WorkingSetBytes": 75300864,
+      "PrivateBytes": 53645312,
+      "Store": {
+        "Entities": 236,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1321,
+        "ShipsDestroyed": 1270,
+        "Shots": 374404,
+        "Hits": 364745,
+        "PlasmaShieldHits": 19988,
+        "ShieldBreaks": 5311,
+        "Overheats": 1095,
+        "Dockings": 1395,
+        "Repairs": 328089,
+        "Builds": 1073,
+        "ItemUses": 11930,
+        "DebrisHits": 225734,
+        "Explosions": 1270,
+        "StructuralAdds": 8846238,
+        "StructuralRemoves": 8845007,
+        "AimDecisions": 208839,
+        "ImpreciseAimDecisions": 52050,
+        "FriendlyFireHits": 121802,
+        "SelfHits": 54
+      }
+    },
+    {
+      "StartTick": 100801,
+      "EndTick": 104400,
+      "Timing": {
+        "MeanMs": 0.42300991666666526,
+        "StddevMs": 0.11728277509851709,
+        "MedianMs": 0.4234,
+        "P95Ms": 0.6122,
+        "P99Ms": 0.6919,
+        "MaxMs": 1.2694,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 1218576,
+      "Ships": 47,
+      "Projectiles": 150,
+      "Debris": 253,
+      "Particles": 616,
+      "Gc": [
+        6,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 22899856,
+      "WorkingSetBytes": 75538432,
+      "PrivateBytes": 53645312,
+      "Store": {
+        "Entities": 1066,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1363,
+        "ShipsDestroyed": 1316,
+        "Shots": 391875,
+        "Hits": 381856,
+        "PlasmaShieldHits": 20486,
+        "ShieldBreaks": 5510,
+        "Overheats": 1120,
+        "Dockings": 1434,
+        "Repairs": 336963,
+        "Builds": 1111,
+        "ItemUses": 12353,
+        "DebrisHits": 234785,
+        "Explosions": 1316,
+        "StructuralAdds": 9244029,
+        "StructuralRemoves": 9240306,
+        "AimDecisions": 218097,
+        "ImpreciseAimDecisions": 54320,
+        "FriendlyFireHits": 128044,
+        "SelfHits": 57
+      }
+    },
+    {
+      "StartTick": 104401,
+      "EndTick": 108000,
+      "Timing": {
+        "MeanMs": 0.3549655,
+        "StddevMs": 0.18852587059353731,
+        "MedianMs": 0.4088,
+        "P95Ms": 0.6286,
+        "P99Ms": 0.7466,
+        "MaxMs": 1.4574,
+        "BudgetMisses": 0,
+        "BudgetMissPercent": 0
+      },
+      "AllocatedBytes": 936448,
+      "Ships": 49,
+      "Projectiles": 167,
+      "Debris": 213,
+      "Particles": 887,
+      "Gc": [
+        6,
+        4,
+        4
+      ],
+      "ManagedHeapBytes": 23923936,
+      "WorkingSetBytes": 75796480,
+      "PrivateBytes": 53645312,
+      "Store": {
+        "Entities": 1316,
+        "Archetypes": null,
+        "Chunks": null,
+        "NativeBytes": null,
+        "AccessorBytes": null
+      },
+      "Counters": {
+        "ShipsCreated": 1399,
+        "ShipsDestroyed": 1350,
+        "Shots": 403519,
+        "Hits": 393165,
+        "PlasmaShieldHits": 20818,
+        "ShieldBreaks": 5622,
+        "Overheats": 1144,
+        "Dockings": 1459,
+        "Repairs": 342611,
+        "Builds": 1144,
+        "ItemUses": 12623,
+        "DebrisHits": 240839,
+        "Explosions": 1350,
+        "StructuralAdds": 9510025,
+        "StructuralRemoves": 9505538,
+        "AimDecisions": 224352,
+        "ImpreciseAimDecisions": 55863,
+        "FriendlyFireHits": 131265,
+        "SelfHits": 59
+      }
+    }
+  ],
+  "Checkpoints": [
+    {
+      "Tick": 3600,
+      "Checksum": "4C65101D2CE6AD1D"
+    },
+    {
+      "Tick": 7200,
+      "Checksum": "03D31115A19EE4BF"
+    },
+    {
+      "Tick": 10800,
+      "Checksum": "074BDAA5C5DAA100"
+    },
+    {
+      "Tick": 14400,
+      "Checksum": "C4F12B976EEB2D32"
+    },
+    {
+      "Tick": 18000,
+      "Checksum": "97B950BAF8AC8551"
+    },
+    {
+      "Tick": 21600,
+      "Checksum": "48853BA3C50A2FDE"
+    },
+    {
+      "Tick": 25200,
+      "Checksum": "5C2C84307CB61FBB"
+    },
+    {
+      "Tick": 28800,
+      "Checksum": "14653CF8C4477648"
+    },
+    {
+      "Tick": 32400,
+      "Checksum": "20F72219E969E33F"
+    },
+    {
+      "Tick": 36000,
+      "Checksum": "F9EBB20C0CB56C90"
+    },
+    {
+      "Tick": 39600,
+      "Checksum": "694CCA1E9AD2A37F"
+    },
+    {
+      "Tick": 43200,
+      "Checksum": "897258B2B84113C6"
+    },
+    {
+      "Tick": 46800,
+      "Checksum": "5EB2F8A85206FDC9"
+    },
+    {
+      "Tick": 50400,
+      "Checksum": "44A3D6924AFE3E4F"
+    },
+    {
+      "Tick": 54000,
+      "Checksum": "A67A89B13C604EF5"
+    },
+    {
+      "Tick": 57600,
+      "Checksum": "91190B5785FB1141"
+    },
+    {
+      "Tick": 61200,
+      "Checksum": "1224BEA3F63F3820"
+    },
+    {
+      "Tick": 64800,
+      "Checksum": "1D5466D9FB8F6FB1"
+    },
+    {
+      "Tick": 68400,
+      "Checksum": "1C028979175E272F"
+    },
+    {
+      "Tick": 72000,
+      "Checksum": "B469536A0494E85A"
+    },
+    {
+      "Tick": 75600,
+      "Checksum": "2C3A54DF57962262"
+    },
+    {
+      "Tick": 79200,
+      "Checksum": "AA3C6ECC97090700"
+    },
+    {
+      "Tick": 82800,
+      "Checksum": "EB515A8C44C55FA3"
+    },
+    {
+      "Tick": 86400,
+      "Checksum": "BB68264984A056D0"
+    },
+    {
+      "Tick": 90000,
+      "Checksum": "5DAD372E7A71D662"
+    },
+    {
+      "Tick": 93600,
+      "Checksum": "E7E97722A3A99BA4"
+    },
+    {
+      "Tick": 97200,
+      "Checksum": "0E0A4DB94B4E69D0"
+    },
+    {
+      "Tick": 100800,
+      "Checksum": "F4A67E0E91BCD3A1"
+    },
+    {
+      "Tick": 104400,
+      "Checksum": "530C58992DF9AEDC"
+    },
+    {
+      "Tick": 108000,
+      "Checksum": "BC1ED478AF94A722"
+    }
+  ],
+  "Counters": {
+    "ShipsCreated": 1399,
+    "ShipsDestroyed": 1350,
+    "Shots": 403519,
+    "Hits": 393165,
+    "PlasmaShieldHits": 20818,
+    "ShieldBreaks": 5622,
+    "Overheats": 1144,
+    "Dockings": 1459,
+    "Repairs": 342611,
+    "Builds": 1144,
+    "ItemUses": 12623,
+    "DebrisHits": 240839,
+    "Explosions": 1350,
+    "StructuralAdds": 9510025,
+    "StructuralRemoves": 9505538,
+    "AimDecisions": 224352,
+    "ImpreciseAimDecisions": 55863,
+    "FriendlyFireHits": 131265,
+    "SelfHits": 59
+  },
+  "Checksum": "BC1ED478AF94A722"
+}

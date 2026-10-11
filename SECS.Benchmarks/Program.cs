@@ -2,7 +2,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using SECS;
 
-BenchmarkRunner.Run<EcsBenchmarks>();
+BenchmarkSwitcher.FromAssembly(typeof(EcsBenchmarks).Assembly).Run(args);
 
 [MemoryDiagnoser]
 public class EcsBenchmarks

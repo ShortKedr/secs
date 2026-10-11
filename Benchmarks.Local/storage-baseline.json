@@ -1,0 +1,116 @@
+{
+  "metadata": {
+    "entityCount": 100000,
+    "passes": 20,
+    "payloadBytes": 256,
+    "revision": "872e0df original preserved binary",
+    "note": "Retained native column storage only, excluding managed arrays and allocator overhead; not timed"
+  },
+  "samples": [
+    {
+      "pass": 0,
+      "chunkCount": 393,
+      "nativeBytes": 2405377
+    },
+    {
+      "pass": 1,
+      "chunkCount": 1174,
+      "nativeBytes": 32828417
+    },
+    {
+      "pass": 2,
+      "chunkCount": 1954,
+      "nativeBytes": 63179777
+    },
+    {
+      "pass": 3,
+      "chunkCount": 2734,
+      "nativeBytes": 93531137
+    },
+    {
+      "pass": 4,
+      "chunkCount": 3514,
+      "nativeBytes": 123882497
+    },
+    {
+      "pass": 5,
+      "chunkCount": 4294,
+      "nativeBytes": 154233857
+    },
+    {
+      "pass": 6,
+      "chunkCount": 5074,
+      "nativeBytes": 184585217
+    },
+    {
+      "pass": 7,
+      "chunkCount": 5854,
+      "nativeBytes": 214936577
+    },
+    {
+      "pass": 8,
+      "chunkCount": 6634,
+      "nativeBytes": 245287937
+    },
+    {
+      "pass": 9,
+      "chunkCount": 7414,
+      "nativeBytes": 275639297
+    },
+    {
+      "pass": 10,
+      "chunkCount": 8194,
+      "nativeBytes": 305990657
+    },
+    {
+      "pass": 11,
+      "chunkCount": 8974,
+      "nativeBytes": 336342017
+    },
+    {
+      "pass": 12,
+      "chunkCount": 9754,
+      "nativeBytes": 366693377
+    },
+    {
+      "pass": 13,
+      "chunkCount": 10534,
+      "nativeBytes": 397044737
+    },
+    {
+      "pass": 14,
+      "chunkCount": 11314,
+      "nativeBytes": 427396097
+    },
+    {
+      "pass": 15,
+      "chunkCount": 12094,
+      "nativeBytes": 457747457
+    },
+    {
+      "pass": 16,
+      "chunkCount": 12874,
+      "nativeBytes": 488098817
+    },
+    {
+      "pass": 17,
+      "chunkCount": 13654,
+      "nativeBytes": 518450177
+    },
+    {
+      "pass": 18,
+      "chunkCount": 14434,
+      "nativeBytes": 548801537
+    },
+    {
+      "pass": 19,
+      "chunkCount": 15214,
+      "nativeBytes": 579152897
+    },
+    {
+      "pass": 20,
+      "chunkCount": 15994,
+      "nativeBytes": 609504257
+    }
+  ]
+}

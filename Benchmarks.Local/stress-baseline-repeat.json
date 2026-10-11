@@ -1,0 +1,326 @@
+{
+  "metadata": {
+    "runtime": ".NET 8.0.31",
+    "os": "Microsoft Windows 10.0.26200",
+    "machine": "NIKOLAY-PC",
+    "date": "2026-10-11T03:30:31.4732370\u002B05:00",
+    "sampleCount": 8,
+    "layouts": 256,
+    "payloadBytes": 256,
+    "hotStride": 100,
+    "mixedFrames": 120,
+    "tieredCompilation": "0",
+    "footer": "Release; single thread; 8 samples; setup/forced GC excluded; Morpeh Commit included",
+    "versions": {
+      "SECS": "872e0df original preserved binary",
+      "lite": "2024.5.22",
+      "classic": "2023.6.22",
+      "morpeh": "2024.1.1",
+      "staticEcs": "1.2.01",
+      "staticPack": "1.0.6"
+    },
+    "revisions": {
+      "classic": "1213c31c9ef8325d48e74a52b345c4db242d038b",
+      "lite": "5053141d7d663c6b1855c8409ac93dfac807b239",
+      "morpeh": "9f6369384792a01d74df24efd35b08ae313e4f12",
+      "staticEcs": "6323d710c22cfff70100fe3748de432cb5fc70c8",
+      "staticPack": "72ce8b993593e5cfd24c6a9289a4b132305ef493"
+    }
+  },
+  "results": [
+    {
+      "framework": "SECS",
+      "scenario": "WideIteration",
+      "entityCount": 1000000,
+      "meanNs": 9301515.625,
+      "stddevNs": 448665.3183008267,
+      "samplesNs": [
+        9882875,
+        9615250,
+        8649250,
+        9824950,
+        9365500,
+        8869925,
+        9060750,
+        9143625
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 4,
+      "invocations": 66,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "RandomLookup",
+      "entityCount": 1000000,
+      "meanNs": 179296387.5,
+      "stddevNs": 10935931.909658115,
+      "samplesNs": [
+        188251500,
+        184652700,
+        182376200,
+        189145400,
+        178425500,
+        186520700,
+        164011700,
+        160987400
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 1,
+      "invocations": 11,
+      "checksum": 499999500000
+    },
+    {
+      "framework": "SECS",
+      "scenario": "Recycle10Percent",
+      "entityCount": 100000,
+      "meanNs": 7331220,
+      "stddevNs": 450139.1965032277,
+      "samplesNs": [
+        6569480,
+        7504900,
+        6787200,
+        7859580,
+        7476060,
+        7285520,
+        7786580,
+        7380440
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 5,
+      "invocations": 80,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "SparseIteration",
+      "entityCount": 100000,
+      "meanNs": 2135.15625,
+      "stddevNs": 265.7103329319086,
+      "samplesNs": [
+        2556.25,
+        2475,
+        1825,
+        2150,
+        2012.5,
+        2125,
+        1837.5,
+        2100
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 16,
+      "invocations": 142285,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "Recycle10Percent",
+      "entityCount": 1000000,
+      "meanNs": 104030787.5,
+      "stddevNs": 3358261.685301532,
+      "samplesNs": [
+        103186500,
+        105354900,
+        109793300,
+        103118500,
+        104134700,
+        99592600,
+        106867300,
+        100198500
+      ],
+      "allocatedBytes": 858614,
+      "repetitions": 1,
+      "invocations": 12,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "DenseIteration",
+      "entityCount": 1000000,
+      "meanNs": 2671539.7727272725,
+      "stddevNs": 140166.36151563356,
+      "samplesNs": [
+        2981663.6363636362,
+        2613045.4545454546,
+        2594236.3636363638,
+        2700536.3636363638,
+        2503954.5454545454,
+        2683745.4545454546,
+        2676963.6363636362,
+        2618172.727272727
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 11,
+      "invocations": 192,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "RandomLookup",
+      "entityCount": 100000,
+      "meanNs": 4436193.75,
+      "stddevNs": 425664.03101110965,
+      "samplesNs": [
+        5232183.333333333,
+        4699183.333333333,
+        4383200,
+        4279416.666666667,
+        4645750,
+        4269583.333333333,
+        4175233.3333333335,
+        3805000
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 6,
+      "invocations": 117,
+      "checksum": 4999950000
+    },
+    {
+      "framework": "SECS",
+      "scenario": "MixedFrames",
+      "entityCount": 1000000,
+      "meanNs": 9445567362.5,
+      "stddevNs": 474537027.70702416,
+      "samplesNs": [
+        10050370500,
+        9715446500,
+        9701953300,
+        9242889500,
+        9415157400,
+        9727831800,
+        8499230700,
+        9211659200
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 1,
+      "invocations": 10,
+      "checksum": 50258485956
+    },
+    {
+      "framework": "SECS",
+      "scenario": "MixedFrames",
+      "entityCount": 100000,
+      "meanNs": 446216587.5,
+      "stddevNs": 19339492.138585042,
+      "samplesNs": [
+        451408000,
+        442048100,
+        433564200,
+        487971300,
+        426424700,
+        446121100,
+        451730400,
+        430464900
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 1,
+      "invocations": 10,
+      "checksum": 524329070
+    },
+    {
+      "framework": "SECS",
+      "scenario": "PayloadChurn",
+      "entityCount": 1000000,
+      "meanNs": 1060350975,
+      "stddevNs": 50046480.93536219,
+      "samplesNs": [
+        1115845800,
+        1128570000,
+        1098914000,
+        1043130700,
+        1000298600,
+        1027139900,
+        1003110600,
+        1065798200
+      ],
+      "allocatedBytes": 16649984,
+      "repetitions": 1,
+      "invocations": 10,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "SparseIteration",
+      "entityCount": 1000000,
+      "meanNs": 12647.65625,
+      "stddevNs": 1993.236156074821,
+      "samplesNs": [
+        13912.5,
+        13700,
+        9512.5,
+        13681.25,
+        12337.5,
+        9612.5,
+        14200,
+        14225
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 16,
+      "invocations": 28030,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "PayloadChurn",
+      "entityCount": 100000,
+      "meanNs": 86676312.5,
+      "stddevNs": 6081912.972656243,
+      "samplesNs": [
+        78225900,
+        80717000,
+        86777000,
+        85404900,
+        87055600,
+        88896000,
+        98691900,
+        87642200
+      ],
+      "allocatedBytes": 1123840,
+      "repetitions": 1,
+      "invocations": 13,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "WideIteration",
+      "entityCount": 100000,
+      "meanNs": 535260.9375,
+      "stddevNs": 35055.832341258036,
+      "samplesNs": [
+        548750,
+        597525,
+        507337.5,
+        543443.75,
+        516043.75,
+        551806.25,
+        537150,
+        480031.25
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 16,
+      "invocations": 746,
+      "checksum": 0
+    },
+    {
+      "framework": "SECS",
+      "scenario": "DenseIteration",
+      "entityCount": 100000,
+      "meanNs": 109571.09375,
+      "stddevNs": 17326.883187661995,
+      "samplesNs": [
+        138400,
+        94681.25,
+        94850,
+        96781.25,
+        108862.5,
+        114568.75,
+        96893.75,
+        131531.25
+      ],
+      "allocatedBytes": 0,
+      "repetitions": 16,
+      "invocations": 2511,
+      "checksum": 0
+    }
+  ]
+}
