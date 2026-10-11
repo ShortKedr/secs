@@ -34,7 +34,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     permissions:
       contents: read
       pages: read
@@ -47,6 +47,9 @@ jobs:
         with:
           node-version: "24"
           package-manager-cache: false
+      - name: Install WebAssembly AOT toolchain for the pinned SDK
+        working-directory: SpaceBattle.Web
+        run: dotnet workload install wasm-tools
       - name: Publish shared C# simulation to WebAssembly
         shell: pwsh
         run: ./tools/build-space-battle-web.ps1 -BasePath /secs/
@@ -59,7 +62,7 @@ jobs:
         working-directory: tools/web
         run: npx playwright install --with-deps chromium
       - name: Validate browser simulation, controls and responsive rendering
-        run: node tools/web/check-web.mjs --site Benchmarks.Local/tmp/web-publish/wwwroot --base /secs/
+        run: node tools/web/check-web.mjs --site Benchmarks.Local/tmp/web-publish/wwwroot --base /secs/ --require-mode aot-binary
       - name: Retain browser evidence
         if: always()
         uses: actions/upload-artifact@v7

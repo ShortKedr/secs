@@ -96,6 +96,39 @@
     last = 0,
     busy = false,
     runtimeStarted = false;
+  let runtime,
+    bridge,
+    runtimeMode = null,
+    heapBuffer = null,
+    framePointer = -1,
+    header = null,
+    fps = 0,
+    lastFrameMs = 0,
+    lastAdvanceMs = 0,
+    tickCostMs = 0;
+  const rowViews = [];
+  const frameGroups = [[], [], [], []];
+  const profiles = ["low", "nominal", "high"];
+  const counterNames = [
+    "shots",
+    "hits",
+    "shipsCreated",
+    "shipsDestroyed",
+    "aimDecisions",
+    "impreciseAimDecisions",
+    "friendlyFireHits",
+    "selfHits",
+    "dockings",
+    "builds",
+    "repairs",
+    "overheats",
+    "shieldBreaks",
+    "debrisHits",
+    "structuralAdds",
+    "structuralRemoves",
+  ];
+  const tickMs = 1000 / 60;
+  const catchUpBudgetMs = 6;
   let width = 1,
     height = 1,
     dpr = 1,
@@ -124,15 +157,86 @@
       (lang === "ru" ? "REPORT.ru.md" : "REPORT.md");
     updateUI();
   }
-  function invoke(method, ...args) {
-    const result = DotNet.invokeMethod("SpaceBattle.Web", method, ...args);
-    return typeof result === "string" && method !== "Validate"
-      ? JSON.parse(result)
-      : result;
-  }
-  function accept(value) {
-    snapshot = value;
+  function accept(pointer) {
+    const buffer = runtime.localHeapViewF64().buffer;
+    if (
+      !Number.isInteger(pointer) ||
+      pointer < 0 ||
+      pointer % 8 !== 0 ||
+      pointer + 256 > buffer.byteLength
+    ) {
+      throw new Error("Invalid WASM frame pointer");
+    }
+    if (buffer !== heapBuffer || pointer !== framePointer) {
+      heapBuffer = buffer;
+      framePointer = pointer;
+      header = new Float64Array(buffer, pointer, 32);
+      rowViews.length = 0;
+    }
+    const totalRows = header[30],
+      byteLength = header[31];
+    if (
+      header[0] !== 1 ||
+      !Number.isInteger(totalRows) ||
+      totalRows < 0 ||
+      !Number.isInteger(byteLength) ||
+      byteLength < 256 + totalRows * 128 ||
+      pointer + byteLength > buffer.byteLength
+    ) {
+      throw new Error("Invalid WASM binary frame header");
+    }
+    let renderRows = 0;
+    for (let i = 10; i <= 13; i++) {
+      if (!Number.isInteger(header[i]) || header[i] < 0) {
+        throw new Error("Invalid WASM render count");
+      }
+      renderRows += header[i];
+    }
+    if (renderRows !== totalRows || !profiles[header[4]]) {
+      throw new Error("Inconsistent WASM binary frame");
+    }
+    // Views belong to buffer slots, not entities: grouping boundaries can move.
+    while (rowViews.length < totalRows) {
+      rowViews.push(
+        new Float64Array(buffer, pointer + 256 + rowViews.length * 128, 16),
+      );
+    }
+    snapshot ||= {
+      counts: {},
+      counters: {},
+      ships: frameGroups[0],
+      projectiles: frameGroups[1],
+      debris: frameGroups[2],
+      particles: frameGroups[3],
+      revision: "predictive-neutral-v1",
+    };
+    snapshot.tick = header[1];
+    snapshot.arenaHalfSize = header[2];
+    snapshot.seed = header[3];
+    snapshot.profile = profiles[header[4]];
+    snapshot.stepMs = header[5];
+    snapshot.runtimeMode = runtimeMode;
+    snapshot.counts.ships = header[6];
+    snapshot.counts.projectiles = header[7];
+    snapshot.counts.debris = header[8];
+    snapshot.counts.particles = header[9];
+    for (let i = 0; i < counterNames.length; i++) {
+      snapshot.counters[counterNames[i]] = header[14 + i];
+    }
+    let offset = 0;
+    for (let group = 0; group < frameGroups.length; group++) {
+      const rows = frameGroups[group],
+        count = header[10 + group];
+      rows.length = count;
+      for (let i = 0; i < count; i++) rows[i] = rowViews[offset++];
+    }
     if (following) track();
+  }
+  function advance(ticks) {
+    const started = performance.now();
+    accept(bridge.Advance(ticks));
+    lastAdvanceMs = performance.now() - started;
+    tickCostMs = lastAdvanceMs / ticks;
   }
   function reset() {
     if (!ready || busy) return;
@@ -149,11 +253,13 @@
     }
     $("seed").setCustomValidity("");
     try {
-      accept(invoke("Reset", $("profile").value, seed));
+      accept(bridge.Reset($("profile").value, seed));
       selected = null;
       following = false;
       accumulator = 0;
       last = 0;
+      tickCostMs = 0;
+      lastAdvanceMs = 0;
       fit();
       updateUI();
       draw();
@@ -248,9 +354,10 @@
     ctx.strokeStyle = "#263337";
     ctx.lineWidth = 1;
     ctx.strokeRect(origin.x, origin.y, half * 2 * scale, half * 2 * scale);
+    // Debris is a background hazard; reserve bright colors for combat effects.
+    ctx.fillStyle = "#606060";
     for (const r of snapshot.debris) {
       const p = screen(r);
-      ctx.fillStyle = color(r);
       ctx.beginPath();
       ctx.arc(p.x, p.y, Math.max(1, r[8] * scale), 0, Math.PI * 2);
       ctx.fill();
@@ -342,7 +449,7 @@
     }
     $("stats").textContent =
       `${snapshot.counts.ships} ${t("ships")} · ${snapshot.counts.projectiles} ${t("projectiles")}`;
-    $("checksum").textContent = String(snapshot.checksum);
+    $("checksum").textContent = `WASM Step ${snapshot.stepMs.toFixed(2)} ms`;
     const ship = snapshot.ships.find((r) => r[0] === selected);
     $("telemetry").hidden = selected === null;
     if (selected !== null) {
@@ -391,6 +498,16 @@
         await Blazor.start();
         runtimeStarted = true;
       }
+      runtime = getDotnetRuntime(0);
+      const exports = await runtime.getAssemblyExports("SpaceBattle.Web.dll");
+      bridge = exports.SpaceBattle.Web.BattleBridge;
+      runtimeMode = bridge.Mode();
+      if (
+        runtimeMode !== "aot-binary" &&
+        runtimeMode !== "interpreter-binary"
+      ) {
+        throw new Error("Unsupported simulation runtime mode: " + runtimeMode);
+      }
       const manifest = await fetch("assets/ships-atlas.json");
       if (!manifest.ok)
         throw new Error("Ship atlas manifest: " + manifest.status);
@@ -411,16 +528,26 @@
     }
   }
   function frame(now) {
-    const elapsed = last ? Math.min(100, now - last) : 0;
+    const started = performance.now();
+    const interval = last ? now - last : 0;
+    if (interval > 0) {
+      const measuredFps = 1000 / interval;
+      fps = fps ? fps * 0.9 + measuredFps * 0.1 : measuredFps;
+    }
+    const elapsed = Math.min(100, interval);
     last = now;
     if (ready && !paused && !testMode && !document.hidden && !busy) {
       accumulator += elapsed * speed;
-      const ticks = Math.min(12, Math.floor(accumulator / (1000 / 60)));
+      const budgetTicks =
+        tickCostMs > 0
+          ? Math.max(1, Math.floor(catchUpBudgetMs / tickCostMs))
+          : 1;
+      const ticks = Math.min(12, budgetTicks, Math.floor(accumulator / tickMs));
       if (ticks) {
         try {
-          accept(invoke("Advance", ticks));
-          accumulator -= ticks * (1000 / 60);
-          accumulator = Math.min(accumulator, 1000 / 60);
+          advance(ticks);
+          accumulator -= ticks * tickMs;
+          accumulator = Math.min(accumulator, tickMs * 12);
         } catch (error) {
           fail(error);
         }
@@ -431,6 +558,7 @@
       updateUI();
       uiTime = now;
     }
+    lastFrameMs = performance.now() - started;
     requestAnimationFrame(frame);
   }
   const pointers = new Map();
@@ -589,8 +717,9 @@
       let ticks = Math.round((ms * 60) / 1000);
       while (ticks > 0) {
         const count = Math.min(600, ticks);
-        accept(invoke("Advance", count));
+        advance(count);
         ticks -= count;
+        if (ticks > 0) await new Promise((resolve) => setTimeout(resolve, 0));
       }
       accumulator = 0;
       last = 0;
@@ -610,25 +739,28 @@
       tick: snapshot?.tick || 0,
       counts: snapshot?.counts || {},
       counters: snapshot?.counters || {},
-      checksum: snapshot?.checksum,
+      checksum: ready ? bridge.Checksum() : undefined,
+      runtimeMode,
+      fps,
+      lastFrameMs,
+      stepMs: snapshot?.stepMs ?? 0,
+      lastAdvanceMs,
       camera: { ...camera, scale: fitScale * camera.zoom, width, height },
       selected,
       following,
       coordinateConvention:
         "World +X right, +Y up; screen +X right, +Y down; angle radians from world +X; sprites nose-up",
-      ships: (snapshot?.ships || [])
-        .slice(0, 12)
-        .map((r) => ({
-          serial: r[0],
-          team: r[1],
-          kind: r[2],
-          x: r[3],
-          y: r[4],
-          screen: screen(r),
-          hull: r[9],
-          shield: r[10],
-          heat: r[11],
-        })),
+      ships: (snapshot?.ships || []).slice(0, 12).map((r) => ({
+        serial: r[0],
+        team: r[1],
+        kind: r[2],
+        x: r[3],
+        y: r[4],
+        screen: screen(r),
+        hull: r[9],
+        shield: r[10],
+        heat: r[11],
+      })),
       projectiles: (snapshot?.projectiles || [])
         .slice(0, 4)
         .map((r) => ({ serial: r[0], x: r[3], y: r[4], screen: screen(r) })),
@@ -640,9 +772,12 @@
     get ready() {
       return ready;
     },
-    validate: () => invoke("Validate"),
+    get runtimeMode() {
+      return runtimeMode;
+    },
+    validate: () => bridge.Validate(),
     refresh: () => {
-      accept(invoke("Snapshot"));
+      accept(bridge.Snapshot());
       updateUI();
       draw();
       return snapshot;

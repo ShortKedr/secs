@@ -4,10 +4,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RuntimeFrameworkVersion>8.0.31</RuntimeFrameworkVersion>
-    <RunAOTCompilation>false</RunAOTCompilation>
-    <WasmBuildNative>false</WasmBuildNative>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <WasmBuildNative>true</WasmBuildNative>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>true</InvariantGlobalization>
     <EmccMaximumHeapSize>268435456</EmccMaximumHeapSize>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RunAOTCompilation)' != 'true'">
+    <DefineConstants>$(DefineConstants);WEB_INTERPRETER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.31" />

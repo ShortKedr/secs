@@ -93,6 +93,10 @@ SpaceBattle.Core и SpaceBattle.SECS с Aether.Physics2D 2.2.0 (MS-PL),
 лицензии, copyright и provenance изображений в
 [каталоге лицензий](SpaceBattle.Web/wwwroot/licenses/), включая
 [состав поставки](SpaceBattle.Web/wwwroot/licenses/NOTICE.txt).
+Production AOT-поставка также сохраняет [лицензию Emscripten 3.1.34](SpaceBattle.Web/wwwroot/licenses/EMSCRIPTEN.txt)
+и [список авторов](SpaceBattle.Web/wwwroot/licenses/EMSCRIPTEN-AUTHORS.txt) из
+workload .NET WebAssembly. Бинарные файлы компилятора и toolchain остаются
+локальными инструментами сборки, а не ресурсами сайта.
 В демо не включены четыре сравниваемые ECS-библиотеки, зависимости нативного
 OpenGL и зависимости бенчмарков/тестов. Условия лицензирования сравнительного
 набора исходников выше не меняются.

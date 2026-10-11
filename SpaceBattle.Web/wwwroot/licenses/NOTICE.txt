@@ -17,6 +17,13 @@ Bundled upstream third-party notices: DOTNET-THIRD-PARTY.txt and
 ASPNETCORE-THIRD-PARTY.txt. These upstream inventories are intentionally retained
 in full and may describe runtime features not used by this application.
 
+WebAssembly AOT output uses Emscripten 3.1.34 from the .NET 8.0.31 workload.
+Original MIT / University of Illinois-NCSA license: EMSCRIPTEN.txt.
+Original author list: EMSCRIPTEN-AUTHORS.txt. Compiler binaries are not shipped.
+https://github.com/emscripten-core/emscripten/tree/3.1.34
+SHA256 license: 620a78084fc7ca97c0b5dea9abf891f3ffcadfdbf305276f099c9c4e12fc1d86
+SHA256 authors: 01f19acf8680713c8c4396ce01df9fa988e7389aede5c5fe7b1bc21ad57e2544
+
 Lucide 1.55.0
 ISC / MIT (Feather-derived icons). Original licenses and copyright: LUCIDE.txt.
 https://github.com/lucide-icons/lucide

@@ -1,6 +1,7 @@
 param(
     [string]$OutputDirectory = "Benchmarks.Local/tmp/web-publish",
-    [string]$BasePath = "/secs/"
+    [string]$BasePath = "/secs/",
+    [switch]$Interpreter
 )
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
@@ -16,7 +17,12 @@ $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "1"
 $env:DOTNET_GENERATE_ASPNET_CERTIFICATE = "false"
 Push-Location (Join-Path $root "SpaceBattle.Web")
 try {
-    & dotnet publish SpaceBattle.Web.csproj -c Release --artifacts-path "$root/Benchmarks.Local/tmp/web-build" -o $output
+    $options = @()
+    if ($Interpreter) {
+        $options = @("-p:RunAOTCompilation=false", "-p:WasmBuildNative=false")
+        Write-Warning "Interpreter build is for local checks only; Pages must use AOT."
+    }
+    & dotnet publish SpaceBattle.Web.csproj -c Release --artifacts-path "$root/Benchmarks.Local/tmp/web-build" -o $output @options
     if ($LASTEXITCODE -ne 0) { throw "WebAssembly publish failed ($LASTEXITCODE)." }
     $site = Join-Path $output "wwwroot"
     $index = Join-Path $site "index.html"

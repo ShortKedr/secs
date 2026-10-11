@@ -11,8 +11,11 @@ English | [Русский](README.ru.md)
 This is a real .NET 8 Blazor WebAssembly host for the unchanged
 [SpaceBattle.Core](../SpaceBattle.Core), [SpaceBattle.SECS](../SpaceBattle.SECS)
 and [SECS](../SECS) simulation with Aether.Physics2D. C# runs the simulation in
-the browser; JavaScript Canvas is a thin renderer, not a JavaScript rewrite of
-the battle. Web host and renderer sources are in this directory.
+the browser; production uses AOT-compiled WebAssembly. JavaScript Canvas is a thin
+renderer, not a JavaScript rewrite of the battle. Direct JS exports expose a
+reused render buffer in WASM memory, without JSON snapshots or per-frame full
+checksums. Debug/test checksums are computed only on explicit request.
+Web host and renderer sources are in this directory.
 
 The three existing churn profiles are low=0.5, nominal=1 and high=2, with
 96 initial escorts and 3 carriers per team. Shared Core retains predictive
@@ -25,6 +28,10 @@ damage, including friendly and self hits. See the
 From the repository root, use .NET SDK 8.0.425 (or a later 8.0.4xx patch,
 as selected by [global.json](global.json)) and the
 [publish helper](../tools/build-space-battle-web.ps1), which runs `dotnet publish`.
+The pinned SDK needs the `wasm-tools` workload for AOT. CI installs it in its
+ephemeral runner. A local workload installation outside this repository is a
+user-managed prerequisite, not something the helper installs automatically.
+`-Interpreter` is an explicit local-debug option, never used for Pages.
 Its default `-OutputDirectory` is `Benchmarks.Local/tmp/web-publish`; its default
 `-BasePath` is `/secs/`, the published GitHub Pages path:
 
@@ -78,6 +85,19 @@ execution conditions. Rendering, interop, warmup and tab scheduling can affect
 the experience; browser readings are not interchangeable with the measured
 desktop headless Step results or the separate OpenGL frontend profile.
 No cross-platform checksum equality or realtime FPS guarantee is promised.
+
+The [browser profiler](../tools/web/profile-web.mjs) separates Core Step,
+render-buffer preparation, full frontend frames and realtime tick throughput.
+With the local server above running, use:
+
+```powershell
+node tools/web/profile-web.mjs --url http://localhost:8000/ --warmup-ticks 600 --output Benchmarks.Local/tmp/web-performance.json
+```
+
+It uses nominal seed 7331 in a 1440x900 Chromium viewport. Change `--warmup-ticks`
+to inspect other phases of the battle. The forced-UI frame samples update the HUD
+every tick; the normal loop updates it less frequently. Compare on the same device,
+browser and battle phase, without other browser checks running concurrently.
 
 For the measured comparison and its limitations, read the
 [report](../docs/space-battle/REPORT.md). To reproduce the desktop campaign,

@@ -88,6 +88,13 @@ try {
   const state = () =>
     page.evaluate(() => JSON.parse(window.render_game_to_text()));
   let initial = await state();
+  const requiredMode = argument("--require-mode", null);
+  if (requiredMode)
+    assert.equal(
+      initial.runtimeMode,
+      requiredMode,
+      "Expected production AOT/binary build",
+    );
   assert.equal(initial.seed, 7331);
   assert.equal(initial.tick, 0);
   assert.equal(initial.counts.ships, 198);
@@ -142,6 +149,60 @@ try {
     nominal.checksum,
   );
   await capture("desktop-battle");
+  const debrisChecks = await page.evaluate(async () => {
+    const battle = window.spaceBattle,
+      snapshot = battle.snapshot,
+      camera = { ...battle.camera },
+      groups = ["ships", "projectiles", "debris", "particles"],
+      saved = groups.map((key) => snapshot[key].slice());
+    const debris = saved[2].reduce(
+      (largest, row) => (!largest || row[8] > largest[8] ? row : largest),
+      null,
+    );
+    if (!debris) throw new Error("Expected actual combat debris");
+    const checks = [];
+    try {
+      // Isolate one real render row without touching WASM simulation memory.
+      for (const key of groups) snapshot[key].length = 0;
+      snapshot.debris.push(debris);
+      battle.camera.x = debris[3];
+      battle.camera.y = debris[4];
+      for (const zoom of [0.35, 1, 4, 12, 20]) {
+        battle.camera.zoom = zoom;
+        await new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        );
+        const canvas = document.querySelector("canvas"),
+          state = JSON.parse(window.render_game_to_text()),
+          dpr = canvas.width / state.camera.width,
+          x = Math.floor((state.camera.width / 2) * dpr),
+          y = Math.floor((state.camera.height / 2 + 15) * dpr),
+          pixel = Array.from(
+            canvas.getContext("2d").getImageData(x, y, 1, 1).data,
+          );
+        checks.push({ zoom, pixel });
+      }
+    } finally {
+      for (let i = 0; i < groups.length; i++) {
+        const rows = snapshot[groups[i]];
+        rows.length = saved[i].length;
+        for (let j = 0; j < rows.length; j++) rows[j] = saved[i][j];
+      }
+      Object.assign(battle.camera, camera);
+    }
+    return checks;
+  });
+  for (const { zoom, pixel } of debrisChecks) {
+    const rgb = pixel.slice(0, 3);
+    assert.ok(Math.min(...rgb) >= 50, `Visible debris at zoom ${zoom}`);
+    assert.ok(Math.max(...rgb) <= 96, `Muted debris at zoom ${zoom}`);
+    assert.ok(
+      Math.max(...rgb) - Math.min(...rgb) <= 2,
+      `Neutral gray debris at zoom ${zoom}`,
+    );
+  }
+  assert.equal((await state()).checksum, nominal.checksum);
+  results.push({ check: "muted-debris-five-zooms", samples: debrisChecks });
   await page.click("#reset");
   assert.equal((await state()).checksum, initial.checksum);
   await page.evaluate(async () => {

@@ -1,26 +1,31 @@
-using System.Buffers;
-using System.Text;
-using System.Text.Json;
-using Microsoft.JSInterop;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.JavaScript;
+using System.Runtime.Versioning;
 using SpaceBattle;
 
 namespace SpaceBattle.Web;
 
-public static class BattleBridge
+[SupportedOSPlatform("browser")]
+public static unsafe partial class BattleBridge
 {
+    private const int HeaderValues = 32;
+    private const int RowValues = 16;
     private static Battle<SecsStore>? battle;
     private static readonly BattleFrame frame = new();
-    private static readonly ArrayBufferWriter<byte> buffer = new(65536);
-    private static string profile = "nominal";
+    private static double* buffer;
+    private static int capacity;
+    private static int profile;
 
-    [JSInvokable]
-    public static string Reset(string requestedProfile, uint seed)
+    [JSExport]
+    public static int Reset(string requestedProfile, double seed)
     {
-        float churn = requestedProfile switch
+        if (!double.IsFinite(seed) || seed != Math.Truncate(seed) || seed < 0 || seed > uint.MaxValue)
+            throw new ArgumentOutOfRangeException(nameof(seed));
+        int requested = requestedProfile switch
         {
-            "low" => 0.5f,
-            "nominal" => 1f,
-            "high" => 2f,
+            "low" => 0,
+            "nominal" => 1,
+            "high" => 2,
             _ => throw new ArgumentOutOfRangeException(nameof(requestedProfile))
         };
         battle?.Dispose();
@@ -28,20 +33,20 @@ public static class BattleBridge
         var store = new SecsStore();
         try
         {
-            battle = new Battle<SecsStore>(store, new BattleConfig { Seed = seed, ChurnMultiplier = churn });
+            battle = new Battle<SecsStore>(store, new BattleConfig
+            {
+                Seed = (uint)seed,
+                ChurnMultiplier = requested == 0 ? 0.5f : requested == 1 ? 1f : 2f
+            });
         }
-        catch
-        {
-            store.Dispose();
-            throw;
-        }
-        profile = requestedProfile;
+        catch { store.Dispose(); throw; }
+        profile = requested;
         battle.Validate();
         return Snapshot();
     }
 
-    [JSInvokable]
-    public static string Advance(int ticks)
+    [JSExport]
+    public static int Advance(int ticks)
     {
         if (ticks is < 0 or > 600) throw new ArgumentOutOfRangeException(nameof(ticks));
         var current = Current;
@@ -49,89 +54,109 @@ public static class BattleBridge
         return Snapshot();
     }
 
-    [JSInvokable]
+    [JSExport]
+    public static string Checksum() => Current.Checksum().ToString("X16");
+
+    [JSExport]
     public static string Validate()
     {
         Current.Validate();
-        return Current.Checksum().ToString("X16");
+        return Checksum();
     }
 
-    [JSInvokable]
-    public static string Snapshot()
+    [JSExport]
+    public static string Mode()
+    {
+#if WEB_INTERPRETER
+        return "interpreter-binary";
+#else
+        return "aot-binary";
+#endif
+    }
+
+    [JSExport]
+    public static int Snapshot()
     {
         var current = Current;
         current.Capture(frame);
-        buffer.Clear();
-        using var json = new Utf8JsonWriter(buffer);
-        json.WriteStartObject();
-        json.WriteNumber("tick", frame.Tick);
-        json.WriteNumber("arenaHalfSize", frame.ArenaHalfSize);
-        json.WriteNumber("seed", current.Config.Seed);
-        json.WriteString("profile", profile);
-        json.WriteString("revision", "predictive-neutral-v1");
-        json.WriteNumber("stepMs", frame.LastTickMs);
-        json.WriteString("checksum", current.Checksum().ToString("X16"));
-        json.WriteStartObject("counts");
-        json.WriteNumber("ships", current.ShipCount);
-        json.WriteNumber("projectiles", current.ProjectileCount);
-        json.WriteNumber("debris", current.DebrisCount);
-        json.WriteNumber("particles", current.ParticleCount);
-        json.WriteEndObject();
-        json.WriteStartObject("counters");
+        int rows = frame.Ships.Count + frame.Projectiles.Count + frame.Debris.Count + frame.Particles.Count;
+        EnsureCapacity(rows);
+        buffer[0] = 1;
+        buffer[1] = frame.Tick;
+        buffer[2] = frame.ArenaHalfSize;
+        buffer[3] = current.Config.Seed;
+        buffer[4] = profile;
+        buffer[5] = frame.LastTickMs;
+        buffer[6] = current.ShipCount;
+        buffer[7] = current.ProjectileCount;
+        buffer[8] = current.DebrisCount;
+        buffer[9] = current.ParticleCount;
+        buffer[10] = frame.Ships.Count;
+        buffer[11] = frame.Projectiles.Count;
+        buffer[12] = frame.Debris.Count;
+        buffer[13] = frame.Particles.Count;
         var c = frame.Counters;
-        json.WriteNumber("shots", c.Shots);
-        json.WriteNumber("hits", c.Hits);
-        json.WriteNumber("shipsCreated", c.ShipsCreated);
-        json.WriteNumber("shipsDestroyed", c.ShipsDestroyed);
-        json.WriteNumber("aimDecisions", c.AimDecisions);
-        json.WriteNumber("impreciseAimDecisions", c.ImpreciseAimDecisions);
-        json.WriteNumber("friendlyFireHits", c.FriendlyFireHits);
-        json.WriteNumber("selfHits", c.SelfHits);
-        json.WriteNumber("dockings", c.Dockings);
-        json.WriteNumber("builds", c.Builds);
-        json.WriteNumber("repairs", c.Repairs);
-        json.WriteNumber("overheats", c.Overheats);
-        json.WriteNumber("shieldBreaks", c.ShieldBreaks);
-        json.WriteNumber("debrisHits", c.DebrisHits);
-        json.WriteNumber("structuralAdds", c.StructuralAdds);
-        json.WriteNumber("structuralRemoves", c.StructuralRemoves);
-        json.WriteEndObject();
-        WriteEntities(json, "ships", frame.Ships);
-        WriteEntities(json, "projectiles", frame.Projectiles);
-        WriteEntities(json, "debris", frame.Debris);
-        WriteEntities(json, "particles", frame.Particles);
-        json.WriteEndObject();
-        json.Flush();
-        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        buffer[14] = c.Shots;
+        buffer[15] = c.Hits;
+        buffer[16] = c.ShipsCreated;
+        buffer[17] = c.ShipsDestroyed;
+        buffer[18] = c.AimDecisions;
+        buffer[19] = c.ImpreciseAimDecisions;
+        buffer[20] = c.FriendlyFireHits;
+        buffer[21] = c.SelfHits;
+        buffer[22] = c.Dockings;
+        buffer[23] = c.Builds;
+        buffer[24] = c.Repairs;
+        buffer[25] = c.Overheats;
+        buffer[26] = c.ShieldBreaks;
+        buffer[27] = c.DebrisHits;
+        buffer[28] = c.StructuralAdds;
+        buffer[29] = c.StructuralRemoves;
+        buffer[30] = rows;
+        buffer[31] = (HeaderValues + rows * RowValues) * sizeof(double);
+        double* destination = buffer + HeaderValues;
+        CopyRows(frame.Ships, ref destination);
+        CopyRows(frame.Projectiles, ref destination);
+        CopyRows(frame.Debris, ref destination);
+        CopyRows(frame.Particles, ref destination);
+        return checked((int)(nint)buffer);
     }
 
     private static Battle<SecsStore> Current => battle ?? throw new InvalidOperationException("Reset the battle first.");
 
-    // Fixed rows avoid reflection/trimming and keep the per-frame WASM boundary compact.
-    private static void WriteEntities(Utf8JsonWriter json, string name, List<RenderEntity> entities)
+    private static void EnsureCapacity(int rows)
     {
-        json.WriteStartArray(name);
+        if (buffer != null && rows <= capacity) return;
+        int nextCapacity = Math.Max(rows, Math.Max(256, capacity * 2));
+        var replacement = (double*)NativeMemory.Alloc((nuint)((HeaderValues + nextCapacity * RowValues) * sizeof(double)));
+        if (replacement == null) throw new OutOfMemoryException();
+        NativeMemory.Free(buffer);
+        buffer = replacement;
+        capacity = nextCapacity;
+    }
+
+    // JavaScript reads reusable views over this WASM memory, without JSON or per-frame checksums.
+    private static void CopyRows(List<RenderEntity> entities, ref double* destination)
+    {
         foreach (var e in entities)
         {
-            json.WriteStartArray();
-            json.WriteNumberValue(e.Serial);
-            json.WriteNumberValue(e.Team);
-            json.WriteNumberValue(e.Kind);
-            json.WriteNumberValue(e.Position.X);
-            json.WriteNumberValue(e.Position.Y);
-            json.WriteNumberValue(e.Velocity.X);
-            json.WriteNumberValue(e.Velocity.Y);
-            json.WriteNumberValue(e.Angle);
-            json.WriteNumberValue(e.Radius);
-            json.WriteNumberValue(e.Hull);
-            json.WriteNumberValue(e.Shield);
-            json.WriteNumberValue(e.Heat);
-            json.WriteNumberValue(e.Color.X);
-            json.WriteNumberValue(e.Color.Y);
-            json.WriteNumberValue(e.Color.Z);
-            json.WriteNumberValue(e.Color.W);
-            json.WriteEndArray();
+            destination[0] = e.Serial;
+            destination[1] = e.Team;
+            destination[2] = e.Kind;
+            destination[3] = e.Position.X;
+            destination[4] = e.Position.Y;
+            destination[5] = e.Velocity.X;
+            destination[6] = e.Velocity.Y;
+            destination[7] = e.Angle;
+            destination[8] = e.Radius;
+            destination[9] = e.Hull;
+            destination[10] = e.Shield;
+            destination[11] = e.Heat;
+            destination[12] = e.Color.X;
+            destination[13] = e.Color.Y;
+            destination[14] = e.Color.Z;
+            destination[15] = e.Color.W;
+            destination += RowValues;
         }
-        json.WriteEndArray();
     }
 }
