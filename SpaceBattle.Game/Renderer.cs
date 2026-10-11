@@ -101,6 +101,16 @@ internal sealed unsafe class Renderer : IDisposable
         var a=p-forward*halfHeight-side*halfWidth; var b=p+forward*halfHeight-side*halfWidth; var c=p+forward*halfHeight+side*halfWidth; var d=p-forward*halfHeight+side*halfWidth;
         Add(a,color,new(u,v2)); Add(b,color,new(u,v)); Add(c,color,new(u2,v)); Add(a,color,new(u,v2)); Add(c,color,new(u2,v)); Add(d,color,new(u2,v2));
     }
+    public void Gun(Vector2 p, float radius, float angle, float recoil, float heat, int team, bool main = false)
+    {
+        var forward = new Vector2(MathF.Cos(angle), -MathF.Sin(angle));
+        var tint = team == 0 ? new Vector4(.27f,.56f,.60f,1) : new Vector4(.67f,.52f,.29f,1);
+        if (!main) Circle(p,radius,new(.28f,.32f,.34f,1),true);
+        var start = p - forward * (Math.Clamp(recoil,0,1)*radius*.7f);
+        var end = start + forward*radius*(main?4.5f:2.7f);
+        Line(start,end,Math.Max(1,radius*.64f),heat>.75f?new(.67f,.46f,.3f,1):new(.39f,.47f,.48f,1));
+        Line(end-forward*radius*.55f,end,Math.Max(1.3f,radius*.84f),tint);
+    }
     public void Text(float x, float y, string text, Vector4 color, int scale = 2)
     {
         foreach (char ch in text.ToUpperInvariant()) { var rows = BitmapFont.Get(ch); for(int row=0;row<7;row++) for(int col=0;col<5;col++) if((rows[row] & (1<<(4-col)))!=0) Rect(x+col*scale,y+row*scale,scale,scale,color); x+=6*scale; }

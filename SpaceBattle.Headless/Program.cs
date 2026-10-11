@@ -68,7 +68,7 @@ internal static class Runner
         using var battle = new Battle<T>(fresh, options.Config);
         var timing = new double[options.Ticks]; var allocation = new long[options.Ticks];
         var stages = Battle<T>.StageNames.Select(_ => new double[options.Ticks]).ToArray();
-        var entityCounts = new (int Ships, int Projectiles, int Debris, int Particles)[options.Ticks];
+        var entityCounts = new (int Ships, int Projectiles, int Debris, int Particles, int Turrets)[options.Ticks];
         var structuralCounts = new (long Adds, long Removes)[options.Ticks];
         var collections = new (int Gen0, int Gen1, int Gen2)[options.Ticks];
         var windows = new List<object>(); var checkpoints = new List<object>();
@@ -85,7 +85,7 @@ internal static class Runner
             timing[i] = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
             allocation[i] = GC.GetAllocatedBytesForCurrentThread() - before;
             for (var stage = 0; stage < stages.Length; stage++) stages[stage][i] = battle.LastStageMs[stage];
-            entityCounts[i] = (battle.ShipCount, battle.ProjectileCount, battle.DebrisCount, battle.ParticleCount);
+            entityCounts[i] = (battle.ShipCount, battle.ProjectileCount, battle.DebrisCount, battle.ParticleCount, battle.TurretCount);
             structuralCounts[i] = (battle.Counters.StructuralAdds, battle.Counters.StructuralRemoves);
             collections[i] = (GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2));
             if ((i + 1) % 3600 == 0 || i == options.Ticks - 1)
@@ -93,7 +93,7 @@ internal static class Runner
                 process.Refresh();
                 var begin = i / 3600 * 3600; var count = i - begin + 1;
                 windows.Add(new { StartTick = begin + 1, EndTick = i + 1, Timing = Stats(timing.AsSpan(begin, count)), AllocatedBytes = allocation.AsSpan(begin, count).ToArray().Sum(),
-                    Ships = battle.ShipCount, Projectiles = battle.ProjectileCount, Debris = battle.DebrisCount, Particles = battle.ParticleCount,
+                    Ships = battle.ShipCount, Projectiles = battle.ProjectileCount, Debris = battle.DebrisCount, Particles = battle.ParticleCount, Turrets = battle.TurretCount,
                     Gc = new[] { GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2) },
                     ManagedHeapBytes = GC.GetTotalMemory(false), WorkingSetBytes = process.WorkingSet64, PrivateBytes = process.PrivateMemorySize64,
                     Store = fresh.Diagnostics(), Counters = battle.Counters.Copy() });
@@ -122,7 +122,9 @@ internal static class Runner
                 TimingScope = "Step includes all systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
                 MemoryScope = "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
                 Collision = "Aether.Physics2D 2.2.0; compound ship fixtures; five-ray approximate projectile CCD",
-                GameplayRules = new { Revision = TacticalRules.Revision, Ai = "kill-cost target leases, stable squads of 2-4, focus fire and wounded-ship screening",
+                GameplayRules = new { Revision = ArmamentRules.Revision, TacticalRevision = TacticalRules.Revision,
+                    Armament = "independent attached cannon/plasma turrets; aligned hull heavy cannon with class-scaled damage and cooldown",
+                    Ai = "kill-cost target leases, stable squads of 2-4, focus fire and wounded-ship screening",
                     TargetLockTicks = TacticalRules.MinimumTargetLockTicks, SwitchImprovement = TacticalRules.SwitchImprovement,
                     MaxSquadSize = TacticalRules.MaxSquadSize,
                     Aim = "constant-velocity intercept including inherited shooter velocity and muzzle offset",
@@ -143,11 +145,11 @@ internal static class Runner
         };
         File.WriteAllText(options.Output, JsonSerializer.Serialize(report, JsonOptions));
         using var csv = new StreamWriter(csvPath);
-        csv.WriteLine("tick,simulationSeconds,tickMs,allocatedBytes,gen0,gen1,gen2,ships,projectiles,debris,particles,adds,removes");
+        csv.WriteLine("tick,simulationSeconds,tickMs,allocatedBytes,gen0,gen1,gen2,ships,projectiles,debris,particles,adds,removes,turrets");
         for (var i = 0; i < options.Ticks; i++)
         {
             var c = entityCounts[i]; var s = structuralCounts[i]; var g = collections[i];
-            csv.WriteLine($"{i + 1},{(i + 1) / 60.0:R},{timing[i]:R},{allocation[i]},{g.Gen0},{g.Gen1},{g.Gen2},{c.Ships},{c.Projectiles},{c.Debris},{c.Particles},{s.Adds},{s.Removes}");
+            csv.WriteLine($"{i + 1},{(i + 1) / 60.0:R},{timing[i]:R},{allocation[i]},{g.Gen0},{g.Gen1},{g.Gen2},{c.Ships},{c.Projectiles},{c.Debris},{c.Particles},{s.Adds},{s.Removes},{c.Turrets}");
         }
         Console.WriteLine($"Wrote {options.Output} and {csvPath}");
     }

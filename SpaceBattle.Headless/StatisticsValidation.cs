@@ -48,7 +48,7 @@ internal static partial class Validation
         }
         liveStats.Refresh();
         Require(observed.Checksum() == plain.Checksum(), "telemetry does not change simulation state");
-        Require(observed.Store.Diagnostics().Entities == observed.ShipCount + observed.ProjectileCount + observed.DebrisCount + observed.ParticleCount, "all live ECS categories counted");
+        Require(observed.Store.Diagnostics().Entities == observed.ShipCount + observed.TurretCount + observed.ProjectileCount + observed.DebrisCount + observed.ParticleCount, "all live ECS categories counted");
         Require(liveStats.SampleCount == 180 && liveStats.StageMeanMs.Length == 9 && liveStats.MeanMs > 0, "live stage/tick timings");
         Console.WriteLine("PASS: rolling statistics, quantiles, eviction, zero/reset/invalid samples, allocations, live counts and checksum neutrality.");
     }

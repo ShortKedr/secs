@@ -9,7 +9,7 @@ namespace SpaceBattle.Web;
 [SupportedOSPlatform("browser")]
 public static unsafe partial class BattleBridge
 {
-    private const int HeaderValues = 64;
+    private const int HeaderValues = 80;
     private const int RowValues = 16;
     private static Battle<SecsStore>? battle;
     private static readonly BattleFrame frame = new();
@@ -67,7 +67,7 @@ public static unsafe partial class BattleBridge
     public static string Checksum() => Current.Checksum().ToString("X16");
 
     [JSExport]
-    public static string Revision() => TacticalRules.Revision;
+    public static string Revision() => ArmamentRules.Revision;
 
     // On-demand diagnostics do not enlarge the per-frame rendering buffer.
     [JSExport]
@@ -116,9 +116,9 @@ public static unsafe partial class BattleBridge
         var started = Stopwatch.GetTimestamp();
         var current = Current;
         current.Capture(frame);
-        int rows = frame.Ships.Count + frame.Projectiles.Count + frame.Debris.Count + frame.Particles.Count;
+        int rows = frame.Ships.Count + frame.Projectiles.Count + frame.Debris.Count + frame.Particles.Count + frame.Turrets.Count;
         EnsureCapacity(rows);
-        buffer[0] = 2;
+        buffer[0] = 3;
         buffer[1] = frame.Tick;
         buffer[2] = frame.ArenaHalfSize;
         buffer[3] = current.Config.Seed;
@@ -169,7 +169,7 @@ public static unsafe partial class BattleBridge
             for (int i = 0; i < 3; i++) buffer[55 + i] = GC.CollectionCount(i);
             nextStatisticsRefresh = started + Stopwatch.Frequency / 4;
         }
-        buffer[37] = current.ShipCount + current.ProjectileCount + current.DebrisCount + current.ParticleCount;
+        buffer[37] = current.ShipCount + current.ProjectileCount + current.DebrisCount + current.ParticleCount + current.TurretCount;
         buffer[42] = current.PhysicsBodies;
         buffer[43] = current.PhysicsFixtures;
         buffer[58] = current.Tactics.TargetSwitches;
@@ -177,12 +177,35 @@ public static unsafe partial class BattleBridge
         buffer[60] = current.Tactics.GroupOrders;
         buffer[61] = current.Tactics.CoverOrders;
         buffer[62] = current.ShipCount - frame.Ships.Count;
-        buffer[63] = 0;
+        buffer[63] = current.TurretCount;
+        buffer[64] = frame.Turrets.Count;
+        buffer[65] = c.HeavyShots;
+        buffer[66] = c.TurretShots;
+        for (int i = 67; i < HeaderValues; i++) buffer[i] = 0;
         double* destination = buffer + HeaderValues;
         CopyRows(frame.Ships, ref destination);
         CopyRows(frame.Projectiles, ref destination);
         CopyRows(frame.Debris, ref destination);
         CopyRows(frame.Particles, ref destination);
+        foreach (var turret in frame.Turrets)
+        {
+            destination[0] = turret.Serial;
+            destination[1] = turret.Team;
+            destination[2] = (int)turret.Kind;
+            destination[3] = turret.Position.X;
+            destination[4] = turret.Position.Y;
+            destination[5] = destination[6] = 0;
+            destination[7] = turret.Angle;
+            destination[8] = turret.Radius;
+            destination[9] = turret.ParentSerial;
+            destination[10] = turret.Recoil;
+            destination[11] = turret.Heat;
+            destination[12] = .28;
+            destination[13] = .32;
+            destination[14] = .34;
+            destination[15] = 1;
+            destination += RowValues;
+        }
         buffer[45] = (Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency;
         return checked((int)(nint)buffer);
     }

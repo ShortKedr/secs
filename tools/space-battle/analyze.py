@@ -593,7 +593,9 @@ def plots(runs):
 
 def report(runs, capture, charts, frontend, hardware, gc_samples, heat_policy=None):
     heat_policy = heat_policy or TimingPolicy()
-    lines = ["![Снимок реального фронтенда](action.png)", "",
+    lines = ["![Обложка текущего геймплея](cover.png)", "",
+             "Обложка: текущий геймплей, а не зафиксированный измеренный прогон. [Процесс захвата](COVER.md).", "",
+             "Следующие метаданные захвата относятся к зафиксированному [action.png](action.png), а не к обложке.", "",
              "Снимок OpenGL-фронтенда: 1600 x 1000, seed 7331, 256 эскортов на команду, tick 900, zoom 2. "
              f"Кораблей в snapshot: {capture['Ships']}; отрисовано после clipping: {capture['RenderedShips']}; "
              f"живых по командам: {capture['AliveCyan']}/{capture['AliveRed']} (докованные корабли могут не входить в список snapshot). "
@@ -876,10 +878,12 @@ def main():
         (DOCS / "REPORT.ru.md").write_text(russian, encoding="utf-8")
     except Exception as error:
         message = "FAIL: analysis/comparison incomplete\n" + str(error)
-        (DOCS / "REPORT.ru.md").write_text("[English](REPORT.md) | Русский\n\n![Снимок реального фронтенда](action.png)\n\n# FAIL: анализ не завершён\n\n"
+        (DOCS / "REPORT.ru.md").write_text("[English](REPORT.md) | Русский\n\n![Обложка текущего геймплея](cover.png)\n\n"
+            "Обложка: текущий геймплей, а не зафиксированный измеренный прогон. [Процесс захвата](COVER.ru.md).\n\n# FAIL: анализ не завершён\n\n"
             "Сопоставимость и завершение не подтверждены. Существующие графики/CSV могут быть устаревшими и не являются данными этой неудачной попытки.\n\n```text\n"
             + message + "\n```\n", encoding="utf-8")
-        (DOCS / "REPORT.md").write_text("English | [Русский](REPORT.ru.md)\n\n![Actual frontend capture](action.png)\n\n# FAIL: Analysis Incomplete\n\n"
+        (DOCS / "REPORT.md").write_text("English | [Русский](REPORT.ru.md)\n\n![Current gameplay cover](cover.png)\n\n"
+            "Cover: current gameplay, not the frozen measured run. [Capture workflow](COVER.md).\n\n# FAIL: Analysis Incomplete\n\n"
             "Comparability and completion are not confirmed. Existing charts/CSVs may be stale and are not evidence for this failed attempt.\n\n```text\n"
             + message + "\n```\n", encoding="utf-8")
         print(message, file=sys.stderr)

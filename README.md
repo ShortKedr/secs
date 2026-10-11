@@ -19,10 +19,13 @@ autonomous space battle. The report covers simulation performance over time,
 validation, methodology and reproduction. Results describe one machine and
 seed, not a universal ECS winner.
 
-[![Space Battle action capture](docs/space-battle/action.png)](docs/space-battle/REPORT.md)
+[![Space Battle current gameplay cover](docs/space-battle/cover.png)](docs/space-battle/REPORT.md)
+
+Cover: current gameplay, not the frozen measured run. [Capture workflow](docs/space-battle/COVER.md).
 
 [Benchmark methodology](docs/space-battle/README.md) |
 [Simulation systems](docs/space-battle/SYSTEMS.md) |
+[Historical WASM diagnostics](docs/space-battle/PERFORMANCE_INVESTIGATION.md) |
 [Interactive frontend](SpaceBattle.Game/README.md)
 
 ## SECS Library
@@ -32,7 +35,7 @@ top-down space battle sample.
 
 ## Space Battle
 
-The sample combines AI steering, eleven ship classes, four weapon types,
+The sample combines AI steering, eleven ship classes, five weapon types,
 compound collision bodies, hull/shields, inventories, thermal management,
 carrier production/docking/repair, and inertial damaging debris. AI uses
 velocity-based intercept aiming; 25% of firing decisions have deterministic
@@ -40,6 +43,8 @@ spread up to +/-0.03 radians. Projectiles and debris are team-neutral and
 can hit either faction, including the shooter. SECS drives
 the Silk.NET frontend; the headless host also supports LeoECS Lite, LeoECS
 Classic, Morpeh and StaticEcs 1.2.01 through native storage/query adapters.
+Large ships carry [independent turrets and a heavy hull cannon](docs/space-battle/ARMAMENT.md).
+Current gameplay is newer than the frozen benchmark workload.
 
 - [Implementation and acceptance plan](docs/space-battle/PLAN.md)
 - [Over-time simulation report](docs/space-battle/REPORT.md)

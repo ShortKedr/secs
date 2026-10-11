@@ -10,6 +10,9 @@ Interactive Silk.NET/OpenGL 3.3 frontend for `Battle<SecsStore>`. The default
 configuration starts 96 escorts per team plus carriers (198 total), all controlled
 by AI. Use `--ships 2048` for the 4096-escort stress configuration.
 
+Large ships use [independent turrets and heavy hull cannons](../docs/space-battle/ARMAMENT.md).
+Mounted entities are included in alive ECS totals and shown separately from ships.
+
 Controls: Space pauses, +/- changes simulation speed, R restarts the seeded
 battle, Home fits the arena, WASD/arrows pan, middle/right drag pans, wheel zooms
 at the cursor, left click selects a ship. The top HUD controls are clickable.

@@ -13,6 +13,12 @@ BenchmarkDotNet.Artifacts/
 _other_ecs_benchmarks/
 
 # Local tooling and repeatable verification outputs, never dependency sources
+.dotnet/
+.matplotlib-cache/
+*.log
+*.pdb
+*.tmp
+/progress.md
 __pycache__/
 *.pyc
 /Benchmarks.Local/.dotnet/

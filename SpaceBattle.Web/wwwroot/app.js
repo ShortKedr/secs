@@ -56,6 +56,8 @@
       total: "Total",
       shipCounts: "Ships / docked",
       projectileCounts: "Projectiles",
+      turretCounts: "Turrets / docked",
+      specialShots: "Heavy / turret shots",
       debrisCounts: "Debris / particles",
       physicsCounts: "Bodies / fixtures",
       stageCosts: "Stages · mean ms",
@@ -134,6 +136,8 @@
       total: "Всего",
       shipCounts: "Корабли / в доке",
       projectileCounts: "Снаряды",
+      turretCounts: "Турели / в доке",
+      specialShots: "Тяжёлые / турельные выстрелы",
       debrisCounts: "Обломки / частицы",
       physicsCounts: "Тела / коллайдеры",
       stageCosts: "Стадии · среднее мс",
@@ -194,7 +198,7 @@
     renderCpuMs = 0,
     discardedTicks = 0;
   const rowViews = [];
-  const frameGroups = [[], [], [], []];
+  const frameGroups = [[], [], [], [], []];
   const profiles = ["low", "nominal", "high"];
   const counterNames = [
     "shots",
@@ -215,7 +219,7 @@
     "structuralRemoves",
   ];
   const tickMs = 1000 / 60;
-  const headerValues = 64,
+  const headerValues = 80,
     headerBytes = headerValues * 8;
   const stageKeys = [
     "collect",
@@ -238,6 +242,17 @@
     $("stage-metrics").append(row);
   }
   const catchUpBudgetMs = 6;
+  for (const [id, label, anchor] of [
+    ["turrets", "turretCounts", "ships"],
+    ["special-shots", "specialShots", "shots"],
+  ]) {
+    const row = document.createElement("div");
+    const dt = document.createElement("dt"), dd = document.createElement("dd");
+    dt.dataset.i18n = label;
+    dd.id = "metric-" + id;
+    row.append(dt, dd);
+    $("metric-" + anchor).parentElement.after(row);
+  }
   let width = 1,
     height = 1,
     dpr = 1,
@@ -285,17 +300,17 @@
     const totalRows = header[30],
       byteLength = header[31];
     if (
-      header[0] !== 2 ||
+      header[0] !== 3 ||
       !Number.isInteger(totalRows) ||
       totalRows < 0 ||
       !Number.isInteger(byteLength) ||
-      byteLength < headerBytes + totalRows * 128 ||
+      byteLength !== headerBytes + totalRows * 128 ||
       pointer + byteLength > buffer.byteLength
     ) {
       throw new Error("Invalid WASM binary frame header");
     }
     let renderRows = 0;
-    for (let i = 10; i <= 13; i++) {
+    for (const i of [10, 11, 12, 13, 64]) {
       if (!Number.isInteger(header[i]) || header[i] < 0) {
         throw new Error("Invalid WASM render count");
       }
@@ -303,6 +318,12 @@
     }
     if (renderRows !== totalRows || !profiles[header[4]]) {
       throw new Error("Inconsistent WASM binary frame");
+    }
+    const entityTotal = [6, 7, 8, 9, 63].reduce((sum, i) => sum + header[i], 0);
+    if ([6, 7, 8, 9, 63].some((i) => !Number.isInteger(header[i]) || header[i] < 0) ||
+        entityTotal !== header[37] || header[64] > header[63] ||
+        header[62] !== header[6] - header[10]) {
+      throw new Error("Inconsistent WASM ECS counts");
     }
     // Views belong to buffer slots, not entities: grouping boundaries can move.
     while (rowViews.length < totalRows) {
@@ -325,6 +346,8 @@
       projectiles: frameGroups[1],
       debris: frameGroups[2],
       particles: frameGroups[3],
+      turrets: frameGroups[4],
+      binary: {},
       revision: bridge.Revision(),
     };
     snapshot.tick = header[1];
@@ -333,10 +356,14 @@
     snapshot.profile = profiles[header[4]];
     snapshot.stepMs = header[5];
     snapshot.runtimeMode = runtimeMode;
+    Object.assign(snapshot.binary, { version: header[0], headerValues, rowValues: 16, totalRows, byteLength });
     snapshot.counts.ships = header[6];
     snapshot.counts.projectiles = header[7];
     snapshot.counts.debris = header[8];
     snapshot.counts.particles = header[9];
+    snapshot.counts.turrets = header[63];
+    snapshot.counters.heavyShots = header[65];
+    snapshot.counters.turretShots = header[66];
     Object.assign(snapshot.performance, {
       samples: header[32],
       meanMs: header[33],
@@ -364,7 +391,7 @@
     let offset = 0;
     for (let group = 0; group < frameGroups.length; group++) {
       const rows = frameGroups[group],
-        count = header[10 + group];
+        count = header[group === 4 ? 64 : 10 + group];
       rows.length = count;
       for (let i = 0; i < count; i++) rows[i] = rowViews[offset++];
     }
@@ -522,6 +549,19 @@
     }
     for (const r of snapshot.projectiles) {
       const p = screen(r);
+      if (r[2] === 4) {
+        ctx.strokeStyle = "#80d9ff";
+        ctx.lineWidth = Math.max(2.5, r[8] * scale * 2);
+        ctx.beginPath();
+        ctx.moveTo(p.x - r[5] * scale * 0.07, p.y + r[6] * scale * 0.07);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        ctx.fillStyle = "#eebc52";
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, Math.max(3, r[8] * scale * 2), Math.max(1.8, r[8] * scale), -r[7], 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
       ctx.strokeStyle = color(r);
       ctx.lineWidth = Math.max(1, r[8] * scale);
       ctx.beginPath();
@@ -559,6 +599,21 @@
         );
       }
       ctx.restore();
+      if ([5, 6, 8, 9, 10].includes(r[2])) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(-r[7]);
+        ctx.fillStyle = "#272e31";
+        ctx.fillRect(-size * 0.08, -size * 0.055, size * 0.2, size * 0.11);
+        ctx.fillStyle = "#465155";
+        ctx.fillRect(size * 0.08, -size * 0.035, size * 0.52, size * 0.07);
+        ctx.fillStyle = "#303a3d";
+        ctx.fillRect(size * 0.43, -size * 0.05, size * 0.055, size * 0.1);
+        ctx.strokeStyle = r[1] === 0 ? "#4596a0" : "#b39350";
+        ctx.lineWidth = Math.max(0.6, size * 0.012);
+        ctx.strokeRect(size * 0.57, -size * 0.045, size * 0.035, size * 0.09);
+        ctx.restore();
+      }
       ctx.strokeStyle = r[1] === 0 ? "#5de4f1" : "#ff686f";
       ctx.lineWidth = 1.2;
       ctx.beginPath();
@@ -571,6 +626,23 @@
         ctx.arc(p.x, p.y, size * 0.75 + 5, 0, Math.PI * 2);
         ctx.stroke();
       }
+    }
+    for (const r of snapshot.turrets) {
+      const p = screen(r), radius = Math.max(1.4, r[8] * scale);
+      if (p.x < -radius * 4 || p.y < -radius * 4 || p.x > width + radius * 4 || p.y > height + radius * 4) continue;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(-r[7]);
+      ctx.fillStyle = color(r);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fill();
+      const recoil = Math.max(0, Math.min(1, r[10])) * radius * 0.7;
+      ctx.fillStyle = r[11] > 0.75 ? "#aa754c" : "#65777b";
+      ctx.fillRect(-recoil, -radius * 0.32, radius * 2.7, radius * 0.64);
+      ctx.fillStyle = r[1] === 0 ? "#458d94" : "#aa8549";
+      ctx.fillRect(radius * 2.15 - recoil, -radius * 0.42, radius * 0.55, radius * 0.84);
+      ctx.restore();
     }
     $("zoom-label").textContent = Math.round(camera.zoom * 100) + "%";
   }
@@ -673,6 +745,8 @@
     put("backlog", pair(m.backlogTicks, m.discardedTicks, 1));
     put("total", number(m.entities));
     put("ships", pair(m.counts.ships, m.dockedShips));
+    put("turrets", pair(m.counts.turrets, m.counts.turrets - snapshot.turrets.length));
+    put("special-shots", pair(snapshot.counters.heavyShots, snapshot.counters.turretShots));
     put("projectiles", number(m.counts.projectiles));
     put("debris", pair(m.counts.debris, m.counts.particles));
     put("physics", pair(m.physicsBodies, m.physicsFixtures));
@@ -1016,6 +1090,8 @@
       seed: snapshot?.seed ?? Number($("seed").value),
       tick: snapshot?.tick || 0,
       counts: snapshot?.counts || {},
+      binary: snapshot?.binary,
+      renderCounts: snapshot ? Object.fromEntries(["ships", "projectiles", "debris", "particles", "turrets"].map((key) => [key, snapshot[key].length])) : {},
       counters: snapshot?.counters || {},
       checksum: ready ? bridge.Checksum() : undefined,
       runtimeMode,
@@ -1035,6 +1111,7 @@
         serial: r[0],
         team: r[1],
         kind: r[2],
+        angle: r[7],
         x: r[3],
         y: r[4],
         screen: screen(r),
@@ -1044,7 +1121,13 @@
       })),
       projectiles: (snapshot?.projectiles || [])
         .slice(0, 4)
-        .map((r) => ({ serial: r[0], x: r[3], y: r[4], screen: screen(r) })),
+        .map((r) => ({ serial: r[0], kind: r[2], team: r[1], x: r[3], y: r[4], screen: screen(r) })),
+      heavyProjectiles: (snapshot?.projectiles || []).filter((r) => r[2] === 4)
+        .map((r) => ({ serial: r[0], x: r[3], y: r[4], vx: r[5], vy: r[6], radius: r[8], screen: screen(r) })),
+      turrets: (snapshot?.turrets || []).map((r) => ({
+        serial: r[0], team: r[1], kind: r[2], parentSerial: r[9],
+        x: r[3], y: r[4], angle: r[7], radius: r[8], recoil: r[10], heat: r[11], screen: screen(r),
+      })),
     });
   window.spaceBattle = {
     get snapshot() {

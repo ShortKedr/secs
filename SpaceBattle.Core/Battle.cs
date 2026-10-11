@@ -18,11 +18,13 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
     public int ProjectileCount => projectiles.Count;
     public int DebrisCount => debris.Count;
     public int ParticleCount => particles.Count;
+    public int TurretCount => turrets.Count;
     public int PhysicsBodies => physics.Bodies;
     public int PhysicsFixtures => physics.Fixtures;
     private readonly PhysicsService physics = new();
     private readonly List<ShipRow> ships = new();
     private readonly List<MovingRow> projectiles = new(), debris = new(), particles = new();
+    private readonly List<MovingRow> turrets = new();
     private readonly List<ShotRequest> shots = new();
     private readonly List<StateRequest> states = new();
     private readonly List<SpawnRequest> builds = new();
@@ -33,7 +35,6 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
     private bool disposed;
     private readonly record struct ShipRow(EntityKey Entity, Identity Identity, Transform Transform, float Hull, float Shield);
     private readonly record struct MovingRow(EntityKey Entity, int Serial);
-    private readonly record struct ShotRequest(EntityKey Owner, EntityKey Target, int Serial, int Slot, Weapon Weapon);
     private readonly record struct SpawnRequest(int Team, ShipClass Class, Vector2 Position, EntityKey Home, int Order = 0);
     private enum StateKind { Overheat, Combat, Boost, ShieldBreak, Dock, Undock, Destroy }
     private readonly record struct StateRequest(EntityKey Entity, int Serial, StateKind Kind, bool Enable, EntityKey Other);
@@ -77,7 +78,7 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         for (var i = 0; i < inventory.Capacity; i++)
             inventory.Items[i] = new InventoryItem { Kind = i % 3 == 0 ? ItemKind.ShieldCell : i % 3 == 1 ? ItemKind.HeatSink : ItemKind.RepairKit, Count = carrier ? 10 : 2 };
         Store.Set(e, inventory);
-        if (kind >= ShipClass.Corvette)
+        if (kind >= ShipClass.Corvette && !ShipCatalog.IsWeaponsPlatform(kind))
         {
             var secondary = ShipCatalog.Primary((ShipClass)(((int)kind + 1) % 4)); secondary.Range *= 1.1f;
             Store.Set(e, new SecondaryWeapon { Value = secondary });
@@ -85,7 +86,8 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         if (carrier) Store.Set(e, new Carrier { BuildInterval = (int)(240 / Config.ChurnMultiplier), NextBuildTick = Tick + 120 + id.Serial % 90,
             Capacity = Config.ShipsPerTeam / Config.CarriersPerTeam + 8, RepairSlots = 4 });
         serialToShip.Add(id.Serial, e); Counters.ShipsCreated++;
-        Counters.StructuralAdds += 12 + (kind >= ShipClass.Corvette ? 1 : 0) + (carrier ? 1 : 0);
+        Counters.StructuralAdds += 12 + (kind >= ShipClass.Corvette && !ShipCatalog.IsWeaponsPlatform(kind) ? 1 : 0) + (carrier ? 1 : 0);
+        SpawnTurrets(e, id, transform);
         return e;
     }
 
@@ -102,12 +104,13 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         var steering = new SteeringSystem { Battle = this }; Store.ForEach<Transform, Motion, Brain, SteeringSystem>(ref steering); Mark(3);
         var weapon = new WeaponSystem { Battle = this }; Store.ForEach<Identity, Weapon, Brain, WeaponSystem>(ref weapon);
         var second = new SecondarySystem { Battle = this }; Store.ForEach<Identity, SecondaryWeapon, Brain, SecondarySystem>(ref second);
+        UpdateTurrets();
         FlushShots(); Mark(4);
         var carrier = new CarrierSystem { Battle = this }; Store.ForEach<Identity, Carrier, Transform, CarrierSystem>(ref carrier);
         var docking = new DockSystem { Battle = this }; Store.ForEach<Identity, Docked, Hull, DockSystem>(ref docking); Mark(5);
         StepPhysics(); Mark(6);
         ResolveHits(); Mark(7);
-        FlushLifecycle(); Store.Commit(); Collect(); Mark(8);
+        FlushLifecycle(); Store.Commit(); SyncTurrets(); Collect(); Mark(8);
         LastTickMs = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
         void Mark(int stage) { var now = Stopwatch.GetTimestamp(); LastStageMs[stage] = (now - previous) * 1000.0 / Stopwatch.Frequency; previous = now; }
     }
@@ -233,6 +236,10 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
             }
             var facing = b.Mode == BrainMode.Attack && Battle.AliveShip(b.Target)
                 ? Battle.Store.Get<Transform>(b.Target).Position - t.Position : desired;
+            var primary = Battle.Store.Get<Weapon>(e);
+            if (b.Mode == BrainMode.Attack && Battle.AliveShip(b.Target) && primary.Kind == WeaponKind.HeavyCannon)
+                facing = FireControl.Predict(t.Position, m.Velocity, Battle.Store.Get<Transform>(b.Target).Position,
+                    Battle.CoverVelocity(b.Target), primary.Speed, Battle.Store.Get<Collider>(e).Radius + 1.8f).Direction;
             var heavy = ShipCatalog.IsCarrier(Battle.Store.Get<Identity>(e).Class);
             var desiredTurn = facing.LengthSquared() > 0.001f
                 ? Math.Clamp(WrapAngle(MathF.Atan2(facing.Y, facing.X) - t.Angle) * 5, heavy ? -0.8f : -2.5f, heavy ? 0.8f : 2.5f) : 0;

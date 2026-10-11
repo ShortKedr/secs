@@ -27,6 +27,13 @@ kill-cost target locks, 2-4 ship focus groups and wounded-ship screening.
 The benchmark report remains a `predictive-neutral-v1` snapshot, not a timing
 measurement of this new AI. Updating local source does not publish the live demo.
 
+Current gameplay adds [mounted armament `mounted-armament-v3`](../docs/space-battle/ARMAMENT.md):
+independent turret entities and slow heavy hull cannons on large ships, rendered
+in both clients. Binary frame v3 retains 16-double rows, uses an 80-double header,
+and appends turret rows after particles. Header fields 63/64 count alive/visible
+mounts; 65/66 count heavy/turret shots. Turret row fields 9/10/11 are parent
+serial, recoil and normalized heat. All ECS totals include mounted entities.
+
 ## Publish and Serve Locally
 
 From the repository root, use .NET SDK 8.0.425 (or a later 8.0.4xx patch,

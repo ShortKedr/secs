@@ -47,6 +47,7 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
             registration.Register<Brain>();
             registration.Register<Weapon>();
             registration.Register<SecondaryWeapon>();
+            registration.Register<MountedTurret>();
             registration.Register<Collider>();
             registration.Register<PhysicsLink>();
             registration.Register<CombatState>();

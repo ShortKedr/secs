@@ -1,0 +1,3141 @@
+{
+  "measuredAt": "2026-10-11T14:45:00.180Z",
+  "ticks": 1200,
+  "phaseTicks": 600,
+  "repeats": 3,
+  "scope": "Fresh independent seeded replays, 600-tick separate warmup, production one-tick Advance plus binary export. Canvas/DOM paused; diagnostics read outside Step timing. Alternating revision order.",
+  "runs": [
+    {
+      "revision": "before",
+      "run": 1,
+      "url": "http://127.0.0.1:8030/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 14.582666689999966,
+            "p50Ms": 13.899999,
+            "p95Ms": 25.5,
+            "p99Ms": 30.6,
+            "maxMs": 37,
+            "budgetMissPercent": 33.5
+          },
+          "stepAndExport": {
+            "meanMs": 19.573500000188748,
+            "p50Ms": 18.399999976158142,
+            "p95Ms": 33.80000001192093,
+            "p99Ms": 40.5,
+            "maxMs": 49,
+            "budgetMissPercent": 57.833333333333336
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 4.990833310188746,
+            "p50Ms": 4.4000009940395355,
+            "p95Ms": 9.199999994039537,
+            "p99Ms": 12.400000005960464,
+            "maxMs": 13.99999998211861,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 3.025,
+            "p50Ms": 3,
+            "p95Ms": 3.5,
+            "p99Ms": 3.5,
+            "maxMs": 3.5,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.3241667000000046,
+                "p50Ms": 2,
+                "p95Ms": 4.7,
+                "p99Ms": 6.099999,
+                "maxMs": 7.6,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.6823333450000035,
+                "p50Ms": 0.199999,
+                "p95Ms": 3.100001,
+                "p99Ms": 6.100001,
+                "maxMs": 18.799999,
+                "budgetMissPercent": 0.16666666666666666
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.2693332933333312,
+                "p50Ms": 0.200001,
+                "p95Ms": 0.599999,
+                "p99Ms": 0.700001,
+                "maxMs": 1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.2713333733333306,
+                "p50Ms": 0.200001,
+                "p95Ms": 0.599999,
+                "p99Ms": 0.700001,
+                "maxMs": 0.8,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.15583328999999943,
+                "p50Ms": 0.1,
+                "p95Ms": 0.4,
+                "p99Ms": 0.6,
+                "maxMs": 1.7,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.020166679999999992,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.100001,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.9176666766666703,
+                "p50Ms": 1.7,
+                "p95Ms": 3.899999,
+                "p99Ms": 4.800001,
+                "maxMs": 9.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 6.49300000666667,
+                "p50Ms": 6.5,
+                "p95Ms": 11,
+                "p99Ms": 15.5,
+                "maxMs": 18.5,
+                "budgetMissPercent": 0.16666666666666666
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.447999993333333,
+                "p50Ms": 2.100001,
+                "p95Ms": 4.7,
+                "p99Ms": 6,
+                "maxMs": 7.8,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            121.61,
+            316.62166666666667,
+            805.775,
+            1855.3383333333334
+          ],
+          "finalCounts": [
+            71,
+            345,
+            1221,
+            412
+          ],
+          "frameBytes": 259712,
+          "checksum": "3FB181F5EFC01791",
+          "counters": [
+            6967,
+            6335,
+            210,
+            139,
+            4054,
+            1038,
+            3612,
+            3,
+            25,
+            12,
+            4763,
+            47,
+            300,
+            7359,
+            200320,
+            193374
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 8.42266670666667,
+            "p50Ms": 8.3,
+            "p95Ms": 10.5,
+            "p99Ms": 11,
+            "maxMs": 11.699999,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 11.811333333353202,
+            "p50Ms": 11.599999994039536,
+            "p95Ms": 14.400000005960464,
+            "p99Ms": 15.699999988079071,
+            "maxMs": 16.69999998807907,
+            "budgetMissPercent": 0.16666666666666666
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.3886666266865357,
+            "p50Ms": 3.2000000119209293,
+            "p95Ms": 4.700000017881393,
+            "p99Ms": 5.1,
+            "maxMs": 5.699999011920928,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 3.444999998807907,
+            "p50Ms": 3.199999988079071,
+            "p95Ms": 4.800000011920929,
+            "p99Ms": 4.800000011920929,
+            "maxMs": 4.800000011920929,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.5051666833333306,
+                "p50Ms": 1.4,
+                "p95Ms": 2.100001,
+                "p99Ms": 2.3,
+                "maxMs": 2.6,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.1688333499999998,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.4,
+                "p99Ms": 0.7,
+                "maxMs": 1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.14249999833333335,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.299999,
+                "p99Ms": 0.300001,
+                "maxMs": 0.400001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.1359999899999998,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.300001,
+                "maxMs": 0.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.08833334500000015,
+                "p50Ms": 0.1,
+                "p95Ms": 0.2,
+                "p99Ms": 0.200001,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.02683333666666665,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.100001,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.9501666566666647,
+                "p50Ms": 0.9,
+                "p95Ms": 1.4,
+                "p99Ms": 1.5,
+                "maxMs": 1.7,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 3.797000000000001,
+                "p50Ms": 3.699999,
+                "p95Ms": 4.8,
+                "p99Ms": 5.7,
+                "maxMs": 6.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.6073333466666646,
+                "p50Ms": 1.5,
+                "p95Ms": 2.299999,
+                "p99Ms": 2.5,
+                "maxMs": 2.700001,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            64.435,
+            349.45666666666665,
+            1154.0666666666666,
+            623.4216666666666
+          ],
+          "finalCounts": [
+            55,
+            362,
+            1055,
+            790
+          ],
+          "frameBytes": 289152,
+          "checksum": "5FFCB125612842B7",
+          "counters": [
+            9945,
+            8653,
+            228,
+            173,
+            5746,
+            1488,
+            4155,
+            5,
+            47,
+            30,
+            12373,
+            64,
+            380,
+            9724,
+            269567,
+            262161
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "tactics",
+      "run": 1,
+      "url": "http://127.0.0.1:8031/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 13.109999974999997,
+            "p50Ms": 10.699999,
+            "p95Ms": 26.5,
+            "p99Ms": 30,
+            "maxMs": 34.200001,
+            "budgetMissPercent": 30.5
+          },
+          "stepAndExport": {
+            "meanMs": 16.38383333305518,
+            "p50Ms": 13.5,
+            "p95Ms": 33.29999998211861,
+            "p99Ms": 37.400000005960464,
+            "maxMs": 41.599999994039536,
+            "budgetMissPercent": 39.333333333333336
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.273833358055177,
+            "p50Ms": 2.799999017881394,
+            "p95Ms": 6.5,
+            "p99Ms": 8.100001005960465,
+            "maxMs": 9.19999901192093,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.6399999991059304,
+            "p50Ms": 1.5,
+            "p95Ms": 2.9000000059604645,
+            "p99Ms": 2.9000000059604645,
+            "maxMs": 2.9000000059604645,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.2868333666666647,
+                "p50Ms": 1.900001,
+                "p95Ms": 4.400001,
+                "p99Ms": 5.800001,
+                "maxMs": 7,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.35033332499999675,
+                "p50Ms": 0.200001,
+                "p95Ms": 0.9,
+                "p99Ms": 2.199999,
+                "maxMs": 6.9,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.12216663333333305,
+                "p50Ms": 0.1,
+                "p95Ms": 0.300001,
+                "p99Ms": 0.4,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.16416665999999927,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.4,
+                "p99Ms": 0.5,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.10000002499999999,
+                "p50Ms": 0.1,
+                "p95Ms": 0.3,
+                "p99Ms": 0.4,
+                "maxMs": 0.900001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.008333336666666663,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.7121666666666662,
+                "p50Ms": 1.199999,
+                "p95Ms": 4.099999,
+                "p99Ms": 5,
+                "maxMs": 5.900001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 5.938499963333338,
+                "p50Ms": 4.699999,
+                "p95Ms": 13.300001,
+                "p99Ms": 15.5,
+                "maxMs": 18.900001,
+                "budgetMissPercent": 0.3333333333333333
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.427333333333332,
+                "p50Ms": 2.099999,
+                "p95Ms": 4.899999,
+                "p99Ms": 6.5,
+                "maxMs": 7.8,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            93.41833333333334,
+            227.61666666666667,
+            804.3083333333333,
+            1871.9283333333333
+          ],
+          "finalCounts": [
+            32,
+            134,
+            1195,
+            205
+          ],
+          "frameBytes": 199680,
+          "checksum": "0F5E956235D63215",
+          "counters": [
+            5985,
+            5661,
+            210,
+            178,
+            3567,
+            935,
+            3242,
+            5,
+            10,
+            12,
+            1486,
+            39,
+            287,
+            8473,
+            200347,
+            195283
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 4.9496666666666655,
+            "p50Ms": 4.8,
+            "p95Ms": 6.300001,
+            "p99Ms": 7,
+            "maxMs": 11,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 6.581499999860923,
+            "p50Ms": 6.4000000059604645,
+            "p95Ms": 8.300000011920929,
+            "p99Ms": 9.400000005960464,
+            "maxMs": 13.199999988079071,
+            "budgetMissPercent": 0
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 1.631833333194256,
+            "p50Ms": 1.5999990119209286,
+            "p95Ms": 2.300000017881393,
+            "p99Ms": 2.600000023841858,
+            "maxMs": 3.4000000059604645,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.2650000005960464,
+            "p50Ms": 1.2000000178813934,
+            "p95Ms": 1.7999999821186066,
+            "p99Ms": 1.7999999821186066,
+            "maxMs": 1.7999999821186066,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.1116666449999957,
+                "p50Ms": 1.099999,
+                "p95Ms": 1.6,
+                "p99Ms": 1.799999,
+                "maxMs": 2,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.09066665000000014,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.200001,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.040999980000000075,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.200001,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.051833353333333484,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.200001,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.04083336500000006,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.006500003333333335,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.5698333249999976,
+                "p50Ms": 0.5,
+                "p95Ms": 0.800001,
+                "p99Ms": 0.900001,
+                "maxMs": 1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 1.8486666550000004,
+                "p50Ms": 1.8,
+                "p95Ms": 2.4,
+                "p99Ms": 2.700001,
+                "maxMs": 2.9,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.1851666899999962,
+                "p50Ms": 1.1,
+                "p95Ms": 1.700001,
+                "p99Ms": 2,
+                "maxMs": 6.800001,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            30.97833333333333,
+            168.665,
+            1054.86,
+            354.1166666666667
+          ],
+          "finalCounts": [
+            28,
+            166,
+            793,
+            393
+          ],
+          "frameBytes": 176512,
+          "checksum": "6F689E3358427E3A",
+          "counters": [
+            7565,
+            6855,
+            228,
+            200,
+            4487,
+            1169,
+            3619,
+            5,
+            15,
+            30,
+            3405,
+            50,
+            331,
+            10070,
+            239927,
+            235470
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "stats",
+      "run": 1,
+      "url": "http://127.0.0.1:8032/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 12.476999993333326,
+            "p50Ms": 9.600001,
+            "p95Ms": 25.5,
+            "p99Ms": 29,
+            "maxMs": 33.1,
+            "budgetMissPercent": 29.5
+          },
+          "stepAndExport": {
+            "meanMs": 15.625333333164454,
+            "p50Ms": 12.099999994039536,
+            "p95Ms": 31.5,
+            "p99Ms": 35,
+            "maxMs": 40.29999998211861,
+            "budgetMissPercent": 38.5
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.148333339831118,
+            "p50Ms": 2.500000005960464,
+            "p95Ms": 6.199999988079071,
+            "p99Ms": 7.200000994039534,
+            "maxMs": 8.699999023841858,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.669999998807907,
+            "p50Ms": 1.7000000178813934,
+            "p95Ms": 2,
+            "p99Ms": 2,
+            "maxMs": 2,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.200500001666665,
+                "p50Ms": 1.8,
+                "p95Ms": 4.4,
+                "p99Ms": 5.4,
+                "maxMs": 6.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.32233333333332975,
+                "p50Ms": 0.2,
+                "p95Ms": 0.8,
+                "p99Ms": 1.800001,
+                "maxMs": 6.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.11666664666666658,
+                "p50Ms": 0.1,
+                "p95Ms": 0.3,
+                "p99Ms": 0.399999,
+                "maxMs": 0.599999,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.14883332333333274,
+                "p50Ms": 0.1,
+                "p95Ms": 0.4,
+                "p99Ms": 0.5,
+                "maxMs": 0.7,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.09383336000000013,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.5,
+                "maxMs": 0.8,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.007,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.579666683333336,
+                "p50Ms": 1.1,
+                "p95Ms": 3.7,
+                "p99Ms": 4.900001,
+                "maxMs": 5.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 5.70066664666667,
+                "p50Ms": 4.4,
+                "p95Ms": 12.9,
+                "p99Ms": 15,
+                "maxMs": 18.9,
+                "budgetMissPercent": 0.16666666666666666
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.3073333299999983,
+                "p50Ms": 1.8,
+                "p95Ms": 4.699999,
+                "p99Ms": 5.700001,
+                "maxMs": 7.300001,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            93.41833333333334,
+            227.61666666666667,
+            804.3083333333333,
+            1871.9283333333333
+          ],
+          "finalCounts": [
+            32,
+            134,
+            1195,
+            205
+          ],
+          "frameBytes": 199936,
+          "checksum": "0F5E956235D63215",
+          "counters": [
+            5985,
+            5661,
+            210,
+            178,
+            3567,
+            935,
+            3242,
+            5,
+            10,
+            12,
+            1486,
+            39,
+            287,
+            8473,
+            200347,
+            195283
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 4.736666668333336,
+            "p50Ms": 4.7,
+            "p95Ms": 5.9,
+            "p99Ms": 6.5,
+            "maxMs": 7.6,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 6.3106666663785775,
+            "p50Ms": 6.299999982118607,
+            "p95Ms": 7.899999976158142,
+            "p99Ms": 8.699999988079071,
+            "maxMs": 11,
+            "budgetMissPercent": 0
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 1.573999998045245,
+            "p50Ms": 1.5,
+            "p95Ms": 2.199999982118607,
+            "p99Ms": 2.5999990178813936,
+            "maxMs": 6.6,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.255000001192093,
+            "p50Ms": 1.2000000178813934,
+            "p95Ms": 1.800000011920929,
+            "p99Ms": 1.800000011920929,
+            "maxMs": 1.800000011920929,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.0751666366666617,
+                "p50Ms": 1,
+                "p95Ms": 1.5,
+                "p99Ms": 1.8,
+                "maxMs": 2.3,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.09600002000000017,
+                "p50Ms": 0.1,
+                "p95Ms": 0.2,
+                "p99Ms": 0.299999,
+                "maxMs": 2.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.038333336666666704,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.100001,
+                "maxMs": 0.2,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.05050001166666682,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.035333338333333374,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.100001,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.006333338333333336,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.5468333249999979,
+                "p50Ms": 0.5,
+                "p95Ms": 0.8,
+                "p99Ms": 0.900001,
+                "maxMs": 1.3,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 1.7694999816666686,
+                "p50Ms": 1.7,
+                "p95Ms": 2.3,
+                "p99Ms": 2.5,
+                "maxMs": 2.800001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.118666679999994,
+                "p50Ms": 1.1,
+                "p95Ms": 1.6,
+                "p99Ms": 1.800001,
+                "maxMs": 3.200001,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            30.97833333333333,
+            168.665,
+            1054.86,
+            354.1166666666667
+          ],
+          "finalCounts": [
+            28,
+            166,
+            793,
+            393
+          ],
+          "frameBytes": 176768,
+          "checksum": "6F689E3358427E3A",
+          "counters": [
+            7565,
+            6855,
+            228,
+            200,
+            4487,
+            1169,
+            3619,
+            5,
+            15,
+            30,
+            3405,
+            50,
+            331,
+            10070,
+            239927,
+            235470
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "stats",
+      "run": 2,
+      "url": "http://127.0.0.1:8032/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 12.578166645000005,
+            "p50Ms": 10,
+            "p95Ms": 25.700001,
+            "p99Ms": 28.700001,
+            "maxMs": 31.4,
+            "budgetMissPercent": 27.5
+          },
+          "stepAndExport": {
+            "meanMs": 15.78433333347241,
+            "p50Ms": 12.399999976158142,
+            "p95Ms": 31.700000017881393,
+            "p99Ms": 35.69999998807907,
+            "maxMs": 37.5,
+            "budgetMissPercent": 38
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.2061666884724103,
+            "p50Ms": 2.7999989940395356,
+            "p95Ms": 6.199998999999998,
+            "p99Ms": 7.400000994039537,
+            "maxMs": 9.400000988079071,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.4449999988079072,
+            "p50Ms": 1.4000000059604645,
+            "p95Ms": 1.800000011920929,
+            "p99Ms": 1.800000011920929,
+            "maxMs": 1.800000011920929,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.2238332899999995,
+                "p50Ms": 1.799999,
+                "p95Ms": 4.600001,
+                "p99Ms": 5.800001,
+                "maxMs": 7.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.32850006999999676,
+                "p50Ms": 0.200001,
+                "p95Ms": 0.8,
+                "p99Ms": 2,
+                "maxMs": 7.300001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.10749995499999986,
+                "p50Ms": 0.1,
+                "p95Ms": 0.299999,
+                "p99Ms": 0.4,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.1581666716666658,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.4,
+                "p99Ms": 0.5,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.08933331166666666,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.399999,
+                "maxMs": 0.799999,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.0071666666666666675,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.5520000199999975,
+                "p50Ms": 1.1,
+                "p95Ms": 3.6,
+                "p99Ms": 4.1,
+                "maxMs": 4.9,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 5.771166671666667,
+                "p50Ms": 4.400001,
+                "p95Ms": 12.700001,
+                "p99Ms": 15.199999,
+                "maxMs": 18.2,
+                "budgetMissPercent": 0.16666666666666666
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.340333321666665,
+                "p50Ms": 1.900001,
+                "p95Ms": 4.6,
+                "p99Ms": 5.5,
+                "maxMs": 7,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            93.41833333333334,
+            227.61666666666667,
+            804.3083333333333,
+            1871.9283333333333
+          ],
+          "finalCounts": [
+            32,
+            134,
+            1195,
+            205
+          ],
+          "frameBytes": 199936,
+          "checksum": "0F5E956235D63215",
+          "counters": [
+            5985,
+            5661,
+            210,
+            178,
+            3567,
+            935,
+            3242,
+            5,
+            10,
+            12,
+            1486,
+            39,
+            287,
+            8473,
+            200347,
+            195283
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 4.85833333166667,
+            "p50Ms": 4.7,
+            "p95Ms": 6.4,
+            "p99Ms": 7,
+            "maxMs": 10.199999,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 6.466333333402872,
+            "p50Ms": 6.300000011920929,
+            "p95Ms": 8.400000005960464,
+            "p99Ms": 9.100000023841858,
+            "maxMs": 12.099999994039536,
+            "budgetMissPercent": 0
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 1.6080000017362057,
+            "p50Ms": 1.5000000119209291,
+            "p95Ms": 2.300000994039536,
+            "p99Ms": 2.699999994039535,
+            "maxMs": 3.4000000059604645,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.2200000002980231,
+            "p50Ms": 1.199999988079071,
+            "p95Ms": 1.5,
+            "p99Ms": 1.5,
+            "maxMs": 1.5,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.1160000099999954,
+                "p50Ms": 1,
+                "p95Ms": 1.6,
+                "p99Ms": 1.800001,
+                "maxMs": 5.9,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.0929999783333335,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.299999,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.04150002666666673,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.199999,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.049666648333333493,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.03716664500000006,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.199999,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.005000000000000002,
+                "p50Ms": 0,
+                "p95Ms": 0.099999,
+                "p99Ms": 0.100001,
+                "maxMs": 0.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.5590000083333321,
+                "p50Ms": 0.5,
+                "p95Ms": 0.899999,
+                "p99Ms": 1,
+                "maxMs": 2.700001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 1.8068333749999996,
+                "p50Ms": 1.700001,
+                "p95Ms": 2.400001,
+                "p99Ms": 2.700001,
+                "maxMs": 3.199999,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.1499999733333297,
+                "p50Ms": 1.1,
+                "p95Ms": 1.699999,
+                "p99Ms": 1.9,
+                "maxMs": 2.200001,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            30.97833333333333,
+            168.665,
+            1054.86,
+            354.1166666666667
+          ],
+          "finalCounts": [
+            28,
+            166,
+            793,
+            393
+          ],
+          "frameBytes": 176768,
+          "checksum": "6F689E3358427E3A",
+          "counters": [
+            7565,
+            6855,
+            228,
+            200,
+            4487,
+            1169,
+            3619,
+            5,
+            15,
+            30,
+            3405,
+            50,
+            331,
+            10070,
+            239927,
+            235470
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "tactics",
+      "run": 2,
+      "url": "http://127.0.0.1:8031/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 13.189666679999997,
+            "p50Ms": 10.199999,
+            "p95Ms": 28.4,
+            "p99Ms": 31.9,
+            "maxMs": 37.799999,
+            "budgetMissPercent": 31.833333333333332
+          },
+          "stepAndExport": {
+            "meanMs": 16.446833333571753,
+            "p50Ms": 12.799999982118607,
+            "p95Ms": 34.29999998211861,
+            "p99Ms": 39.70000001788139,
+            "maxMs": 47.599999994039536,
+            "budgetMissPercent": 39
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.2571666535717507,
+            "p50Ms": 2.5999999999999996,
+            "p95Ms": 6.799999982118607,
+            "p99Ms": 8.100001005960465,
+            "maxMs": 9.800000994039536,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.5450000002980233,
+            "p50Ms": 1.5,
+            "p95Ms": 2,
+            "p99Ms": 2,
+            "maxMs": 2,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.2595000316666667,
+                "p50Ms": 1.8,
+                "p95Ms": 4.7,
+                "p99Ms": 5.600001,
+                "maxMs": 7.1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.34583331499999703,
+                "p50Ms": 0.200001,
+                "p95Ms": 0.9,
+                "p99Ms": 1.9,
+                "maxMs": 7,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.12100000499999984,
+                "p50Ms": 0.1,
+                "p95Ms": 0.3,
+                "p99Ms": 0.4,
+                "maxMs": 0.6,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.16249998166666593,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.400001,
+                "p99Ms": 0.5,
+                "maxMs": 0.8,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.0955000250000001,
+                "p50Ms": 0.1,
+                "p95Ms": 0.3,
+                "p99Ms": 0.4,
+                "maxMs": 1.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.00916667166666666,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.300001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.6856666549999986,
+                "p50Ms": 1.3,
+                "p95Ms": 4.2,
+                "p99Ms": 5.8,
+                "maxMs": 7.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 6.075833306666666,
+                "p50Ms": 4.5,
+                "p95Ms": 14.1,
+                "p99Ms": 16.9,
+                "maxMs": 19.4,
+                "budgetMissPercent": 1
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.4340000216666655,
+                "p50Ms": 1.9,
+                "p95Ms": 5.299999,
+                "p99Ms": 6.4,
+                "maxMs": 7.199999,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            93.41833333333334,
+            227.61666666666667,
+            804.3083333333333,
+            1871.9283333333333
+          ],
+          "finalCounts": [
+            32,
+            134,
+            1195,
+            205
+          ],
+          "frameBytes": 199680,
+          "checksum": "0F5E956235D63215",
+          "counters": [
+            5985,
+            5661,
+            210,
+            178,
+            3567,
+            935,
+            3242,
+            5,
+            10,
+            12,
+            1486,
+            39,
+            287,
+            8473,
+            200347,
+            195283
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 5.455666661666667,
+            "p50Ms": 5.200001,
+            "p95Ms": 7.299999,
+            "p99Ms": 7.700001,
+            "maxMs": 10,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 7.255000000298023,
+            "p50Ms": 7,
+            "p95Ms": 9.599999994039536,
+            "p99Ms": 10.300000011920929,
+            "maxMs": 11.900000005960464,
+            "budgetMissPercent": 0
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 1.7993333386313566,
+            "p50Ms": 1.699999988079071,
+            "p95Ms": 2.5999990000000004,
+            "p99Ms": 2.800000005960465,
+            "maxMs": 3,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.8299999997019767,
+            "p50Ms": 1.800000011920929,
+            "p95Ms": 1.9000000059604645,
+            "p99Ms": 1.9000000059604645,
+            "maxMs": 1.9000000059604645,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.2125000133333328,
+                "p50Ms": 1.199999,
+                "p95Ms": 1.7,
+                "p99Ms": 1.800001,
+                "maxMs": 2.1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.11700000500000012,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.3,
+                "maxMs": 0.6,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.048833303333333446,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.056333345000000146,
+                "p50Ms": 0.099999,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.200001,
+                "maxMs": 0.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.04633334666666676,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.010500001666666666,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.6638333149999986,
+                "p50Ms": 0.6,
+                "p95Ms": 1,
+                "p99Ms": 1.2,
+                "maxMs": 1.300001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 2.011833353333334,
+                "p50Ms": 2,
+                "p95Ms": 2.6,
+                "p99Ms": 2.899999,
+                "maxMs": 3.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.2878333133333326,
+                "p50Ms": 1.2,
+                "p95Ms": 1.8,
+                "p99Ms": 2,
+                "maxMs": 5.8,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            30.97833333333333,
+            168.665,
+            1054.86,
+            354.1166666666667
+          ],
+          "finalCounts": [
+            28,
+            166,
+            793,
+            393
+          ],
+          "frameBytes": 176512,
+          "checksum": "6F689E3358427E3A",
+          "counters": [
+            7565,
+            6855,
+            228,
+            200,
+            4487,
+            1169,
+            3619,
+            5,
+            15,
+            30,
+            3405,
+            50,
+            331,
+            10070,
+            239927,
+            235470
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "before",
+      "run": 2,
+      "url": "http://127.0.0.1:8030/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 14.795666650000008,
+            "p50Ms": 14,
+            "p95Ms": 26.300001,
+            "p99Ms": 31.799999,
+            "maxMs": 42.5,
+            "budgetMissPercent": 33.333333333333336
+          },
+          "stepAndExport": {
+            "meanMs": 19.865833333184323,
+            "p50Ms": 18.900000005960464,
+            "p95Ms": 35.19999998807907,
+            "p99Ms": 43.30000001192093,
+            "maxMs": 55.19999998807907,
+            "budgetMissPercent": 58.5
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 5.070166683184323,
+            "p50Ms": 4.5999999940395355,
+            "p95Ms": 9.099999994039536,
+            "p99Ms": 11.799999982118607,
+            "maxMs": 14.699999994039537,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 3.025,
+            "p50Ms": 2.9000000059604645,
+            "p95Ms": 3.600000023841858,
+            "p99Ms": 3.600000023841858,
+            "maxMs": 3.600000023841858,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.357833313333338,
+                "p50Ms": 2.199999,
+                "p95Ms": 4.300001,
+                "p99Ms": 5.3,
+                "maxMs": 8.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.69066668666667,
+                "p50Ms": 0.199999,
+                "p95Ms": 3,
+                "p99Ms": 5,
+                "maxMs": 21.299999,
+                "budgetMissPercent": 0.16666666666666666
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.27266667499999797,
+                "p50Ms": 0.200001,
+                "p95Ms": 0.6,
+                "p99Ms": 0.7,
+                "maxMs": 1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.280833276666664,
+                "p50Ms": 0.299999,
+                "p95Ms": 0.6,
+                "p99Ms": 0.8,
+                "maxMs": 0.800001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.1591667249999994,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.4,
+                "p99Ms": 0.6,
+                "maxMs": 1.400001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.021666681666666663,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.100001,
+                "maxMs": 0.300001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.9588332966666728,
+                "p50Ms": 1.7,
+                "p95Ms": 4,
+                "p99Ms": 4.6,
+                "maxMs": 5.800001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 6.531000006666667,
+                "p50Ms": 6.5,
+                "p95Ms": 10.9,
+                "p99Ms": 15.1,
+                "maxMs": 17.6,
+                "budgetMissPercent": 0.3333333333333333
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.522666655000001,
+                "p50Ms": 2.200001,
+                "p95Ms": 4.700001,
+                "p99Ms": 6,
+                "maxMs": 8.300001,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            121.61,
+            316.62166666666667,
+            805.775,
+            1855.3383333333334
+          ],
+          "finalCounts": [
+            71,
+            345,
+            1221,
+            412
+          ],
+          "frameBytes": 259712,
+          "checksum": "3FB181F5EFC01791",
+          "counters": [
+            6967,
+            6335,
+            210,
+            139,
+            4054,
+            1038,
+            3612,
+            3,
+            25,
+            12,
+            4763,
+            47,
+            300,
+            7359,
+            200320,
+            193374
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 8.544333283333328,
+            "p50Ms": 8.299999,
+            "p95Ms": 10.699999,
+            "p99Ms": 11.4,
+            "maxMs": 11.800001,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 11.90366666679581,
+            "p50Ms": 11.599999994039536,
+            "p95Ms": 14.800000011920929,
+            "p99Ms": 15.900000005960464,
+            "maxMs": 16.80000001192093,
+            "budgetMissPercent": 0.3333333333333333
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.359333383462475,
+            "p50Ms": 3.2000000119209293,
+            "p95Ms": 4.699999005960464,
+            "p99Ms": 5.200000994039536,
+            "maxMs": 5.500000011920928,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 3.2700000002980234,
+            "p50Ms": 3.2000000178813934,
+            "p95Ms": 3.800000011920929,
+            "p99Ms": 3.800000011920929,
+            "maxMs": 3.800000011920929,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.5588332899999962,
+                "p50Ms": 1.5,
+                "p95Ms": 2.200001,
+                "p99Ms": 2.4,
+                "maxMs": 2.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.1681666549999999,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.4,
+                "p99Ms": 0.600001,
+                "maxMs": 1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.14616668499999966,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.3,
+                "p99Ms": 0.300001,
+                "maxMs": 0.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.1370000316666668,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.300001,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.09266663500000005,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.200001,
+                "maxMs": 0.6,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.031000010000000036,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.100001,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.980000013333332,
+                "p50Ms": 0.9,
+                "p95Ms": 1.400001,
+                "p99Ms": 1.600001,
+                "maxMs": 1.800001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 3.816666661666663,
+                "p50Ms": 3.699999,
+                "p95Ms": 5,
+                "p99Ms": 5.6,
+                "maxMs": 6.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.6136666333333303,
+                "p50Ms": 1.5,
+                "p95Ms": 2.299999,
+                "p99Ms": 2.5,
+                "maxMs": 2.9,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            64.435,
+            349.45666666666665,
+            1154.0666666666666,
+            623.4216666666666
+          ],
+          "finalCounts": [
+            55,
+            362,
+            1055,
+            790
+          ],
+          "frameBytes": 289152,
+          "checksum": "5FFCB125612842B7",
+          "counters": [
+            9945,
+            8653,
+            228,
+            173,
+            5746,
+            1488,
+            4155,
+            5,
+            47,
+            30,
+            12373,
+            64,
+            380,
+            9724,
+            269567,
+            262161
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "before",
+      "run": 3,
+      "url": "http://127.0.0.1:8030/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 14.149333333333336,
+            "p50Ms": 13.5,
+            "p95Ms": 24.7,
+            "p99Ms": 30.5,
+            "maxMs": 37.9,
+            "budgetMissPercent": 29.666666666666668
+          },
+          "stepAndExport": {
+            "meanMs": 18.980999999990065,
+            "p50Ms": 18,
+            "p95Ms": 32.70000001788139,
+            "p99Ms": 39.400000005960464,
+            "maxMs": 44.60000002384186,
+            "budgetMissPercent": 56
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 4.831666666656732,
+            "p50Ms": 4.399999994039536,
+            "p95Ms": 9.100000017881392,
+            "p99Ms": 10.899999999999999,
+            "maxMs": 11.700000005960465,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 2.875,
+            "p50Ms": 2.9000000059604645,
+            "p95Ms": 3,
+            "p99Ms": 3,
+            "maxMs": 3,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.2159999999999993,
+                "p50Ms": 2,
+                "p95Ms": 4.1,
+                "p99Ms": 5.2,
+                "maxMs": 7.1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.6586666666666696,
+                "p50Ms": 0.2,
+                "p95Ms": 2.8,
+                "p99Ms": 4.8,
+                "maxMs": 20.3,
+                "budgetMissPercent": 0.16666666666666666
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.26383333333333103,
+                "p50Ms": 0.2,
+                "p95Ms": 0.5,
+                "p99Ms": 0.7,
+                "maxMs": 0.9,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.26983333333333076,
+                "p50Ms": 0.2,
+                "p95Ms": 0.5,
+                "p99Ms": 0.7,
+                "maxMs": 0.8,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.1513333333333324,
+                "p50Ms": 0.1,
+                "p95Ms": 0.4,
+                "p99Ms": 0.6,
+                "maxMs": 1.6,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.017333333333333305,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.1,
+                "maxMs": 0.3,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.8606666666666691,
+                "p50Ms": 1.6,
+                "p95Ms": 3.6,
+                "p99Ms": 4.5,
+                "maxMs": 5.7,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 6.32716666666667,
+                "p50Ms": 6.4,
+                "p95Ms": 10.8,
+                "p99Ms": 14.2,
+                "maxMs": 16.6,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.3843333333333354,
+                "p50Ms": 2.1,
+                "p95Ms": 4.5,
+                "p99Ms": 5.4,
+                "maxMs": 7.8,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            121.61,
+            316.62166666666667,
+            805.775,
+            1855.3383333333334
+          ],
+          "finalCounts": [
+            71,
+            345,
+            1221,
+            412
+          ],
+          "frameBytes": 259712,
+          "checksum": "3FB181F5EFC01791",
+          "counters": [
+            6967,
+            6335,
+            210,
+            139,
+            4054,
+            1038,
+            3612,
+            3,
+            25,
+            12,
+            4763,
+            47,
+            300,
+            7359,
+            200320,
+            193374
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 8.499999999999991,
+            "p50Ms": 8.2,
+            "p95Ms": 11,
+            "p99Ms": 11.7,
+            "maxMs": 12.3,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 11.876000000288089,
+            "p50Ms": 11.5,
+            "p95Ms": 15.199999988079071,
+            "p99Ms": 15.800000011920929,
+            "maxMs": 17.19999998807907,
+            "budgetMissPercent": 0.16666666666666666
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.3760000002880886,
+            "p50Ms": 3.2000000119209293,
+            "p95Ms": 4.5,
+            "p99Ms": 5.200000005960465,
+            "maxMs": 6.000000011920928,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 3.2899999991059303,
+            "p50Ms": 3.2999999821186066,
+            "p95Ms": 3.800000011920929,
+            "p99Ms": 3.800000011920929,
+            "maxMs": 3.800000011920929,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.5356666666666643,
+                "p50Ms": 1.5,
+                "p95Ms": 2.1,
+                "p99Ms": 2.4,
+                "maxMs": 2.8,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.16733333333333325,
+                "p50Ms": 0.2,
+                "p95Ms": 0.4,
+                "p99Ms": 0.6,
+                "maxMs": 0.9,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.1528333333333332,
+                "p50Ms": 0.1,
+                "p95Ms": 0.3,
+                "p99Ms": 0.3,
+                "maxMs": 0.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.13483333333333358,
+                "p50Ms": 0.1,
+                "p95Ms": 0.2,
+                "p99Ms": 0.3,
+                "maxMs": 0.3,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.09450000000000072,
+                "p50Ms": 0.1,
+                "p95Ms": 0.2,
+                "p99Ms": 0.2,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.02816666666666662,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.2,
+                "maxMs": 0.2,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.9586666666666641,
+                "p50Ms": 0.9,
+                "p95Ms": 1.4,
+                "p99Ms": 1.6,
+                "maxMs": 1.7,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 3.80433333333333,
+                "p50Ms": 3.6,
+                "p95Ms": 5.2,
+                "p99Ms": 5.7,
+                "maxMs": 6.1,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.6234999999999982,
+                "p50Ms": 1.5,
+                "p95Ms": 2.3,
+                "p99Ms": 2.6,
+                "maxMs": 3,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            64.435,
+            349.45666666666665,
+            1154.0666666666666,
+            623.4216666666666
+          ],
+          "finalCounts": [
+            55,
+            362,
+            1055,
+            790
+          ],
+          "frameBytes": 289152,
+          "checksum": "5FFCB125612842B7",
+          "counters": [
+            9945,
+            8653,
+            228,
+            173,
+            5746,
+            1488,
+            4155,
+            5,
+            47,
+            30,
+            12373,
+            64,
+            380,
+            9724,
+            269567,
+            262161
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "tactics",
+      "run": 3,
+      "url": "http://127.0.0.1:8031/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 12.65916666,
+            "p50Ms": 9.9,
+            "p95Ms": 26.6,
+            "p99Ms": 30.3,
+            "maxMs": 36.6,
+            "budgetMissPercent": 28.833333333333332
+          },
+          "stepAndExport": {
+            "meanMs": 15.833833333353201,
+            "p50Ms": 12.5,
+            "p95Ms": 32.60000002384186,
+            "p99Ms": 35.900000005960464,
+            "maxMs": 43.60000002384186,
+            "budgetMissPercent": 38.166666666666664
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.174666673353201,
+            "p50Ms": 2.699999,
+            "p95Ms": 6.300000994039536,
+            "p99Ms": 7.600000023841858,
+            "maxMs": 9.300000005960463,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.5850000008940697,
+            "p50Ms": 1.5,
+            "p95Ms": 2.100000023841858,
+            "p99Ms": 2.100000023841858,
+            "maxMs": 2.100000023841858,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.202333350000002,
+                "p50Ms": 1.799999,
+                "p95Ms": 4.400001,
+                "p99Ms": 5.7,
+                "maxMs": 6.3,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.3384999433333297,
+                "p50Ms": 0.2,
+                "p95Ms": 0.899999,
+                "p99Ms": 2.199999,
+                "maxMs": 7.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.118166683333333,
+                "p50Ms": 0.1,
+                "p95Ms": 0.3,
+                "p99Ms": 0.400001,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.15916667499999926,
+                "p50Ms": 0.1,
+                "p95Ms": 0.4,
+                "p99Ms": 0.5,
+                "maxMs": 0.600001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.09483334166666678,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.400001,
+                "maxMs": 0.700001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.005500003333333335,
+                "p50Ms": 0,
+                "p95Ms": 0.099999,
+                "p99Ms": 0.100001,
+                "maxMs": 0.299999,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.5738333250000045,
+                "p50Ms": 1.1,
+                "p95Ms": 3.6,
+                "p99Ms": 4.4,
+                "maxMs": 5.2,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 5.841166633333333,
+                "p50Ms": 4.400001,
+                "p95Ms": 13.399999,
+                "p99Ms": 16.7,
+                "maxMs": 23.5,
+                "budgetMissPercent": 1.1666666666666667
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.325500038333332,
+                "p50Ms": 1.899999,
+                "p95Ms": 4.600001,
+                "p99Ms": 5.7,
+                "maxMs": 7.1,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            93.41833333333334,
+            227.61666666666667,
+            804.3083333333333,
+            1871.9283333333333
+          ],
+          "finalCounts": [
+            32,
+            134,
+            1195,
+            205
+          ],
+          "frameBytes": 199680,
+          "checksum": "0F5E956235D63215",
+          "counters": [
+            5985,
+            5661,
+            210,
+            178,
+            3567,
+            935,
+            3242,
+            5,
+            10,
+            12,
+            1486,
+            39,
+            287,
+            8473,
+            200347,
+            195283
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 4.8286666633333315,
+            "p50Ms": 4.7,
+            "p95Ms": 6.3,
+            "p99Ms": 7,
+            "maxMs": 9,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 6.418166666825613,
+            "p50Ms": 6.299999982118607,
+            "p95Ms": 8.200000017881393,
+            "p99Ms": 9.200000017881393,
+            "maxMs": 10.5,
+            "budgetMissPercent": 0
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 1.5895000034922788,
+            "p50Ms": 1.5000000059604641,
+            "p95Ms": 2.300000005960465,
+            "p99Ms": 2.500000994039535,
+            "maxMs": 3.100001,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.3100000008940698,
+            "p50Ms": 1.2000000178813934,
+            "p95Ms": 1.7999999821186066,
+            "p99Ms": 1.7999999821186066,
+            "maxMs": 1.7999999821186066,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.1016666699999949,
+                "p50Ms": 1.099999,
+                "p95Ms": 1.599999,
+                "p99Ms": 1.700001,
+                "maxMs": 2.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.09416666333333351,
+                "p50Ms": 0.1,
+                "p95Ms": 0.2,
+                "p99Ms": 0.200001,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.04033331500000009,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.049833358333333466,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.036666690000000036,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.00799999,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.5593333483333316,
+                "p50Ms": 0.5,
+                "p95Ms": 0.9,
+                "p99Ms": 1,
+                "maxMs": 1.3,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 1.8013332933333364,
+                "p50Ms": 1.700001,
+                "p95Ms": 2.4,
+                "p99Ms": 2.6,
+                "maxMs": 3.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.1373333349999957,
+                "p50Ms": 1.1,
+                "p95Ms": 1.7,
+                "p99Ms": 1.9,
+                "maxMs": 5.2,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            30.97833333333333,
+            168.665,
+            1054.86,
+            354.1166666666667
+          ],
+          "finalCounts": [
+            28,
+            166,
+            793,
+            393
+          ],
+          "frameBytes": 176512,
+          "checksum": "6F689E3358427E3A",
+          "counters": [
+            7565,
+            6855,
+            228,
+            200,
+            4487,
+            1169,
+            3619,
+            5,
+            15,
+            30,
+            3405,
+            50,
+            331,
+            10070,
+            239927,
+            235470
+          ]
+        }
+      ]
+    },
+    {
+      "revision": "stats",
+      "run": 3,
+      "url": "http://127.0.0.1:8032/",
+      "runtimeMode": "aot-binary",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+      "logicalProcessors": 24,
+      "phases": [
+        {
+          "startTick": 1,
+          "endTick": 600,
+          "coreStep": {
+            "meanMs": 12.110500000000004,
+            "p50Ms": 9.5,
+            "p95Ms": 24.6,
+            "p99Ms": 27.9,
+            "maxMs": 31.4,
+            "budgetMissPercent": 27.166666666666668
+          },
+          "stepAndExport": {
+            "meanMs": 15.166500000158946,
+            "p50Ms": 12,
+            "p95Ms": 30.30000001192093,
+            "p99Ms": 33.80000001192093,
+            "maxMs": 39.400000005960464,
+            "budgetMissPercent": 37.333333333333336
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 3.056000000158948,
+            "p50Ms": 2.5,
+            "p95Ms": 6,
+            "p99Ms": 7.399999999999999,
+            "maxMs": 8.000000005960466,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.580000001192093,
+            "p50Ms": 1.5999999940395355,
+            "p95Ms": 2.4000000059604645,
+            "p99Ms": 2.4000000059604645,
+            "maxMs": 2.4000000059604645,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 2.1063333533333317,
+                "p50Ms": 1.7,
+                "p95Ms": 4.2,
+                "p99Ms": 4.9,
+                "maxMs": 5.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.3238333099999963,
+                "p50Ms": 0.2,
+                "p95Ms": 0.8,
+                "p99Ms": 2,
+                "maxMs": 6.9,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.11033334666666667,
+                "p50Ms": 0.1,
+                "p95Ms": 0.3,
+                "p99Ms": 0.4,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.1573333199999994,
+                "p50Ms": 0.100001,
+                "p95Ms": 0.4,
+                "p99Ms": 0.5,
+                "maxMs": 0.599999,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.08566669166666678,
+                "p50Ms": 0.1,
+                "p95Ms": 0.200001,
+                "p99Ms": 0.4,
+                "maxMs": 0.7,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.008000000000000002,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 1.5214999966666685,
+                "p50Ms": 1.1,
+                "p95Ms": 3.4,
+                "p99Ms": 3.9,
+                "maxMs": 5.699999,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 5.564666633333334,
+                "p50Ms": 4.3,
+                "p95Ms": 12.6,
+                "p99Ms": 15,
+                "maxMs": 17.2,
+                "budgetMissPercent": 0.16666666666666666
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 2.231833348333333,
+                "p50Ms": 1.8,
+                "p95Ms": 4.5,
+                "p99Ms": 5.1,
+                "maxMs": 6.1,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            93.41833333333334,
+            227.61666666666667,
+            804.3083333333333,
+            1871.9283333333333
+          ],
+          "finalCounts": [
+            32,
+            134,
+            1195,
+            205
+          ],
+          "frameBytes": 199936,
+          "checksum": "0F5E956235D63215",
+          "counters": [
+            5985,
+            5661,
+            210,
+            178,
+            3567,
+            935,
+            3242,
+            5,
+            10,
+            12,
+            1486,
+            39,
+            287,
+            8473,
+            200347,
+            195283
+          ]
+        },
+        {
+          "startTick": 601,
+          "endTick": 1200,
+          "coreStep": {
+            "meanMs": 4.777499983333339,
+            "p50Ms": 4.7,
+            "p95Ms": 6,
+            "p99Ms": 6.9,
+            "maxMs": 7.4,
+            "budgetMissPercent": 0
+          },
+          "stepAndExport": {
+            "meanMs": 6.3778333335121475,
+            "p50Ms": 6.200000017881393,
+            "p95Ms": 7.9000000059604645,
+            "p99Ms": 8.899999976158142,
+            "maxMs": 11.5,
+            "budgetMissPercent": 0
+          },
+          "perTickExportAndInterop": {
+            "meanMs": 1.6003333501788137,
+            "p50Ms": 1.5000009761581419,
+            "p95Ms": 2.199999011920929,
+            "p99Ms": 2.4000009999999996,
+            "maxMs": 7.299999,
+            "budgetMissPercent": 0
+          },
+          "exportOnlyAtPhaseEnd": {
+            "meanMs": 1.4549999997019767,
+            "p50Ms": 1.4000000059604645,
+            "p95Ms": 2,
+            "p99Ms": 2,
+            "maxMs": 2,
+            "budgetMissPercent": 0
+          },
+          "stages": [
+            {
+              "name": "collect",
+              "timing": {
+                "meanMs": 1.0863333199999972,
+                "p50Ms": 1.099999,
+                "p95Ms": 1.5,
+                "p99Ms": 1.700001,
+                "maxMs": 1.9,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "ai",
+              "timing": {
+                "meanMs": 0.09250001333333355,
+                "p50Ms": 0.1,
+                "p95Ms": 0.2,
+                "p99Ms": 0.200001,
+                "maxMs": 0.4,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "thermal-inventory",
+              "timing": {
+                "meanMs": 0.04200002000000007,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.400001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "steering",
+              "timing": {
+                "meanMs": 0.04716664500000009,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.200001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "weapons",
+              "timing": {
+                "meanMs": 0.0348333366666667,
+                "p50Ms": 0,
+                "p95Ms": 0.100001,
+                "p99Ms": 0.2,
+                "maxMs": 0.5,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "carriers",
+              "timing": {
+                "meanMs": 0.009166674999999997,
+                "p50Ms": 0,
+                "p95Ms": 0.1,
+                "p99Ms": 0.100001,
+                "maxMs": 0.100001,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "physics",
+              "timing": {
+                "meanMs": 0.5563333433333321,
+                "p50Ms": 0.5,
+                "p95Ms": 0.8,
+                "p99Ms": 0.900001,
+                "maxMs": 1.2,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "hits",
+              "timing": {
+                "meanMs": 1.7868333083333354,
+                "p50Ms": 1.700001,
+                "p95Ms": 2.300001,
+                "p99Ms": 2.7,
+                "maxMs": 2.8,
+                "budgetMissPercent": 0
+              }
+            },
+            {
+              "name": "lifecycle",
+              "timing": {
+                "meanMs": 1.1216666533333317,
+                "p50Ms": 1.1,
+                "p95Ms": 1.5,
+                "p99Ms": 1.700001,
+                "maxMs": 1.9,
+                "budgetMissPercent": 0
+              }
+            }
+          ],
+          "meanCounts": [
+            30.97833333333333,
+            168.665,
+            1054.86,
+            354.1166666666667
+          ],
+          "finalCounts": [
+            28,
+            166,
+            793,
+            393
+          ],
+          "frameBytes": 176768,
+          "checksum": "6F689E3358427E3A",
+          "counters": [
+            7565,
+            6855,
+            228,
+            200,
+            4487,
+            1169,
+            3619,
+            5,
+            15,
+            30,
+            3405,
+            50,
+            331,
+            10070,
+            239927,
+            235470
+          ]
+        }
+      ]
+    }
+  ]
+}

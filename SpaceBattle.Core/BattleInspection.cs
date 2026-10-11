@@ -8,7 +8,7 @@ public sealed partial class Battle<TStore>
     public void Capture(BattleFrame frame)
     {
         Collect(); frame.Tick = Tick; frame.ArenaHalfSize = Config.ArenaHalfSize; frame.LastTickMs = LastTickMs; frame.Counters = Counters.Copy();
-        frame.Ships.Clear(); frame.Projectiles.Clear(); frame.Debris.Clear(); frame.Particles.Clear();
+        frame.Ships.Clear(); frame.Projectiles.Clear(); frame.Debris.Clear(); frame.Particles.Clear(); frame.Turrets.Clear();
         foreach (var row in ships)
         {
             var e = row.Entity; if (Store.Has<Docked>(e)) continue;
@@ -20,7 +20,7 @@ public sealed partial class Battle<TStore>
         {
             var e = row.Entity; var p = Store.Get<Projectile>(e); var t = Store.Get<Transform>(e); var m = Store.Get<Motion>(e);
             frame.Projectiles.Add(new(p.Serial, -1, (int)p.Kind, t.Position, m.Velocity, t.Angle, p.Radius, 0, 0, 0,
-                p.Kind == WeaponKind.Plasma ? new(0.2f, 1, 0.6f, 1) : p.Kind == WeaponKind.Missile ? new(1, 0.2f, 0.2f, 1) : new(1, 0.8f, 0.2f, 1)));
+                p.Kind == WeaponKind.HeavyCannon ? new(0.5f, 0.85f, 1, 1) : p.Kind == WeaponKind.Plasma ? new(0.2f, 1, 0.6f, 1) : p.Kind == WeaponKind.Missile ? new(1, 0.2f, 0.2f, 1) : new(1, 0.8f, 0.2f, 1)));
         }
         foreach (var row in debris)
         {
@@ -32,6 +32,15 @@ public sealed partial class Battle<TStore>
             var e = row.Entity; var p = Store.Get<Particle>(e); var t = Store.Get<Transform>(e); var m = Store.Get<Motion>(e);
             var color = p.Color; color.W = Math.Clamp((p.ExpiresTick - Tick) / 30f, 0, 1);
             frame.Particles.Add(new(p.Serial, 0, p.Kind, t.Position, m.Velocity, t.Angle, p.Size, 0, 0, 0, color));
+        }
+        foreach (var row in turrets)
+        {
+            var e = row.Entity; var mount = Store.Get<MountedTurret>(e);
+            if (!AliveShip(mount.Parent) || Store.Has<Docked>(mount.Parent)) continue;
+            var id = Store.Get<Identity>(mount.Parent); var t = Store.Get<Transform>(e); var heat = Store.Get<Heat>(e);
+            frame.Turrets.Add(new(mount.Serial, id.Serial, id.Team, Store.Get<Weapon>(e).Kind, t.Position, t.Angle,
+                ShipCatalog.IsCarrier(id.Class) ? 0.65f : 0.45f, Math.Clamp(heat.Value / heat.Limit, 0, 1),
+                Math.Clamp(1 - (Tick - mount.LastFireTick) / (float)ArmamentRules.RecoilTicks, 0, 1)));
         }
     }
     public ulong Checksum()
@@ -63,6 +72,14 @@ public sealed partial class Battle<TStore>
             Add(Store.Has<InCombat>(e) ? 1u : 0); if (Store.Has<InCombat>(e)) Add((uint)Store.Get<InCombat>(e).UntilTick);
             Add(Store.Has<Boosting>(e) ? 1u : 0); if (Store.Has<Boosting>(e)) Add((uint)Store.Get<Boosting>(e).UntilTick);
             Add(Store.Has<ShieldBroken>(e) ? 1u : 0); if (Store.Has<ShieldBroken>(e)) Add((uint)Store.Get<ShieldBroken>(e).SinceTick);
+        }
+        foreach (var row in turrets)
+        {
+            var e = row.Entity; var mount = Store.Get<MountedTurret>(e);
+            Add((uint)mount.Serial); Add((uint)mount.Slot); Ref(mount.Parent); Ref(mount.Target);
+            Add((uint)mount.NextDecisionTick); Add((uint)mount.LastFireTick); Float(mount.LocalOffset.X); Float(mount.LocalOffset.Y);
+            TransformHash(Store.Get<Transform>(e)); WeaponHash(Store.Get<Weapon>(e));
+            var heat = Store.Get<Heat>(e); Float(heat.Value); Float(heat.Limit); Float(heat.CoolingPerSecond);
         }
         foreach (var row in projectiles)
         {
@@ -107,6 +124,21 @@ public sealed partial class Battle<TStore>
             for (var i = 0; i < inventory.Capacity; i++) if (inventory.Items[i].Count < 0) throw new InvalidOperationException("Negative inventory.");
         }
         if (physics.Bodies != ships.Count) throw new InvalidOperationException("Physics/ECS lifetime divergence.");
+        var mounts = new Dictionary<EntityKey, int>();
+        foreach (var row in turrets)
+        {
+            var e = row.Entity; var mount = Store.Get<MountedTurret>(e); var t = Store.Get<Transform>(e); var heat = Store.Get<Heat>(e);
+            if (!Store.Alive(e) || !AliveShip(mount.Parent) || !seen.Add(mount.Serial) || Store.Has<Identity>(e) ||
+                !float.IsFinite(t.Position.X + t.Position.Y + t.Angle + heat.Value + heat.Limit + mount.LocalOffset.X + mount.LocalOffset.Y) ||
+                heat.Value < 0 || heat.Limit <= 0 || mount.Slot < 0 || mount.Slot >= ShipCatalog.TurretCount(Store.Get<Identity>(mount.Parent).Class))
+                throw new InvalidOperationException("Invalid turret attachment.");
+            mounts.TryGetValue(mount.Parent, out var count); mounts[mount.Parent] = count + 1;
+        }
+        foreach (var row in ships)
+        {
+            mounts.TryGetValue(row.Entity, out var count);
+            if (count != ShipCatalog.TurretCount(row.Identity.Class)) throw new InvalidOperationException("Missing turret attachment.");
+        }
         foreach (var row in projectiles.Concat(debris).Concat(particles))
         {
             var t = Store.Get<Transform>(row.Entity); var m = Store.Get<Motion>(row.Entity);

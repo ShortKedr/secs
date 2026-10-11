@@ -48,6 +48,7 @@ internal static partial class Validation
         battle.Store.Get<Shield>(e).RegenPerSecond = 0;
         if (battle.Store.Has<SecondaryWeapon>(e)) battle.Store.Get<SecondaryWeapon>(e).Value.NextFireTick = int.MaxValue;
         if (battle.Store.Has<Carrier>(e)) battle.Store.Get<Carrier>(e).NextBuildTick = int.MaxValue;
+        FreezeMountedGuns(battle, e);
         return e;
     }
 

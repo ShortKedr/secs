@@ -1,0 +1,140 @@
+diff --git a/SpaceBattle.Core/PhysicsService.cs b/SpaceBattle.Core/PhysicsService.cs
+index 3573cc6..bd49966 100644
+--- a/SpaceBattle.Core/PhysicsService.cs
++++ b/SpaceBattle.Core/PhysicsService.cs
+@@ -13,6 +13,7 @@ public sealed class PhysicsService : IDisposable
+ {
+     private const float Scale = 0.1f;
+     private const float InverseScale = 10f;
++    private const float PointQueryEpsilon = 0.0001f;
+     private readonly World world;
+     private readonly List<ShipBody?> ships = new();
+     private readonly Stack<int> freeIds = new();
+@@ -20,12 +21,14 @@ public sealed class PhysicsService : IDisposable
+     private readonly HashSet<ulong> contactPairs = new();
+     private readonly RayCastReportFixtureDelegate rayCallback;
+     private readonly QueryReportFixtureDelegate overlapCallback;
++    private readonly QueryReportFixtureDelegate sweepCandidateCallback;
+     private readonly IReadOnlyList<CollisionEvent> contactView;
+     private bool disposed;
+     private int fixtureCount;
+     private int sweepSerial;
+     private float sweepFraction;
+     private PhysicsVector sweepPoint, sweepStart;
++    private bool sweepHasCandidate;
+ 
+     private sealed class ShipBody(Body body, int id, int serial)
+     {
+@@ -49,6 +52,7 @@ public sealed class PhysicsService : IDisposable
+         world.ContactManager.BeginContact += BeginContact;
+         rayCallback = RayHit;
+         overlapCallback = StartOverlap;
++        sweepCandidateCallback = SweepCandidate;
+         contactView = contacts.AsReadOnly();
+     }
+ 
+@@ -166,6 +170,43 @@ public sealed class PhysicsService : IDisposable
+     /// </summary>
+     public bool Sweep(Vector2 from, Vector2 to, float radius,
+         out int targetSerial, out Vector2 impact)
++    {
++        ThrowIfDisposed();
++        if (!Finite(from) || !Finite(to) || !float.IsFinite(radius) || radius < 0)
++            throw new ArgumentOutOfRangeException(nameof(radius));
++        sweepSerial = -1;
++        sweepFraction = float.PositiveInfinity;
++        sweepPoint = ToPhysics(to);
++        var start = ToPhysics(from);
++        var end = ToPhysics(to);
++        var delta = to - from;
++        var hasOffsetRays = radius > 0 && delta.LengthSquared() > 0;
++        var offset = hasOffsetRays
++            ? ToPhysics(Vector2.Normalize(new Vector2(-delta.Y, delta.X)) * radius)
++            : PhysicsVector.Zero;
++        if (!HasSweepCandidate(start, end, offset, hasOffsetRays))
++        {
++            targetSerial = sweepSerial;
++            impact = FromPhysics(sweepPoint);
++            return false;
++        }
++        Cast(start, end);
++        if (hasOffsetRays)
++        {
++            Cast(start + offset, end + offset);
++            Cast(start - offset, end - offset);
++            offset *= 0.5f;
++            Cast(start + offset, end + offset);
++            Cast(start - offset, end - offset);
++        }
++        targetSerial = sweepSerial;
++        impact = FromPhysics(sweepPoint);
++        return float.IsFinite(sweepFraction);
++    }
++
++    /// <summary>Original sweep path for differential validation, without empty-space rejection.</summary>
++    public bool SweepUnfiltered(Vector2 from, Vector2 to, float radius,
++        out int targetSerial, out Vector2 impact)
+     {
+         ThrowIfDisposed();
+         if (!Finite(from) || !Finite(to) || !float.IsFinite(radius) || radius < 0)
+@@ -191,11 +232,59 @@ public sealed class PhysicsService : IDisposable
+         return float.IsFinite(sweepFraction);
+     }
+ 
++    private bool HasSweepCandidate(PhysicsVector start, PhysicsVector end, PhysicsVector offset, bool hasOffsetRays)
++    {
++        if (!float.IsFinite(offset.X) || !float.IsFinite(offset.Y)) return true;
++        var bounds = new AABB { LowerBound = start, UpperBound = start };
++        IncludeSweepEndpoints(ref bounds, start, end);
++        if (hasOffsetRays)
++        {
++            IncludeSweepEndpoints(ref bounds, start + offset, end + offset);
++            IncludeSweepEndpoints(ref bounds, start - offset, end - offset);
++            offset *= 0.5f;
++            IncludeSweepEndpoints(ref bounds, start + offset, end + offset);
++            IncludeSweepEndpoints(ref bounds, start - offset, end - offset);
++        }
++        // Enclose the actual rounded rays and origin queries, with extra rounding slack.
++        var magnitude = MathF.Max(1f, MathF.Max(
++            MathF.Max(MathF.Abs(bounds.LowerBound.X), MathF.Abs(bounds.LowerBound.Y)),
++            MathF.Max(MathF.Abs(bounds.UpperBound.X), MathF.Abs(bounds.UpperBound.Y))));
++        var padding = PointQueryEpsilon + magnitude * 0.000001f;
++        bounds.LowerBound = new PhysicsVector(
++            MathF.BitDecrement(bounds.LowerBound.X - padding),
++            MathF.BitDecrement(bounds.LowerBound.Y - padding));
++        bounds.UpperBound = new PhysicsVector(
++            MathF.BitIncrement(bounds.UpperBound.X + padding),
++            MathF.BitIncrement(bounds.UpperBound.Y + padding));
++        if (!float.IsFinite(bounds.LowerBound.X) || !float.IsFinite(bounds.LowerBound.Y) ||
++            !float.IsFinite(bounds.UpperBound.X) || !float.IsFinite(bounds.UpperBound.Y)) return true;
++        sweepHasCandidate = false;
++        world.QueryAABB(sweepCandidateCallback, ref bounds);
++        return sweepHasCandidate;
++    }
++
++    private static void IncludeSweepEndpoints(ref AABB bounds, PhysicsVector start, PhysicsVector end)
++    {
++        bounds.LowerBound = new PhysicsVector(
++            MathF.Min(bounds.LowerBound.X, MathF.Min(start.X, end.X)),
++            MathF.Min(bounds.LowerBound.Y, MathF.Min(start.Y, end.Y)));
++        bounds.UpperBound = new PhysicsVector(
++            MathF.Max(bounds.UpperBound.X, MathF.Max(start.X, end.X)),
++            MathF.Max(bounds.UpperBound.Y, MathF.Max(start.Y, end.Y)));
++    }
++
++    private bool SweepCandidate(Fixture fixture)
++    {
++        if (!Eligible(fixture, out _)) return true;
++        sweepHasCandidate = true;
++        return false;
++    }
++
+     private void Cast(PhysicsVector from, PhysicsVector to)
+     {
+         // RayCast ignores fixtures containing its origin, so query that point first.
+         sweepStart = from;
+-        var epsilon = new PhysicsVector(0.0001f, 0.0001f);
++        var epsilon = new PhysicsVector(PointQueryEpsilon, PointQueryEpsilon);
+         var bounds = new AABB { LowerBound = from - epsilon, UpperBound = from + epsilon };
+         world.QueryAABB(overlapCallback, ref bounds);
+         if (from != to) world.RayCast(rayCallback, from, to);

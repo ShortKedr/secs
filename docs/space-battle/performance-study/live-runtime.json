@@ -1,0 +1,16 @@
+{
+  "measuredAt": "2026-10-11T14:56:46.991Z",
+  "url": "https://shortkedr.github.io/secs/?test=1",
+  "runtimeMode": "aot-binary",
+  "revision": "tactical-lock-v2",
+  "binaryVersion": 2,
+  "tick": 0,
+  "initialCounts": [
+    198,
+    0,
+    0,
+    0
+  ],
+  "crossOriginIsolated": false,
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+}

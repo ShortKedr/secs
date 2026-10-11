@@ -4,6 +4,8 @@ namespace SpaceBattle;
 
 public readonly record struct RenderEntity(int Serial, int Team, int Kind, Vector2 Position, Vector2 Velocity,
     float Angle, float Radius, float Hull, float Shield, float Heat, Vector4 Color);
+public readonly record struct RenderTurret(int Serial, int ParentSerial, int Team, WeaponKind Kind,
+    Vector2 Position, float Angle, float Radius, float Heat, float Recoil);
 
 public sealed class BattleFrame
 {
@@ -13,6 +15,7 @@ public sealed class BattleFrame
     public List<RenderEntity> Projectiles { get; } = new();
     public List<RenderEntity> Debris { get; } = new();
     public List<RenderEntity> Particles { get; } = new();
+    public List<RenderTurret> Turrets { get; } = new();
     public BattleCounters Counters { get; set; } = new();
     public double LastTickMs { get; set; }
 }
@@ -21,7 +24,7 @@ public sealed class BattleCounters
 {
     public long ShipsCreated, ShipsDestroyed, Shots, Hits, PlasmaShieldHits, ShieldBreaks,
         Overheats, Dockings, Repairs, Builds, ItemUses, DebrisHits, Explosions, StructuralAdds, StructuralRemoves,
-        AimDecisions, ImpreciseAimDecisions, FriendlyFireHits, SelfHits;
+        AimDecisions, ImpreciseAimDecisions, FriendlyFireHits, SelfHits, HeavyShots, TurretShots;
     public BattleCounters Copy() => (BattleCounters)MemberwiseClone();
 }
 

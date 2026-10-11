@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <StudySourceRoot Condition="'$(StudySourceRoot)' == ''">$(MSBuildThisFileDirectory)../..</StudySourceRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(StudySourceRoot)/SpaceBattle.Core/SpaceBattle.Core.csproj" />
+    <ProjectReference Include="$(StudySourceRoot)/SpaceBattle.SECS/SpaceBattle.SECS.csproj" />
+  </ItemGroup>
+</Project>

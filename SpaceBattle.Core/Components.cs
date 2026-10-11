@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace SpaceBattle;
 
 public enum ShipClass { Interceptor, Fighter, Bomber, Gunship, Corvette, Frigate, Destroyer, Support, LightCarrier, FleetCarrier, FoundryCarrier }
-public enum WeaponKind { MachineGun, Cannon, Plasma, Missile }
+public enum WeaponKind { MachineGun, Cannon, Plasma, Missile, HeavyCannon }
 public enum ItemKind { Empty, ShieldCell, HeatSink, RepairKit }
 public enum BrainMode { Attack, Retreat, Docking, Patrol, Screen }
 
@@ -23,6 +23,12 @@ public struct Brain
 }
 public struct Weapon { public WeaponKind Kind; public int Cooldown, NextFireTick, Burst; public float Range, Damage, Speed, HeatPerShot; }
 public struct SecondaryWeapon { public Weapon Value; }
+public struct MountedTurret
+{
+    public int Serial, Slot, NextDecisionTick, LastFireTick;
+    public EntityKey Parent, Target;
+    public Vector2 LocalOffset;
+}
 public struct Collider { public float Radius, Mass; public int ShapeCount; }
 public struct PhysicsLink { public int Body; }
 public struct CombatState { public int LastDamageTick; public EntityKey LastAttacker; }
@@ -43,6 +49,19 @@ public struct Inventory { public int Capacity, NextUseTick; public InventoryItem
 public static class ShipCatalog
 {
     public static bool IsCarrier(ShipClass kind) => kind >= ShipClass.LightCarrier;
+    public static bool IsWeaponsPlatform(ShipClass kind) => kind is ShipClass.Frigate or ShipClass.Destroyer || IsCarrier(kind);
+    public static int TurretCount(ShipClass kind) => kind switch
+    {
+        ShipClass.Frigate or ShipClass.Destroyer => 2,
+        ShipClass.LightCarrier => 4, ShipClass.FleetCarrier => 6, ShipClass.FoundryCarrier => 8, _ => 0
+    };
+    public static Weapon TurretWeapon(ShipClass kind, int slot)
+    {
+        var weapon = Primary(slot % 2 == 0 ? ShipClass.Fighter : ShipClass.Bomber);
+        weapon.Range = IsCarrier(kind) ? 150 : 120;
+        weapon.HeatPerShot *= 0.5f;
+        return weapon;
+    }
     public static float Radius(ShipClass kind) => kind switch
     {
         ShipClass.Interceptor => 1.0f, ShipClass.Fighter => 1.3f, ShipClass.Bomber => 1.7f,
@@ -51,7 +70,13 @@ public static class ShipCatalog
         ShipClass.LightCarrier => 8, ShipClass.FleetCarrier => 10, _ => 12
     };
     public static int Shapes(ShipClass kind) => kind <= ShipClass.Fighter ? 1 : 4 + (int)kind % 3;
-    public static Weapon Primary(ShipClass kind) => ((int)kind % 4) switch
+    public static Weapon Primary(ShipClass kind) => IsWeaponsPlatform(kind) ? new()
+    {
+        Kind = WeaponKind.HeavyCannon, Burst = 1, Speed = 170,
+        Cooldown = kind == ShipClass.Frigate ? 210 : kind == ShipClass.Destroyer ? 240 : 360 + ((int)kind - 8) * 60,
+        Damage = kind == ShipClass.Frigate ? 160 : kind == ShipClass.Destroyer ? 240 : 480 + ((int)kind - 8) * 160,
+        Range = IsCarrier(kind) ? 220 : 170, HeatPerShot = IsCarrier(kind) ? 40 : 25
+    } : ((int)kind % 4) switch
     {
         0 => new() { Kind = WeaponKind.MachineGun, Cooldown = 5, Burst = 2, Range = 80, Damage = 2.5f, Speed = 130, HeatPerShot = 1.6f },
         1 => new() { Kind = WeaponKind.Cannon, Cooldown = 42, Burst = 1, Range = 110, Damage = 28, Speed = 100, HeatPerShot = 13 },

@@ -29,6 +29,18 @@ class ReportLocaleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Missing English"):
             report_locale.report_versions(self.source("Новая непереведённая фраза"), analyze.DOCS)
 
+    def test_current_cover_is_not_replaced_with_frozen_evidence(self):
+        prose = ("![Обложка текущего геймплея](cover.png)\n\n"
+                 "Обложка: текущий геймплей, а не зафиксированный измеренный прогон. [Процесс захвата](COVER.md).\n\n"
+                 "Следующие метаданные захвата относятся к зафиксированному [action.png](action.png), а не к обложке.")
+        en, ru = report_locale.report_versions(self.source(prose), analyze.DOCS)
+        for text in (en, ru):
+            self.assertIn("](cover.png)", text)
+            self.assertIn("[action.png](action.png)", text)
+            self.assertNotRegex(text, r"!\[[^\]]*\]\(action\.png\)")
+        self.assertIn("](COVER.md)", en)
+        self.assertIn("](COVER.ru.md)", ru)
+
     def test_existing_russian_link_is_not_localized_twice(self):
         _, ru = report_locale.report_versions(self.source("[TACTICS](TACTICS.ru.md)"), analyze.DOCS)
         self.assertIn("](TACTICS.ru.md)", ru)

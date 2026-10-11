@@ -1,0 +1,53 @@
+{
+  "url": "http://127.0.0.1:8033/",
+  "measuredAt": "2026-10-11T14:58:55.690Z",
+  "runtimeMode": "aot-binary",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36",
+  "hardwareConcurrency": 24,
+  "nominalSeed": 7331,
+  "warmupTicks": 180,
+  "viewport": [
+    1440,
+    900
+  ],
+  "coreStep": {
+    "meanMs": 16.397499999999997,
+    "p50Ms": 17.1,
+    "p95Ms": 20.3
+  },
+  "stepAndExport": {
+    "meanMs": 21.917499999701977,
+    "p50Ms": 22.399999976158142,
+    "p95Ms": 26.599999994039536
+  },
+  "exportOnly": {
+    "meanMs": 4.527499999850988,
+    "p50Ms": 4.5,
+    "p95Ms": 5.899999976158142
+  },
+  "parse": null,
+  "frameWithForcedUi": {
+    "meanMs": 18.510000000397365,
+    "p50Ms": 16.599999994039536,
+    "p95Ms": 29.299999982118607
+  },
+  "frameBytes": 544256,
+  "realtime": {
+    "durationMs": 5003.199999988079,
+    "frames": 299,
+    "framesPerSecond": 59.761752478556204,
+    "elapsedTicks": 298,
+    "simulationTicksPerSecond": 59.561880396688125,
+    "frameIntervals": {
+      "meanMs": 16.744630872503222,
+      "p50Ms": 16.69999998807907,
+      "p95Ms": 19.599999994039536
+    }
+  },
+  "finalCounts": {
+    "ships": 35,
+    "projectiles": 175,
+    "debris": 1172,
+    "particles": 455
+  }
+}

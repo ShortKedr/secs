@@ -4,7 +4,12 @@ English | [Русский](README.ru.md)
 
 # Space Battle Benchmark
 
-> **Revision boundary:** current simulation uses [tactical AI `tactical-lock-v2`](TACTICS.md). The report and frozen evidence use `predictive-neutral-v1`. No new timing campaign was run. The full-suite/offline-analysis instructions below describe that historical campaign; the analyzer deliberately accepts only its v1 evidence. Do not overwrite the frozen results with v2 runs or treat old measurements as current-AI performance. A future v2 campaign needs separate outputs and an explicitly updated evidence gate.
+The [current gameplay cover workflow](COVER.md) is separate from this historical
+benchmark campaign. Its authoritative configuration is `cover-settings.json`;
+it updates only `cover.png` and `cover.png.json`, never frozen `action.png`,
+`action.png.json`, parity records or measured results.
+
+> **Revision boundary:** current gameplay is [mounted armament `mounted-armament-v3`](ARMAMENT.md), with [tactical AI `tactical-lock-v2`](TACTICS.md). The report and frozen evidence use `predictive-neutral-v1`. No new timing campaign was run. The full-suite/offline-analysis instructions below describe that historical campaign; the analyzer deliberately accepts only its v1 evidence. Do not overwrite frozen results with current runs or treat old measurements as current-gameplay performance. A new campaign needs separate outputs and an explicitly updated evidence gate.
 
 The headless host measures the shared `Battle<TStore>.Step` workload using five
 native ECS implementations. Do not run analysis, rendering, replay, builds or

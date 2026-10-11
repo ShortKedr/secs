@@ -1,0 +1,104 @@
+name: Space Battle Cover
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: space-battle-cover-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: SpaceBattle.Web/global.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install framebuffer capture dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xauth libgl1 libglx-mesa0 libgl1-mesa-dri libx11-6 libxrandr2 libxinerama1 libxcursor1 libxi6
+          python -m pip install -r tools/space-battle/cover-requirements.txt
+      - name: Test capture validation
+        run: python -m unittest discover -s tools/space-battle -p test_cover.py
+      - name: Build the real native frontend
+        working-directory: SpaceBattle.Web
+        run: dotnet build ../SpaceBattle.Game/SpaceBattle.Game.csproj -c Release --artifacts-path ../Benchmarks.Local/tmp/cover-build
+      - name: Simulate to the fixed battle tick and capture the framebuffer
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1200x24 +extension GLX +render -noreset" \
+            python tools/space-battle/cover.py capture \
+            --assembly Benchmarks.Local/tmp/cover-build/bin/SpaceBattle.Game/release/SpaceBattle.Game.dll \
+            --source-commit "$GITHUB_SHA"
+          python tools/space-battle/cover.py validate \
+            --directory Benchmarks.Local/tmp/space-battle-cover --source-commit "$GITHUB_SHA"
+      - name: Retain framebuffer and provenance even if publication fails
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: space-battle-cover
+          path: Benchmarks.Local/tmp/space-battle-cover/
+          if-no-files-found: warn
+          retention-days: 14
+
+  update:
+    needs: capture
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r tools/space-battle/cover-requirements.txt
+      - uses: actions/download-artifact@v8
+        with:
+          name: space-battle-cover
+          path: Benchmarks.Local/tmp/space-battle-cover
+      - name: Validate the downloaded image against this push
+        run: |
+          python tools/space-battle/cover.py validate \
+            --directory Benchmarks.Local/tmp/space-battle-cover --source-commit "$GITHUB_SHA"
+      - name: Update only the documentation cover if main is still current
+        run: |
+          git fetch --no-tags origin main
+          if [ "$(git rev-parse FETCH_HEAD)" != "$GITHUB_SHA" ]; then
+            echo "main advanced; leaving the newer source and cover untouched." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          cp Benchmarks.Local/tmp/space-battle-cover/cover.png docs/space-battle/cover.png
+          cp Benchmarks.Local/tmp/space-battle-cover/cover.png.json docs/space-battle/cover.png.json
+          git add -- docs/space-battle/cover.png docs/space-battle/cover.png.json
+          if git diff --cached --quiet; then
+            echo "Cover is already current." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m "docs: refresh Space Battle cover"
+          # Normal fast-forward only: a concurrent main push must not be overwritten.
+          if ! git push origin HEAD:refs/heads/main; then
+            echo "::error::Cover publication rejected. Check contents:write policy, main branch protection, or a newer push. The validated capture remains in the workflow artifact."
+            exit 1
+          fi
+          echo "Updated cover for source $GITHUB_SHA. GITHUB_TOKEN does not trigger another push workflow." >> "$GITHUB_STEP_SUMMARY"

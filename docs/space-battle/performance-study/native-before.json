@@ -1,0 +1,986 @@
+{
+  "Revision": "before",
+  "MeasuredAt": "2026-10-11T14:32:18.0233288+00:00",
+  "Runtime": ".NET 8.0.31",
+  "Os": "Microsoft Windows 10.0.26200",
+  "LogicalProcessors": 24,
+  "Ticks": 1200,
+  "PhaseTicks": 600,
+  "Repeats": 3,
+  "Config": {
+    "Seed": 7331,
+    "ShipsPerTeam": 96,
+    "CarriersPerTeam": 3,
+    "ArenaHalfSize": 210,
+    "ChurnMultiplier": 1,
+    "TickRate": 60,
+    "ReplenishCarriers": true,
+    "ParticleMultiplier": 1,
+    "MaxProjectiles": 24000,
+    "MaxDebris": 16000,
+    "MaxParticles": 32000
+  },
+  "Scope": "Core Step only; no snapshots, rendering or frontend statistics. Independent fresh seeded replays after separate warmup.",
+  "Runs": [
+    {
+      "Run": 1,
+      "Phases": [
+        {
+          "StartTick": 1,
+          "EndTick": 600,
+          "CoreStep": {
+            "MeanMs": 1.6468228333333321,
+            "P50Ms": 1.6012,
+            "P95Ms": 2.7028,
+            "P99Ms": 3.2552,
+            "MaxMs": 3.426,
+            "BudgetMissPercent": 0
+          },
+          "Stages": [
+            {
+              "Name": "collect",
+              "Timing": {
+                "MeanMs": 0.2040231666666667,
+                "P50Ms": 0.1919,
+                "P95Ms": 0.3634,
+                "P99Ms": 0.4801,
+                "MaxMs": 0.5438,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "ai",
+              "Timing": {
+                "MeanMs": 0.022278833333333328,
+                "P50Ms": 0.0064,
+                "P95Ms": 0.0927,
+                "P99Ms": 0.1491,
+                "MaxMs": 0.5973,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "thermal-inventory",
+              "Timing": {
+                "MeanMs": 0.012854499999999991,
+                "P50Ms": 0.0108,
+                "P95Ms": 0.021,
+                "P99Ms": 0.0227,
+                "MaxMs": 0.1282,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "steering",
+              "Timing": {
+                "MeanMs": 0.014594000000000011,
+                "P50Ms": 0.0124,
+                "P95Ms": 0.0247,
+                "P99Ms": 0.0315,
+                "MaxMs": 0.1496,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "weapons",
+              "Timing": {
+                "MeanMs": 0.011456166666666661,
+                "P50Ms": 0.009,
+                "P95Ms": 0.0221,
+                "P99Ms": 0.0376,
+                "MaxMs": 0.1678,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "carriers",
+              "Timing": {
+                "MeanMs": 0.001364666666666667,
+                "P50Ms": 0.0011,
+                "P95Ms": 0.0035,
+                "P99Ms": 0.0051,
+                "MaxMs": 0.007,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "physics",
+              "Timing": {
+                "MeanMs": 0.32055399999999984,
+                "P50Ms": 0.2681,
+                "P95Ms": 0.6784,
+                "P99Ms": 0.8081,
+                "MaxMs": 0.8889,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "hits",
+              "Timing": {
+                "MeanMs": 0.8163061666666663,
+                "P50Ms": 0.767,
+                "P95Ms": 1.3363,
+                "P99Ms": 1.6011,
+                "MaxMs": 1.7268,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "lifecycle",
+              "Timing": {
+                "MeanMs": 0.24337149999999988,
+                "P50Ms": 0.2301,
+                "P95Ms": 0.4206,
+                "P99Ms": 0.5456,
+                "MaxMs": 0.6453,
+                "BudgetMissPercent": 0
+              }
+            }
+          ],
+          "AllocatedBytes": 2845032,
+          "MeanCounts": [
+            117.56833333333333,
+            314.7733333333333,
+            863.8333333333334,
+            1842.2333333333333
+          ],
+          "FinalCounts": [
+            65,
+            330,
+            1373,
+            274
+          ],
+          "Store": {
+            "Entities": 2042,
+            "Archetypes": 49,
+            "Chunks": 78,
+            "NativeBytes": 3917825,
+            "AccessorBytes": 0
+          },
+          "Checksum": "50A44CE0774853E6",
+          "Counters": {
+            "ShipsCreated": 210,
+            "ShipsDestroyed": 145,
+            "Shots": 6829,
+            "Hits": 6204,
+            "PlasmaShieldHits": 338,
+            "ShieldBreaks": 289,
+            "Overheats": 46,
+            "Dockings": 25,
+            "Repairs": 5255,
+            "Builds": 12,
+            "ItemUses": 325,
+            "DebrisHits": 7395,
+            "Explosions": 145,
+            "StructuralAdds": 199050,
+            "StructuralRemoves": 192196,
+            "AimDecisions": 4024,
+            "ImpreciseAimDecisions": 1035,
+            "FriendlyFireHits": 3641,
+            "SelfHits": 3
+          }
+        },
+        {
+          "StartTick": 601,
+          "EndTick": 1200,
+          "CoreStep": {
+            "MeanMs": 0.9678095000000008,
+            "P50Ms": 0.9257,
+            "P95Ms": 1.2583,
+            "P99Ms": 1.4592,
+            "MaxMs": 1.7396,
+            "BudgetMissPercent": 0
+          },
+          "Stages": [
+            {
+              "Name": "collect",
+              "Timing": {
+                "MeanMs": 0.14990533333333325,
+                "P50Ms": 0.143,
+                "P95Ms": 0.1996,
+                "P99Ms": 0.2675,
+                "MaxMs": 0.3577,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "ai",
+              "Timing": {
+                "MeanMs": 0.007923833333333337,
+                "P50Ms": 0.0066,
+                "P95Ms": 0.0168,
+                "P99Ms": 0.0238,
+                "MaxMs": 0.0551,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "thermal-inventory",
+              "Timing": {
+                "MeanMs": 0.008653833333333354,
+                "P50Ms": 0.0076,
+                "P95Ms": 0.0125,
+                "P99Ms": 0.0176,
+                "MaxMs": 0.1103,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "steering",
+              "Timing": {
+                "MeanMs": 0.008683500000000028,
+                "P50Ms": 0.0076,
+                "P95Ms": 0.0126,
+                "P99Ms": 0.0175,
+                "MaxMs": 0.1285,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "weapons",
+              "Timing": {
+                "MeanMs": 0.00761199999999999,
+                "P50Ms": 0.0069,
+                "P95Ms": 0.0116,
+                "P99Ms": 0.0153,
+                "MaxMs": 0.1182,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "carriers",
+              "Timing": {
+                "MeanMs": 0.001955500000000003,
+                "P50Ms": 0.0019,
+                "P95Ms": 0.0034,
+                "P99Ms": 0.0039,
+                "MaxMs": 0.0062,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "physics",
+              "Timing": {
+                "MeanMs": 0.1351380000000001,
+                "P50Ms": 0.1287,
+                "P95Ms": 0.1804,
+                "P99Ms": 0.2223,
+                "MaxMs": 0.4487,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "hits",
+              "Timing": {
+                "MeanMs": 0.472239166666667,
+                "P50Ms": 0.4496,
+                "P95Ms": 0.6649,
+                "P99Ms": 0.7899,
+                "MaxMs": 1.0074,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "lifecycle",
+              "Timing": {
+                "MeanMs": 0.175676,
+                "P50Ms": 0.1701,
+                "P95Ms": 0.2291,
+                "P99Ms": 0.2625,
+                "MaxMs": 0.3133,
+                "BudgetMissPercent": 0
+              }
+            }
+          ],
+          "AllocatedBytes": 305032,
+          "MeanCounts": [
+            58.575,
+            278.87666666666667,
+            1278.3066666666666,
+            608.4616666666667
+          ],
+          "FinalCounts": [
+            49,
+            334,
+            1146,
+            688
+          ],
+          "Store": {
+            "Entities": 2217,
+            "Archetypes": 56,
+            "Chunks": 85,
+            "NativeBytes": 4578305,
+            "AccessorBytes": 0
+          },
+          "Checksum": "42C9FB4365FCD0CE",
+          "Counters": {
+            "ShipsCreated": 228,
+            "ShipsDestroyed": 179,
+            "Shots": 9581,
+            "Hits": 8434,
+            "PlasmaShieldHits": 456,
+            "ShieldBreaks": 364,
+            "Overheats": 63,
+            "Dockings": 43,
+            "Repairs": 11752,
+            "Builds": 30,
+            "ItemUses": 425,
+            "DebrisHits": 9689,
+            "Explosions": 179,
+            "StructuralAdds": 265915,
+            "StructuralRemoves": 258707,
+            "AimDecisions": 5618,
+            "ImpreciseAimDecisions": 1432,
+            "FriendlyFireHits": 4294,
+            "SelfHits": 3
+          }
+        }
+      ],
+      "GcCollections": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "Run": 2,
+      "Phases": [
+        {
+          "StartTick": 1,
+          "EndTick": 600,
+          "CoreStep": {
+            "MeanMs": 1.8226598333333315,
+            "P50Ms": 1.7838,
+            "P95Ms": 3.2505,
+            "P99Ms": 4.0489,
+            "MaxMs": 4.2026,
+            "BudgetMissPercent": 0
+          },
+          "Stages": [
+            {
+              "Name": "collect",
+              "Timing": {
+                "MeanMs": 0.2223535,
+                "P50Ms": 0.2017,
+                "P95Ms": 0.4172,
+                "P99Ms": 0.6137,
+                "MaxMs": 0.6907,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "ai",
+              "Timing": {
+                "MeanMs": 0.026278500000000003,
+                "P50Ms": 0.0081,
+                "P95Ms": 0.1027,
+                "P99Ms": 0.1607,
+                "MaxMs": 0.8031,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "thermal-inventory",
+              "Timing": {
+                "MeanMs": 0.014827833333333344,
+                "P50Ms": 0.0126,
+                "P95Ms": 0.0277,
+                "P99Ms": 0.0349,
+                "MaxMs": 0.0745,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "steering",
+              "Timing": {
+                "MeanMs": 0.016570166666666674,
+                "P50Ms": 0.0142,
+                "P95Ms": 0.0334,
+                "P99Ms": 0.0422,
+                "MaxMs": 0.08,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "weapons",
+              "Timing": {
+                "MeanMs": 0.013441666666666671,
+                "P50Ms": 0.011,
+                "P95Ms": 0.0273,
+                "P99Ms": 0.0451,
+                "MaxMs": 0.2102,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "carriers",
+              "Timing": {
+                "MeanMs": 0.001685833333333332,
+                "P50Ms": 0.0015,
+                "P95Ms": 0.0037,
+                "P99Ms": 0.0044,
+                "MaxMs": 0.0081,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "physics",
+              "Timing": {
+                "MeanMs": 0.3552958333333331,
+                "P50Ms": 0.2909,
+                "P95Ms": 0.7808,
+                "P99Ms": 1.0369,
+                "MaxMs": 1.3398,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "hits",
+              "Timing": {
+                "MeanMs": 0.909701333333334,
+                "P50Ms": 0.847,
+                "P95Ms": 1.6615,
+                "P99Ms": 2.006,
+                "MaxMs": 2.3584,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "lifecycle",
+              "Timing": {
+                "MeanMs": 0.2624806666666666,
+                "P50Ms": 0.2405,
+                "P95Ms": 0.501,
+                "P99Ms": 0.649,
+                "MaxMs": 0.7125,
+                "BudgetMissPercent": 0
+              }
+            }
+          ],
+          "AllocatedBytes": 2845032,
+          "MeanCounts": [
+            117.56833333333333,
+            314.7733333333333,
+            863.8333333333334,
+            1842.2333333333333
+          ],
+          "FinalCounts": [
+            65,
+            330,
+            1373,
+            274
+          ],
+          "Store": {
+            "Entities": 2042,
+            "Archetypes": 49,
+            "Chunks": 78,
+            "NativeBytes": 3917825,
+            "AccessorBytes": 0
+          },
+          "Checksum": "50A44CE0774853E6",
+          "Counters": {
+            "ShipsCreated": 210,
+            "ShipsDestroyed": 145,
+            "Shots": 6829,
+            "Hits": 6204,
+            "PlasmaShieldHits": 338,
+            "ShieldBreaks": 289,
+            "Overheats": 46,
+            "Dockings": 25,
+            "Repairs": 5255,
+            "Builds": 12,
+            "ItemUses": 325,
+            "DebrisHits": 7395,
+            "Explosions": 145,
+            "StructuralAdds": 199050,
+            "StructuralRemoves": 192196,
+            "AimDecisions": 4024,
+            "ImpreciseAimDecisions": 1035,
+            "FriendlyFireHits": 3641,
+            "SelfHits": 3
+          }
+        },
+        {
+          "StartTick": 601,
+          "EndTick": 1200,
+          "CoreStep": {
+            "MeanMs": 0.9594056666666672,
+            "P50Ms": 0.9352,
+            "P95Ms": 1.2406,
+            "P99Ms": 1.389,
+            "MaxMs": 1.6574,
+            "BudgetMissPercent": 0
+          },
+          "Stages": [
+            {
+              "Name": "collect",
+              "Timing": {
+                "MeanMs": 0.14718900000000004,
+                "P50Ms": 0.1419,
+                "P95Ms": 0.1921,
+                "P99Ms": 0.2146,
+                "MaxMs": 0.2288,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "ai",
+              "Timing": {
+                "MeanMs": 0.007780166666666672,
+                "P50Ms": 0.0066,
+                "P95Ms": 0.0157,
+                "P99Ms": 0.0225,
+                "MaxMs": 0.0579,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "thermal-inventory",
+              "Timing": {
+                "MeanMs": 0.008437333333333357,
+                "P50Ms": 0.0078,
+                "P95Ms": 0.0123,
+                "P99Ms": 0.0141,
+                "MaxMs": 0.0316,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "steering",
+              "Timing": {
+                "MeanMs": 0.008469666666666691,
+                "P50Ms": 0.0077,
+                "P95Ms": 0.0124,
+                "P99Ms": 0.016,
+                "MaxMs": 0.0273,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "weapons",
+              "Timing": {
+                "MeanMs": 0.007527833333333335,
+                "P50Ms": 0.0071,
+                "P95Ms": 0.0122,
+                "P99Ms": 0.0148,
+                "MaxMs": 0.0266,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "carriers",
+              "Timing": {
+                "MeanMs": 0.00196266666666667,
+                "P50Ms": 0.0019,
+                "P95Ms": 0.0035,
+                "P99Ms": 0.0042,
+                "MaxMs": 0.007,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "physics",
+              "Timing": {
+                "MeanMs": 0.1354156666666666,
+                "P50Ms": 0.1308,
+                "P95Ms": 0.1778,
+                "P99Ms": 0.2349,
+                "MaxMs": 0.3619,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "hits",
+              "Timing": {
+                "MeanMs": 0.46610299999999993,
+                "P50Ms": 0.45,
+                "P95Ms": 0.6415,
+                "P99Ms": 0.7126,
+                "MaxMs": 0.8428,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "lifecycle",
+              "Timing": {
+                "MeanMs": 0.17649816666666657,
+                "P50Ms": 0.1721,
+                "P95Ms": 0.2247,
+                "P99Ms": 0.2498,
+                "MaxMs": 0.3506,
+                "BudgetMissPercent": 0
+              }
+            }
+          ],
+          "AllocatedBytes": 305032,
+          "MeanCounts": [
+            58.575,
+            278.87666666666667,
+            1278.3066666666666,
+            608.4616666666667
+          ],
+          "FinalCounts": [
+            49,
+            334,
+            1146,
+            688
+          ],
+          "Store": {
+            "Entities": 2217,
+            "Archetypes": 56,
+            "Chunks": 85,
+            "NativeBytes": 4578305,
+            "AccessorBytes": 0
+          },
+          "Checksum": "42C9FB4365FCD0CE",
+          "Counters": {
+            "ShipsCreated": 228,
+            "ShipsDestroyed": 179,
+            "Shots": 9581,
+            "Hits": 8434,
+            "PlasmaShieldHits": 456,
+            "ShieldBreaks": 364,
+            "Overheats": 63,
+            "Dockings": 43,
+            "Repairs": 11752,
+            "Builds": 30,
+            "ItemUses": 425,
+            "DebrisHits": 9689,
+            "Explosions": 179,
+            "StructuralAdds": 265915,
+            "StructuralRemoves": 258707,
+            "AimDecisions": 5618,
+            "ImpreciseAimDecisions": 1432,
+            "FriendlyFireHits": 4294,
+            "SelfHits": 3
+          }
+        }
+      ],
+      "GcCollections": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "Run": 3,
+      "Phases": [
+        {
+          "StartTick": 1,
+          "EndTick": 600,
+          "CoreStep": {
+            "MeanMs": 1.7877643333333322,
+            "P50Ms": 1.7195,
+            "P95Ms": 3.1404,
+            "P99Ms": 3.6465,
+            "MaxMs": 4.3251,
+            "BudgetMissPercent": 0
+          },
+          "Stages": [
+            {
+              "Name": "collect",
+              "Timing": {
+                "MeanMs": 0.21864683333333332,
+                "P50Ms": 0.2008,
+                "P95Ms": 0.4133,
+                "P99Ms": 0.5436,
+                "MaxMs": 0.6504,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "ai",
+              "Timing": {
+                "MeanMs": 0.025382666666666668,
+                "P50Ms": 0.0078,
+                "P95Ms": 0.1051,
+                "P99Ms": 0.1655,
+                "MaxMs": 0.6833,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "thermal-inventory",
+              "Timing": {
+                "MeanMs": 0.014705500000000017,
+                "P50Ms": 0.0125,
+                "P95Ms": 0.0287,
+                "P99Ms": 0.0348,
+                "MaxMs": 0.0493,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "steering",
+              "Timing": {
+                "MeanMs": 0.01639966666666667,
+                "P50Ms": 0.0141,
+                "P95Ms": 0.0347,
+                "P99Ms": 0.0424,
+                "MaxMs": 0.0525,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "weapons",
+              "Timing": {
+                "MeanMs": 0.013397,
+                "P50Ms": 0.011,
+                "P95Ms": 0.0267,
+                "P99Ms": 0.046,
+                "MaxMs": 0.1983,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "carriers",
+              "Timing": {
+                "MeanMs": 0.0017148333333333317,
+                "P50Ms": 0.0015,
+                "P95Ms": 0.0038,
+                "P99Ms": 0.0047,
+                "MaxMs": 0.0168,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "physics",
+              "Timing": {
+                "MeanMs": 0.3507774999999999,
+                "P50Ms": 0.2994,
+                "P95Ms": 0.7395,
+                "P99Ms": 0.96,
+                "MaxMs": 1.6509,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "hits",
+              "Timing": {
+                "MeanMs": 0.8863183333333343,
+                "P50Ms": 0.813,
+                "P95Ms": 1.5737,
+                "P99Ms": 1.8414,
+                "MaxMs": 2.1855,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "lifecycle",
+              "Timing": {
+                "MeanMs": 0.2603976666666667,
+                "P50Ms": 0.2328,
+                "P95Ms": 0.507,
+                "P99Ms": 0.5943,
+                "MaxMs": 0.7806,
+                "BudgetMissPercent": 0
+              }
+            }
+          ],
+          "AllocatedBytes": 2845032,
+          "MeanCounts": [
+            117.56833333333333,
+            314.7733333333333,
+            863.8333333333334,
+            1842.2333333333333
+          ],
+          "FinalCounts": [
+            65,
+            330,
+            1373,
+            274
+          ],
+          "Store": {
+            "Entities": 2042,
+            "Archetypes": 49,
+            "Chunks": 78,
+            "NativeBytes": 3917825,
+            "AccessorBytes": 0
+          },
+          "Checksum": "50A44CE0774853E6",
+          "Counters": {
+            "ShipsCreated": 210,
+            "ShipsDestroyed": 145,
+            "Shots": 6829,
+            "Hits": 6204,
+            "PlasmaShieldHits": 338,
+            "ShieldBreaks": 289,
+            "Overheats": 46,
+            "Dockings": 25,
+            "Repairs": 5255,
+            "Builds": 12,
+            "ItemUses": 325,
+            "DebrisHits": 7395,
+            "Explosions": 145,
+            "StructuralAdds": 199050,
+            "StructuralRemoves": 192196,
+            "AimDecisions": 4024,
+            "ImpreciseAimDecisions": 1035,
+            "FriendlyFireHits": 3641,
+            "SelfHits": 3
+          }
+        },
+        {
+          "StartTick": 601,
+          "EndTick": 1200,
+          "CoreStep": {
+            "MeanMs": 0.9567811666666669,
+            "P50Ms": 0.9294,
+            "P95Ms": 1.2494,
+            "P99Ms": 1.3289,
+            "MaxMs": 1.3686,
+            "BudgetMissPercent": 0
+          },
+          "Stages": [
+            {
+              "Name": "collect",
+              "Timing": {
+                "MeanMs": 0.14752699999999994,
+                "P50Ms": 0.1419,
+                "P95Ms": 0.198,
+                "P99Ms": 0.2153,
+                "MaxMs": 0.2268,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "ai",
+              "Timing": {
+                "MeanMs": 0.007821500000000006,
+                "P50Ms": 0.0067,
+                "P95Ms": 0.0162,
+                "P99Ms": 0.0237,
+                "MaxMs": 0.0368,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "thermal-inventory",
+              "Timing": {
+                "MeanMs": 0.00837850000000003,
+                "P50Ms": 0.0076,
+                "P95Ms": 0.0123,
+                "P99Ms": 0.0136,
+                "MaxMs": 0.0207,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "steering",
+              "Timing": {
+                "MeanMs": 0.008405166666666677,
+                "P50Ms": 0.0077,
+                "P95Ms": 0.0123,
+                "P99Ms": 0.0139,
+                "MaxMs": 0.017,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "weapons",
+              "Timing": {
+                "MeanMs": 0.007467999999999995,
+                "P50Ms": 0.007,
+                "P95Ms": 0.0118,
+                "P99Ms": 0.0148,
+                "MaxMs": 0.0259,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "carriers",
+              "Timing": {
+                "MeanMs": 0.0019421666666666693,
+                "P50Ms": 0.0019,
+                "P95Ms": 0.0033,
+                "P99Ms": 0.0041,
+                "MaxMs": 0.0064,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "physics",
+              "Timing": {
+                "MeanMs": 0.13369166666666657,
+                "P50Ms": 0.1289,
+                "P95Ms": 0.1751,
+                "P99Ms": 0.2015,
+                "MaxMs": 0.2971,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "hits",
+              "Timing": {
+                "MeanMs": 0.46611183333333356,
+                "P50Ms": 0.4497,
+                "P95Ms": 0.6403,
+                "P99Ms": 0.6885,
+                "MaxMs": 0.7237,
+                "BudgetMissPercent": 0
+              }
+            },
+            {
+              "Name": "lifecycle",
+              "Timing": {
+                "MeanMs": 0.17541483333333335,
+                "P50Ms": 0.1711,
+                "P95Ms": 0.2224,
+                "P99Ms": 0.2422,
+                "MaxMs": 0.3368,
+                "BudgetMissPercent": 0
+              }
+            }
+          ],
+          "AllocatedBytes": 305032,
+          "MeanCounts": [
+            58.575,
+            278.87666666666667,
+            1278.3066666666666,
+            608.4616666666667
+          ],
+          "FinalCounts": [
+            49,
+            334,
+            1146,
+            688
+          ],
+          "Store": {
+            "Entities": 2217,
+            "Archetypes": 56,
+            "Chunks": 85,
+            "NativeBytes": 4578305,
+            "AccessorBytes": 0
+          },
+          "Checksum": "42C9FB4365FCD0CE",
+          "Counters": {
+            "ShipsCreated": 228,
+            "ShipsDestroyed": 179,
+            "Shots": 9581,
+            "Hits": 8434,
+            "PlasmaShieldHits": 456,
+            "ShieldBreaks": 364,
+            "Overheats": 63,
+            "Dockings": 43,
+            "Repairs": 11752,
+            "Builds": 30,
+            "ItemUses": 425,
+            "DebrisHits": 9689,
+            "Explosions": 179,
+            "StructuralAdds": 265915,
+            "StructuralRemoves": 258707,
+            "AimDecisions": 5618,
+            "ImpreciseAimDecisions": 1432,
+            "FriendlyFireHits": 4294,
+            "SelfHits": 3
+          }
+        }
+      ],
+      "GcCollections": [
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

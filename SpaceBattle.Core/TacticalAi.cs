@@ -185,6 +185,20 @@ public sealed partial class Battle<TStore>
             var heatRate = WeaponHeatRate(actor.Primary) + WeaponHeatRate(actor.Secondary);
             var heatBudget = actor.Heat.CoolingPerSecond + MathF.Max(0, actor.Heat.Limit - actor.Heat.Value) / 3;
             var contribution = (primary + secondary) * Math.Clamp(heatBudget / MathF.Max(0.01f, heatRate), 0.15f, 1);
+            var mountCount = ShipCatalog.TurretCount(actor.Id.Class);
+            if (mountCount > 0)
+            {
+                // Mounts have independent heat budgets; do not throttle them by the main cannon's heat.
+                var cannon = ShipCatalog.TurretWeapon(actor.Id.Class, 0);
+                var plasma = ShipCatalog.TurretWeapon(actor.Id.Class, 1);
+                var cannonDps = ExpectedDps(actor, target, cannon, distance, out var cannonFlight);
+                var plasmaDps = ExpectedDps(actor, target, plasma, distance, out var plasmaFlight);
+                contribution += distance > cannon.Range ? 0 : mountCount / 2 * (cannonDps *
+                    Math.Clamp(12 / MathF.Max(0.01f, WeaponHeatRate(cannon)), 0, 1) +
+                    plasmaDps *
+                    Math.Clamp(12 / MathF.Max(0.01f, WeaponHeatRate(plasma)), 0, 1));
+                firstFlight = MathF.Max(firstFlight, MathF.Max(cannonFlight, plasmaFlight));
+            }
             if (contribution <= 0) continue;
             dps += contribution; approach = MathF.Min(approach, engage); flight = MathF.Max(flight, MathF.Max(firstFlight, secondFlight));
             threatening |= actor.Combat.LastAttacker == target.Entity && Tick - actor.Combat.LastDamageTick <= 180 ||

@@ -21,8 +21,16 @@ public sealed partial class Battle<TStore>
             Store.Get<Heat>(e).Value >= Store.Get<Heat>(e).Limit) return;
         var distance = Vector2.DistanceSquared(Store.Get<Transform>(e).Position, Store.Get<Transform>(b.Target).Position);
         if (distance > w.Range * w.Range) return;
+        if (w.Kind == WeaponKind.HeavyCannon)
+        {
+            var transform = Store.Get<Transform>(e);
+            var direction = FireControl.Predict(transform.Position, Store.Get<Motion>(e).Velocity,
+                Store.Get<Transform>(b.Target).Position, Store.Get<Motion>(b.Target).Velocity,
+                w.Speed, Store.Get<Collider>(e).Radius + 1.8f).Direction;
+            if (MathF.Abs(WrapAngle(MathF.Atan2(direction.Y, direction.X) - transform.Angle)) > ArmamentRules.MainAimTolerance) return;
+        }
         w.NextFireTick = Tick + Math.Max(1, (int)(w.Cooldown / Config.ChurnMultiplier));
-        shots.Add(new(e, b.Target, id.Serial, slot, w));
+        shots.Add(new(e, b.Target, id.Serial, slot, w, EntityKey.None));
     }
     private void FlushShots()
     {
@@ -31,27 +39,36 @@ public sealed partial class Battle<TStore>
         {
             var t = Store.Get<Transform>(shot.Owner); var velocity = Store.Get<Motion>(shot.Owner).Velocity;
             var weapon = shot.Weapon;
-            ref var heat = ref Store.Get<Heat>(shot.Owner);
+            var mounted = !shot.Gun.IsNone;
+            ref var heat = ref Store.Get<Heat>(mounted ? shot.Gun : shot.Owner);
             var target = Store.Get<Transform>(shot.Target).Position;
-            var muzzleOffset = Store.Get<Collider>(shot.Owner).Radius + 0.8f;
+            var muzzleOffset = Store.Get<Collider>(shot.Owner).Radius + (weapon.Kind == WeaponKind.HeavyCannon ? 1.8f : 0.8f);
             var aim = FireControl.Predict(t.Position, velocity, target, Store.Get<Motion>(shot.Target).Velocity,
                 weapon.Speed, muzzleOffset).Direction;
             var spread = FireControl.Spread(Config.Seed, shot.Serial, Tick, shot.Slot, out var imprecise);
             Counters.AimDecisions++;
             if (imprecise) Counters.ImpreciseAimDecisions++;
-            var angle = MathF.Atan2(aim.Y, aim.X) + spread;
+            var angle = (mounted ? shot.Angle : MathF.Atan2(aim.Y, aim.X)) + spread;
             var forward = new Vector2(MathF.Cos(angle), MathF.Sin(angle));
+            var origin = mounted ? shot.Origin : t.Position;
+            if (mounted)
+            {
+                velocity = shot.Velocity;
+                muzzleOffset = MuzzleDistance(origin - t.Position, forward, Store.Get<Collider>(shot.Owner).Radius + 0.8f);
+            }
             for (var burst = 0; burst < weapon.Burst; burst++)
             {
-                if (heat.Value >= heat.Limit) { State(shot.Owner, StateKind.Overheat, true); break; }
+                if (heat.Value >= heat.Limit) { if (!mounted) State(shot.Owner, StateKind.Overheat, true); break; }
                 if (projectiles.Count >= Config.MaxProjectiles) break;
-                var position = t.Position + forward * muzzleOffset;
+                var position = origin + forward * muzzleOffset;
                 var e = Store.Create(); var number = ++serial;
                 Store.Set(e, new Transform { Position = position, Previous = position, Angle = angle });
                 Store.Set(e, new Motion { Velocity = velocity + forward * weapon.Speed, MaxSpeed = weapon.Speed * 1.5f });
                 Store.Set(e, new Projectile { Serial = number, Owner = shot.Owner, Target = shot.Target,
-                    Kind = weapon.Kind, Damage = weapon.Damage, Radius = weapon.Kind == WeaponKind.MachineGun ? 0.12f : 0.45f, ExpiresTick = Tick + 240 });
+                    Kind = weapon.Kind, Damage = weapon.Damage, Radius = weapon.Kind == WeaponKind.MachineGun ? 0.12f : weapon.Kind == WeaponKind.HeavyCannon ? 0.9f : 0.45f, ExpiresTick = Tick + 240 });
                 projectiles.Add(new(e, number)); Counters.Shots++; Counters.StructuralAdds += 3;
+                if (mounted) { Counters.TurretShots++; Store.Get<MountedTurret>(shot.Gun).LastFireTick = Tick; }
+                if (weapon.Kind == WeaponKind.HeavyCannon) Counters.HeavyShots++;
                 heat.Value += weapon.HeatPerShot;
             }
         }
@@ -153,7 +170,8 @@ public sealed partial class Battle<TStore>
                 Store.Get<Identity>(p.Owner).Team == Store.Get<Identity>(target).Team) Counters.FriendlyFireHits++;
             if (target == p.Owner) Counters.SelfHits++;
             var velocity = Store.Get<Motion>(row.Entity).Velocity;
-            Effect(impact, velocity * 0.05f, p.Kind == WeaponKind.Plasma ? 1 : 0, 5);
+            Effect(impact, velocity * 0.05f, p.Kind == WeaponKind.HeavyCannon ? 3 : p.Kind == WeaponKind.Plasma ? 1 : 0,
+                p.Kind == WeaponKind.HeavyCannon ? 12 : 5);
             if (p.Kind is WeaponKind.Cannon or WeaponKind.Missile) Fragments(impact, velocity * 0.12f, 6, p.Damage * 0.2f);
             retired.Add(row.Entity);
         }
@@ -198,7 +216,7 @@ public sealed partial class Battle<TStore>
             Store.Set(e, new Transform { Position = position, Previous = position });
             Store.Set(e, new Motion { Velocity = velocity + new Vector2(rng.Range(-8, 8), rng.Range(-8, 8)) });
             Store.Set(e, new Particle { Serial = number, ExpiresTick = Tick + 20 + i % 35, Kind = kind, Size = kind == 2 ? rng.Range(1, 4) : rng.Range(0.15f, 0.8f),
-                Color = kind == 1 ? new(0.2f, 1, 0.8f, 1) : kind == 2 ? new(1, 0.35f, 0.1f, 1) : new(1, 0.8f, 0.2f, 1) });
+                Color = kind == 3 ? new(0.45f, 0.85f, 1, 1) : kind == 1 ? new(0.2f, 1, 0.8f, 1) : kind == 2 ? new(1, 0.35f, 0.1f, 1) : new(1, 0.8f, 0.2f, 1) });
             particles.Add(new(e, number)); Counters.StructuralAdds += 3;
         }
     }
@@ -252,6 +270,7 @@ public sealed partial class Battle<TStore>
                     var radius = Store.Get<Collider>(e).Radius;
                     physics.RemoveShip(Store.Get<PhysicsLink>(e).Body); serialToShip.Remove(id.Serial);
                     Counters.StructuralRemoves += ShipComponentCount(e);
+                    DestroyTurrets(e);
                     Store.Destroy(e); Counters.ShipsDestroyed++; Counters.Explosions++;
                     Effect(position, velocity, 2, (int)(radius * 12)); Fragments(position, velocity, (int)(radius * 10), radius * 2);
                     if (ShipCatalog.IsCarrier(id.Class) && Config.ReplenishCarriers)

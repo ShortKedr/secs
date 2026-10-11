@@ -34,7 +34,7 @@ internal sealed class FrontendProfiler : IDisposable
 
     private struct Sample
     {
-        public int Tick, Ships, Projectiles, Debris, Particles;
+        public int Tick, Ships, Projectiles, Debris, Particles, Turrets;
         public double SimulationCpuMs, SnapshotCaptureCpuMs, RenderSubmissionCpuMs, TotalCpuFrameMs, WallFrameIntervalMs;
         public double? GpuRenderMs;
     }
@@ -134,6 +134,7 @@ internal sealed class FrontendProfiler : IDisposable
             sample.RenderSubmissionCpuMs = render; sample.TotalCpuFrameMs = total;
             sample.Tick = frame.Tick; sample.Ships = frame.Ships.Count;
             sample.Projectiles = frame.Projectiles.Count; sample.Debris = frame.Debris.Count; sample.Particles = frame.Particles.Count;
+            sample.Turrets = frame.Turrets.Count;
         }
         frames++;
     }
@@ -191,6 +192,7 @@ internal sealed class FrontendProfiler : IDisposable
             Width = width, Height = height, Zoom = zoom, Hidden = hidden, Atlas = hasAtlas,
             VSync = false, FrameRateCap = 0, UpdateRateCap = 0, ControlsVerified = controlsVerified,
             battle.Config, Framework = battle.Framework,
+            GameplayRevision = ArmamentRules.Revision,
             Driver = new { Vendor = vendor, Renderer = device, Version = version },
             CoreDllSha256 = AssemblyHash(typeof(Battle<>).Assembly), GameDllSha256 = AssemblyHash(typeof(FrontendProfiler).Assembly),
             SecsAdapterDllSha256 = AssemblyHash(typeof(SecsStore).Assembly),
@@ -206,6 +208,7 @@ internal sealed class FrontendProfiler : IDisposable
                 GPU = "GL_TIME_ELAPSED around clear through final scene/HUD draw; elapsed GPU timeline, can include idle gaps while CPU generates geometry; not pure device busy utilization",
                 Present = "Unavailable: Silk auto-present follows Render callback. No CPU/GPU subtraction is used to infer present or VSync wait",
                 Percentiles = "Nearest-rank; milliseconds unless metric name specifies frames per second",
+                EntityCounts = "FinalEntities and CSV count captured render rows; docked ships and their mounts are excluded. FinalAliveEntities includes docked entities",
                 Excluded = "Initial fast-forward, warmup, GL.Finish query-tail drain, framebuffer readback, checkpoint/hash calculation, aggregation and file writing"
             },
             PresentCpuMs = (double?)null, PresentWaitMs = (double?)null,
@@ -221,7 +224,10 @@ internal sealed class FrontendProfiler : IDisposable
             Gpu = new { Supported = GpuSupported, UnavailableReason = GpuUnavailableReason, CounterBits, QueryRingSize, QueryRingExhaustedFrames = exhaustedQueries, Samples = gpu.Length, NullCount = nullGpu, ZeroSamples = gpu.Count(v => v == 0), RenderMs = Statistics(gpu) },
             GlErrors = Enumerable.Range(0, errorCount).Select(i => new { Frame = errorFrames[i], Code = errors[i] }).ToArray(),
             GlErrorOverflow = errorOverflow, GpuDataValid = gpuDataValid, ValidationPass = errorCount == 0 && errorOverflow == 0 && gpuDataValid,
-            FinalEntities = new { samples[^1].Ships, samples[^1].Projectiles, samples[^1].Debris, samples[^1].Particles },
+            FinalEntities = new { samples[^1].Ships, samples[^1].Projectiles, samples[^1].Debris, samples[^1].Particles, samples[^1].Turrets },
+            FinalAliveEntities = new { Ships = battle.ShipCount, Projectiles = battle.ProjectileCount, Debris = battle.DebrisCount,
+                Particles = battle.ParticleCount, Turrets = battle.TurretCount,
+                Total = battle.ShipCount + battle.ProjectileCount + battle.DebrisCount + battle.ParticleCount + battle.TurretCount },
             RawCsvPath = csv
         };
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
@@ -236,13 +242,13 @@ internal sealed class FrontendProfiler : IDisposable
     {
         Directory.CreateDirectory(Path.GetDirectoryName(csv!)!);
         using var writer = new StreamWriter(csv!);
-        writer.WriteLine("frame,tick,simulation_cpu_ms,snapshot_capture_cpu_ms,render_submission_cpu_ms,total_cpu_frame_ms,wall_frame_interval_ms,replay_wall_fps,wall_16_67ms_miss,cpu_16_67ms_miss,gpu_render_ms,present_cpu_ms,present_wait_ms,ships,projectiles,debris,particles");
+        writer.WriteLine("frame,tick,simulation_cpu_ms,snapshot_capture_cpu_ms,render_submission_cpu_ms,total_cpu_frame_ms,wall_frame_interval_ms,replay_wall_fps,wall_16_67ms_miss,cpu_16_67ms_miss,gpu_render_ms,present_cpu_ms,present_wait_ms,ships,projectiles,debris,particles,turrets");
         for (int i = 0; i < samples.Length; i++)
         {
             var s = samples[i];
             string gpu = s.GpuRenderMs?.ToString("R", CultureInfo.InvariantCulture) ?? "";
             string fps = s.WallFrameIntervalMs > 0 ? (1000 / s.WallFrameIntervalMs).ToString("R", CultureInfo.InvariantCulture) : "";
-            writer.WriteLine(FormattableString.Invariant($"{i},{s.Tick},{s.SimulationCpuMs:R},{s.SnapshotCaptureCpuMs:R},{s.RenderSubmissionCpuMs:R},{s.TotalCpuFrameMs:R},{s.WallFrameIntervalMs:R},{fps},{(s.WallFrameIntervalMs > FrameBudgetMs ? 1 : 0)},{(s.TotalCpuFrameMs > FrameBudgetMs ? 1 : 0)},{gpu},,,{s.Ships},{s.Projectiles},{s.Debris},{s.Particles}"));
+            writer.WriteLine(FormattableString.Invariant($"{i},{s.Tick},{s.SimulationCpuMs:R},{s.SnapshotCaptureCpuMs:R},{s.RenderSubmissionCpuMs:R},{s.TotalCpuFrameMs:R},{s.WallFrameIntervalMs:R},{fps},{(s.WallFrameIntervalMs > FrameBudgetMs ? 1 : 0)},{(s.TotalCpuFrameMs > FrameBudgetMs ? 1 : 0)},{gpu},,,{s.Ships},{s.Projectiles},{s.Debris},{s.Particles},{s.Turrets}"));
         }
     }
 

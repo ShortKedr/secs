@@ -87,6 +87,36 @@ try {
   });
   const state = () =>
     page.evaluate(() => JSON.parse(window.render_game_to_text()));
+  async function checkEntities() {
+    const current = await state();
+    assert.equal(current.binary.version, 3);
+    assert.equal(current.binary.headerValues, 80);
+    assert.equal(current.binary.rowValues, 16);
+    assert.equal(current.binary.totalRows, Object.values(current.renderCounts).reduce((sum, n) => sum + n, 0));
+    assert.equal(current.binary.byteLength, (80 + 16 * current.binary.totalRows) * 8);
+    assert.equal(current.statistics.entities, Object.values(current.counts).reduce((sum, n) => sum + n, 0));
+    assert.ok(current.renderCounts.turrets <= current.counts.turrets);
+    assert.equal(current.turrets.length, current.renderCounts.turrets);
+    const rows = await page.evaluate(() => {
+      const s = window.spaceBattle.snapshot;
+      return { ships: s.ships.map(r => Array.from(r)), turrets: s.turrets.map(r => Array.from(r)) };
+    });
+    const parents = new Map(rows.ships.map(r => [r[0], r]));
+    const serials = new Set();
+    for (const r of rows.turrets) {
+      const parent = parents.get(r[9]);
+      assert.ok(parent, "Visible turret has an undocked parent");
+      assert.equal(r[1], parent[1], "Turret shares parent team");
+      assert.ok(!serials.has(r[0]) && !parents.has(r[0]), "Independent turret serial");
+      serials.add(r[0]);
+      assert.ok(r.every(Number.isFinite), "Finite turret row");
+      assert.ok(r[10] >= 0 && r[10] <= 1 && r[11] >= 0 && r[11] <= 1, "Normalized recoil and heat");
+      assert.equal(r[5], 0);
+      assert.equal(r[6], 0);
+      assert.ok(Math.hypot(r[3] - parent[3], r[4] - parent[4]) <= parent[8] * 2, "Mount tracks parent hull pose");
+    }
+    return current;
+  }
   let initial = await state();
   const requiredMode = argument("--require-mode", null);
   if (requiredMode)
@@ -96,11 +126,12 @@ try {
       "Expected production AOT/binary build",
     );
   assert.equal(initial.seed, 7331);
-  assert.equal(initial.revision, "tactical-lock-v2");
+  assert.equal(initial.revision, "mounted-armament-v3");
   assert.equal(initial.tick, 0);
   assert.equal(initial.counts.ships, 198);
   assert.equal(initial.paused, true);
-  assert.equal(initial.statistics.entities, 198);
+  assert.ok(initial.counts.turrets > 0);
+  await checkEntities();
   assert.equal(initial.statistics.samples, 0);
   assert.equal(initial.statistics.meanMs, 0);
   assert.equal(initial.statistics.ticksPerSecond, 0);
@@ -113,7 +144,8 @@ try {
     await page.locator("#statistics").getAttribute("aria-expanded"),
     "true",
   );
-  assert.equal(await page.locator("#metric-total").textContent(), "198");
+  assert.equal(await page.locator("#metric-total").textContent(), initial.statistics.entities.toLocaleString("en"));
+  assert.match(await page.locator("#metric-turrets").textContent(), /\d/);
   await page.click("#stats-close");
   assert.equal(await page.locator("#simulation-stats").isVisible(), false);
   assert.equal(
@@ -128,6 +160,7 @@ try {
   );
 
   async function capture(name) {
+    await checkEntities();
     await page.screenshot({ path: path.join(evidence, `${name}.png`) });
     const canvas = PNG.sync.read(await page.locator("canvas").screenshot());
     let bright = 0;
@@ -148,6 +181,8 @@ try {
   const before = await page.locator("canvas").screenshot();
   await page.evaluate(() => window.advanceTime(10000));
   const nominal = await state();
+  assert.ok(nominal.counters.heavyShots > 0, "Built-in heavy cannons fire");
+  assert.ok(nominal.counters.turretShots > 0, "Independent turrets fire");
   assert.equal(nominal.tick, 600);
   const metric = nominal.statistics;
   assert.equal(metric.samples, 600);
@@ -241,7 +276,7 @@ try {
     const battle = window.spaceBattle,
       snapshot = battle.snapshot,
       camera = { ...battle.camera },
-      groups = ["ships", "projectiles", "debris", "particles"],
+      groups = ["ships", "projectiles", "debris", "particles", "turrets"],
       saved = groups.map((key) => snapshot[key].slice());
     const debris = saved[2].reduce(
       (largest, row) => (!largest || row[8] > largest[8] ? row : largest),

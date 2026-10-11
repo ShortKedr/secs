@@ -4,6 +4,10 @@ English | [Русский](TACTICS.ru.md)
 
 # Tactical AI
 
+Current gameplay adds [mounted armament `mounted-armament-v3`](ARMAMENT.md).
+Target cost now also includes mounted cannon/plasma DPS with their own heat
+budgets. Heavy hull weapons steer toward predicted intercept before firing.
+
 This describes the implemented `tactical-lock-v2` in
 [TacticalAi.cs](../../SpaceBattle.Core/TacticalAi.cs) and
 [Battle.cs](../../SpaceBattle.Core/Battle.cs), with firing/repair rules in

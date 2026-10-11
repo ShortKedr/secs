@@ -11,9 +11,13 @@ The browser runs shared Core + SECS + Aether, not the full five-framework compar
 Browser timings are not the desktop benchmark results below; cross-platform
 checksum equality is not promised.
 
-> **Historical measurements:** the tables, charts and captures below use `predictive-neutral-v1`. Current source uses `tactical-lock-v2` ([tactical AI](TACTICS.md)); no timing campaign for that revision has been run. The recorded results do not measure the new AI or its current browser build.
+> **Historical measurements:** the tables, charts and frozen benchmark captures below use `predictive-neutral-v1`. Current source uses `tactical-lock-v2` ([tactical AI](TACTICS.md)); no timing campaign for that revision has been run. The recorded results do not measure the new AI or its current browser build.
 
-![Actual frontend capture](action.png)
+![Current gameplay cover](cover.png)
+
+Cover: current gameplay, not the frozen measured run. [Capture workflow](COVER.md).
+
+The following capture metadata describes frozen [action.png](action.png), not the cover.
 
 OpenGL frontend capture: 1600 x 1000, seed 7331, 256 escorts per team, tick 900, zoom 2. Ships in snapshot: 101; rendered after clipping: 94; live ships by team: 60/65 (docked ships can be excluded from the snapshot list). This is NOT the benchmark configuration with 96 escorts per team and is not a timing result. The PNG sidecar has no seed field. Seed 7331 is confirmed by Options.Seed in the paired [headless capture replay](custom/frontend-capture-parity.json), matching checksum and Core/adapter hashes against the current action sidecar, and the known capture command; it is not a field read from the PNG sidecar.
 

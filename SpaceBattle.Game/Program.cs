@@ -46,7 +46,7 @@ internal sealed class BattleApp : IDisposable
     private int liveValidationPhase, liveValidationTick;
     private static long Timestamp()=>System.Diagnostics.Stopwatch.GetTimestamp();
     private static double Elapsed(long start)=> (Timestamp()-start)/(double)System.Diagnostics.Stopwatch.Frequency;
-    private int AliveEntities=>battle.ShipCount+battle.ProjectileCount+battle.DebrisCount+battle.ParticleCount;
+    private int AliveEntities=>battle.ShipCount+battle.ProjectileCount+battle.DebrisCount+battle.ParticleCount+battle.TurretCount;
     private double TickBudgetMs=>1000.0/(config.TickRate*speed);
     private struct TeamPopulation : IProcessor<Identity>
     {
@@ -189,13 +189,17 @@ internal sealed class BattleApp : IDisposable
         Click(new(390f*window.Size.X/window.FramebufferSize.X,22f*window.Size.Y/window.FramebufferSize.Y));
         Check(statisticsVisible==initialStatisticsVisible,"statistics click toggle");
         Step();
+        battle.Capture(frame);
         if(profileFrames>0)statistics.RecordTick(battle.LastTickMs,battle.LastStageMs);
         statistics.Refresh();Check(battle.Tick==1&&statistics.SampleCount==1,"statistics step");
+        Check(frame.Tick==battle.Tick,"snapshot matches stepped tick");
         Check(AliveEntities==battle.Store.Diagnostics().Entities,"alive ECS count including docked ships");
         Check(frame.Ships.Count<=battle.ShipCount,"snapshot ships bounded by alive ships");
+        Check(frame.Turrets.Count<=battle.TurretCount,"snapshot turrets bounded by alive turrets");
         HandleKey(Key.Space);int tick=battle.Tick;Update(.1);
         Check(battle.Tick==tick&&ticksPerSecond==0&&wallTicks==0,"paused tick rate");HandleKey(Key.Space);
         HandleKey(Key.R);statistics.Refresh();
+        Check(frame.Tick==battle.Tick&&frame.Ships.Count==battle.ShipCount&&frame.Turrets.Count==battle.TurretCount,"restart snapshot reset");
         Check(battle.Tick==0&&selected==-1&&statistics.SampleCount==0&&statistics.LastMs==0&&statistics.MeanMs==0&&statistics.P99Ms==0,"restart statistics reset");
         Check(statistics.P95Ms==0&&statistics.MaximumMs==0&&statistics.StageMeanMs.All(ms=>ms==0),"restart stage reset");
         var bounded=new SimulationStatistics(1);double[] stage=[1];
@@ -313,6 +317,12 @@ internal sealed class BattleApp : IDisposable
         foreach(var e in frame.Projectiles)
         {
             var p=Screen(e.Position); var tail=Screen(e.Position-e.Velocity*.045f);
+            if(e.Kind==(int)WeaponKind.HeavyCannon)
+            {
+                renderer.Line(Screen(e.Position-e.Velocity*.07f),p,Math.Max(2.5f,e.Radius*Scale*2),new(.5f,.85f,1,1));
+                renderer.Circle(p,Math.Max(3,e.Radius*Scale*2),new(.93f,.74f,.32f,1),true);
+                continue;
+            }
             var color=(WeaponKind)e.Kind switch
             {
                 WeaponKind.Plasma=>new Vector4(.5f,1,.65f,.9f),
@@ -331,10 +341,17 @@ internal sealed class BattleApp : IDisposable
             renderedShips++;
             renderer.Line(Screen(e.Position-e.Velocity*.12f),p,Math.Max(1,r*.3f),new(.22f,.59f,1,.25f));
             renderer.Ship(p,r,e.Angle,e.Kind,e.Team==0?Cyan:Red);
+            if(ShipCatalog.IsWeaponsPlatform((ShipClass)e.Kind))renderer.Gun(p,Math.Max(1.5f,r*.24f),e.Angle,0,e.Heat,e.Team,true);
             if(e.Shield>.01f&&r>=3)renderer.Circle(p,r*1.35f,new(.4f,.7f,1,Math.Clamp(e.Shield,0,1)*.4f));
             if(e.Heat>.65f)renderer.Circle(p,r*1.6f,new(1,.55f,.12f,Math.Clamp(e.Heat,0,1)*.7f));
             if(e.Hull<.98f&&r>=3) {renderer.Rect(p.X-r,p.Y+r+3,r*2,2,new(.18f,.2f,.23f,1));renderer.Rect(p.X-r,p.Y+r+3,r*2*Math.Clamp(e.Hull,0,1),2,new(.45f,.95f,.5f,1));}
             if(e.Serial==selected)renderer.Circle(p,r*2+4,White);
+        }
+        foreach(var turret in frame.Turrets)
+        {
+            var p=Screen(turret.Position);float r=Math.Max(1.4f,turret.Radius*Scale);
+            if(p.X < -r*4 || p.Y < -r*4 || p.X>w+r*4 || p.Y>h+r*4)continue;
+            renderer.Gun(p,r,turret.Angle,turret.Recoil,turret.Heat,turret.Team);
         }
         var population=new TeamPopulation();battle.Store.ForEach<Identity,TeamPopulation>(ref population);
         Hud(w,h,population);renderer.End();
@@ -357,12 +374,15 @@ internal sealed class BattleApp : IDisposable
             var gameHash=FrontendProfiler.AssemblyHash(typeof(BattleApp).Assembly);
             var secsHash=FrontendProfiler.AssemblyHash(typeof(SecsStore).Assembly);
             PngCapture.Save(capture!,w,h,pixels);
-            bool countsValid=AliveEntities==battle.Store.Diagnostics().Entities&&population.Cyan+population.Red==battle.ShipCount&&renderedShips<=frame.Ships.Count&&frame.Ships.Count<=battle.ShipCount;
+            var parentSerials=frame.Ships.Select(ship=>ship.Serial).ToHashSet();
+            bool countsValid=AliveEntities==battle.Store.Diagnostics().Entities&&population.Cyan+population.Red==battle.ShipCount&&renderedShips<=frame.Ships.Count&&frame.Ships.Count<=battle.ShipCount&&frame.Turrets.Count<=battle.TurretCount&&frame.Turrets.All(t=>parentSerials.Contains(t.ParentSerial));
             bool statisticsValid=statistics.SampleCount==Math.Min(battle.Tick,SimulationStatistics.WindowCapacity)&&
                 statistics.StageMeanMs.Length==Battle<SecsStore>.StageNames.Length&&ticksPerSecond==0&&
                 double.IsFinite(statistics.MeanMs)&&statistics.MeanMs>=0&&statistics.P95Ms<=statistics.P99Ms&&statistics.P99Ms<=statistics.MaximumMs;
             var stats=new {frame.Tick,Width=w,Height=h,Zoom=zoom,ConfiguredShipsPerTeam=config.ShipsPerTeam,Ships=frame.Ships.Count,RenderedShips=renderedShips,AliveCyan=population.Cyan,AliveRed=population.Red,Projectiles=frame.Projectiles.Count,Debris=frame.Debris.Count,Particles=frame.Particles.Count,BrightPixels=bright,UniqueColors=colors.Count,SceneBrightPixels=sceneBright,SceneUniqueColors=sceneColors.Count,Nonblank=ok,Atlas=renderer.HasAtlas,ControlsVerified=controlsVerified,BattleChecksum=checkpoint,CoreDllSha256=coreHash,GameDllSha256=gameHash,SecsAdapterDllSha256=secsHash,LastTickMs=frame.LastTickMs,P99=statistics.P99Ms,
-                AliveEntities,AliveShips=battle.ShipCount,DockedShips=battle.ShipCount-frame.Ships.Count,CountsValid=countsValid,StatisticsValid=statisticsValid,
+                AliveEntities,AliveShips=battle.ShipCount,DockedShips=battle.ShipCount-frame.Ships.Count,Turrets=frame.Turrets.Count,AliveTurrets=battle.TurretCount,DockedTurrets=battle.TurretCount-frame.Turrets.Count,
+                TurretPoses=frame.Turrets.Select(t=>new {t.Serial,t.ParentSerial,t.Team,t.Kind,X=t.Position.X,Y=t.Position.Y,t.Angle,t.Radius,t.Heat,t.Recoil}),
+                HeavyShots=frame.Counters.HeavyShots,TurretShots=frame.Counters.TurretShots,GameplayRevision=ArmamentRules.Revision,CountsValid=countsValid,StatisticsValid=statisticsValid,
                 Statistics=new {statistics.SampleCount,Capacity=SimulationStatistics.WindowCapacity,statistics.LastMs,statistics.MeanMs,statistics.P95Ms,statistics.P99Ms,statistics.MaximumMs,StageNames=Battle<SecsStore>.StageNames,statistics.StageMeanMs,WallTicksPerSecond=ticksPerSecond,RenderFps=renderFps,RenderSubmissionCpuMs=renderCpuMs,TickBudgetMs,MeanBudgetPercent=statistics.MeanMs/TickBudgetMs*100,Paused=paused,PanelVisible=statisticsVisible,OfflineCapture=true}};
             File.WriteAllText(capture+".json",System.Text.Json.JsonSerializer.Serialize(stats,new System.Text.Json.JsonSerializerOptions{WriteIndented=true}));
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(stats));captured=true;ResetRates();
@@ -392,7 +412,7 @@ internal sealed class BattleApp : IDisposable
             if(count>0){heat/=count;shield/=count;}
             r.Text(14,58+team*22,$"{(team==0?"CYAN":"RED ")} ALIVE {(team==0?population.Cyan:population.Red)}  HEAT {heat*100:0}%  SHIELD {shield*100:0}%",team==0?Cyan:Red);
         }
-        r.Text(14,98,$"ECS ALIVE {AliveEntities}  SHIPS {battle.ShipCount}  DOCKED {battle.ShipCount-frame.Ships.Count}  PROJECTILES {battle.ProjectileCount}  DEBRIS {battle.DebrisCount}  PARTICLES {battle.ParticleCount}",White,1);
+        r.Text(14,98,$"ECS ALIVE {AliveEntities}  SHIPS {battle.ShipCount}  DOCKED {battle.ShipCount-frame.Ships.Count}  TURRETS {battle.TurretCount}  PROJECTILES {battle.ProjectileCount}  DEBRIS {battle.DebrisCount}  PARTICLES {battle.ParticleCount}",White,1);
         r.Text(14,h-58,$"TICK LAST {statistics.LastMs:0.00} MEAN {statistics.MeanMs:0.00} P99 {statistics.P99Ms:0.00} MS",White);
         r.Text(14,h-36,$"TICKS/S {ticksPerSecond:0.0}  FPS {renderFps:0.0}  RENDER CPU {(renderCpuMs>0?renderCpuMs.ToString("0.00"):"--")} MS",White);
         if(statisticsVisible)
@@ -407,6 +427,7 @@ internal sealed class BattleApp : IDisposable
             for(int i=0;i<Battle<SecsStore>.StageNames.Length;i++)
                 r.Text(x+12,y+116+i*18,$"{Battle<SecsStore>.StageNames[i]} {statistics.StageMeanMs[i]:0.000}",White);
             r.Text(x+12,y+284,$"SHOTS {frame.Counters.Shots} HITS {frame.Counters.Hits}",White,1);
+            r.Text(x+12,y+296,$"HEAVY {frame.Counters.HeavyShots} TURRET {frame.Counters.TurretShots}",White,1);
         }
         if(r.HasAtlas)r.Text(14,h-16,$"BODIES {battle.PhysicsBodies} FIXTURES {battle.PhysicsFixtures} ARCH {storage.Archetypes} CHUNKS {storage.Chunks} NATIVE {storage.NativeBytes/1048576.0:0.00} MIB ACCESSORS {storage.AccessorBytes/1048576.0:0.00} MIB HEAP {managedBytes/1048576.0:0.00} MIB",White,1);
         else r.Text(14,h-16,"TEMPORARY PROCEDURAL SHIPS - ATLAS PENDING",new(.9f,.73f,.38f,1),1);

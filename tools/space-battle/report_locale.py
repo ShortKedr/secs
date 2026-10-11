@@ -7,12 +7,12 @@ the same render; missing English prose fails instead of publishing mixed text.
 import re
 
 HISTORICAL_NOTICE_EN = (
-    "> **Historical measurements:** the tables, charts and captures below use `predictive-neutral-v1`. "
+    "> **Historical measurements:** the tables, charts and frozen benchmark captures below use `predictive-neutral-v1`. "
     "Current source uses `tactical-lock-v2` ([tactical AI](TACTICS.md)); no timing campaign for that revision has been run. "
     "The recorded results do not measure the new AI or its current browser build.\n\n"
 )
 HISTORICAL_NOTICE_RU = (
-    "> **Исторические измерения:** таблицы, графики и захваты ниже относятся к `predictive-neutral-v1`. "
+    "> **Исторические измерения:** таблицы, графики и зафиксированные захваты бенчмарка ниже относятся к `predictive-neutral-v1`. "
     "Текущие исходники используют `tactical-lock-v2` ([тактический AI](TACTICS.ru.md)); серия замеров для этой версии не запускалась. "
     "Записанные результаты не измеряют новый AI или его текущую браузерную сборку.\n\n"
 )
@@ -27,6 +27,11 @@ def catalogue_body(docs, language):
 
 
 PHRASES = {
+    "Обложка текущего геймплея": "Current gameplay cover",
+    "Обложка: текущий геймплей, а не зафиксированный измеренный прогон. [Процесс захвата](COVER.md).":
+        "Cover: current gameplay, not the frozen measured run. [Capture workflow](COVER.md).",
+    "Следующие метаданные захвата относятся к зафиксированному [action.png](action.png), а не к обложке.":
+        "The following capture metadata describes frozen [action.png](action.png), not the cover.",
     "Цветовая шкала": "Color Scale",
     "Отставание до 5%": "Lag up to 5%",
     "Отставание от 30%": "Lag from 30%",

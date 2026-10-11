@@ -2,3 +2,5 @@
 Benchmarks.Local/vendor/** -text
 SpaceBattle.Web/wwwroot/assets/lucide.min.js -text
 SpaceBattle.Web/wwwroot/licenses/*.txt -text
+# Unified diffs require a space on blank context lines and portable LF endings.
+tools/performance/*.patch text eol=lf whitespace=-blank-at-eol

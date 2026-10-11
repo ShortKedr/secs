@@ -52,7 +52,7 @@ internal static partial class Validation
             for (var i = 0; i < 1800; i++) battle.Step();
             Require(first == battle.Checksum(), "deterministic replay");
         }
-        PhysicsChecks(); FireControlChecks(); ProjectileChecks(); MechanicsChecks(); TacticalChecks(); StatisticsChecks();
+        PhysicsChecks(); FireControlChecks(); ProjectileChecks(); MechanicsChecks(); TacticalChecks(); ArmamentChecks(); StatisticsChecks();
         Console.WriteLine("PASS: classes, plasma heat, live combat, production, structural churn, damaging debris, deterministic replay, compound physics and swept hits.");
     }
     private static void PhysicsChecks()
