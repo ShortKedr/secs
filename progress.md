@@ -15,10 +15,12 @@ Original prompt: Add a GitHub Actions build and GitHub Pages deployment of the S
 - Fixed 320 px toolbar overflow found by the responsive test.
 - Fixed hull/shield telemetry: presentation values are normalized fractions, not raw HP.
 - Prescribed Playwright client completed two action bursts and screenshots were visually inspected.
-- Documentation checker passed 28 documents / 596 local links; report tests passed.
+- Documentation checker passed 28 documents / 600 local links; 23 Python tests passed.
 - GitHub Pages configured for Actions and HTTPS at https://shortkedr.github.io/secs/.
+- Final /secs/ build passed corrected telemetry, error recovery, touch selection and two-finger zoom, all profiles, desktop/mobile layout, and realtime controls.
+- First Actions build/deploy succeeded: https://github.com/ShortKedr/secs/actions/runs/38137237606. Live HTML, .nojekyll and license inventory return HTTP 200.
+- Removed an unsupported upload-pages-artifact v3 input (the action already archives dotfiles), and pinned Ubuntu 24.04 before its upcoming latest-label migration.
 
 ## Remaining
 
-- Final /secs/ build passed corrected telemetry, error recovery, touch selection and two-finger zoom, all profiles, desktop/mobile layout, and realtime controls.
-- Verify GitHub Actions deployment and the live Pages URL.
+- Finish live-site browser checks and the final workflow run.
