@@ -4,6 +4,13 @@ English | [Русский](REPORT.ru.md)
 
 [Key results](#key-results) | [Entity composition](#measured-entity-composition) | [Tick timing](#tick-timing) | [Frontend](#separate-frontend-profile)
 
+**[Run the live .NET WASM demo](https://shortkedr.github.io/secs/)** |
+[Web source and local reproduction](../../SpaceBattle.Web/README.md)
+
+The browser runs shared Core + SECS + Aether, not the full five-framework comparison.
+Browser timings are not the desktop benchmark results below; cross-platform
+checksum equality is not promised.
+
 ![Actual frontend capture](action.png)
 
 OpenGL frontend capture: 1600 x 1000, seed 7331, 256 escorts per team, tick 900, zoom 2. Ships in snapshot: 101; rendered after clipping: 94; live ships by team: 60/65 (docked ships can be excluded from the snapshot list). This is NOT the benchmark configuration with 96 escorts per team and is not a timing result. The PNG sidecar has no seed field. Seed 7331 is confirmed by Options.Seed in the paired [headless capture replay](custom/frontend-capture-parity.json), matching checksum and Core/adapter hashes against the current action sidecar, and the known capture command; it is not a field read from the PNG sidecar.

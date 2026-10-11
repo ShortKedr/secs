@@ -4,6 +4,13 @@ English | [Русский](README.ru.md)
 
 ## [Read the benchmark report](docs/space-battle/REPORT.md)
 
+## [Run the live .NET WASM demo](https://shortkedr.github.io/secs/)
+
+[Web source and local reproduction](SpaceBattle.Web/README.md). The browser runs
+the shared Core + SECS + Aether simulation, not the full five-framework comparison.
+Browser timings are not the desktop benchmark results; cross-platform checksum
+equality is not promised.
+
 [**All implementations, benchmarks and tests**](Benchmarks.Local/README.md) |
 [**Third-party licenses and source pins**](THIRD_PARTY_NOTICES.md)
 

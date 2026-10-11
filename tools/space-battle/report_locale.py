@@ -191,9 +191,19 @@ def report_versions(markdown, docs):
     en_nav = ("English | [Русский](REPORT.ru.md)\n\n"
               "[Repository](../../README.md) | [Methodology](README.md) | [Systems](SYSTEMS.md)\n\n"
               "[Key results](#key-results) | [Entity composition](#measured-entity-composition) | "
-              "[Tick timing](#tick-timing) | [Frontend](#separate-frontend-profile)\n\n")
+              "[Tick timing](#tick-timing) | [Frontend](#separate-frontend-profile)\n\n"
+              "**[Run the live .NET WASM demo](https://shortkedr.github.io/secs/)** |\n"
+              "[Web source and local reproduction](../../SpaceBattle.Web/README.md)\n\n"
+              "The browser runs shared Core + SECS + Aether, not the full five-framework comparison.\n"
+              "Browser timings are not the desktop benchmark results below; cross-platform\n"
+              "checksum equality is not promised.\n\n")
     ru_nav = ("[English](REPORT.md) | Русский\n\n"
               "[Репозиторий](../../README.ru.md) | [Методика](README.ru.md) | [Системы](SYSTEMS.ru.md)\n\n"
               "[Ключевые результаты](#ключевые-результаты) | [Состав сущностей](#измеренный-состав-сущностей) | "
-              "[Время тика](#время-тика) | [Фронтенд](#отдельный-профиль-фронтенда)\n\n")
+              "[Время тика](#время-тика) | [Фронтенд](#отдельный-профиль-фронтенда)\n\n"
+              "**[Запустить демо .NET WASM в браузере](https://shortkedr.github.io/secs/?lang=ru)** |\n"
+              "[Исходники Web и локальное воспроизведение](../../SpaceBattle.Web/README.ru.md)\n\n"
+              "Браузер выполняет общую симуляцию Core + SECS + Aether, а не полное сравнение пяти фреймворков.\n"
+              "Браузерные тайминги не являются результатами настольных бенчмарков ниже;\n"
+              "равенство checksum между платформами не обещается.\n\n")
     return en_nav + english, ru_nav + russian

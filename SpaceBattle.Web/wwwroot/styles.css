@@ -1,0 +1,518 @@
+:root {
+  color-scheme: dark;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color: #e4e9eb;
+  background: #080a0c;
+  font-size: 13px;
+  letter-spacing: 0;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  overflow: hidden;
+}
+button,
+input,
+select,
+a {
+  font: inherit;
+}
+button,
+a,
+select,
+input {
+  color: inherit;
+}
+button,
+a {
+  touch-action: manipulation;
+}
+button,
+a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 34px;
+  min-width: 34px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+}
+button:hover,
+a:hover {
+  background: #252b2e;
+  border-color: #3a4449;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #55d6e8;
+  outline-offset: 2px;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.7;
+}
+#battle {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 280px;
+  background: #080a0c;
+}
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 18px;
+  background: #101416ee;
+  border-bottom: 1px solid #2a3236;
+  min-height: 60px;
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.identity strong {
+  font-size: 19px;
+}
+.identity > span {
+  color: #adb8be;
+}
+#live-dot {
+  width: 6px;
+  height: 6px;
+  background: #55d6e8;
+  border-radius: 50%;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 7px;
+  color: #89979e;
+  font-size: 11px;
+}
+.field select,
+.field input {
+  border: 1px solid #343c40;
+  background: #181e21;
+  border-radius: 4px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: #e4e9eb;
+}
+.seed input {
+  width: 98px;
+}
+.segments {
+  display: flex;
+  border: 1px solid #343c40;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+.segments button {
+  border-radius: 0;
+  min-width: 37px;
+  height: 30px;
+}
+.segments .active,
+#follow.active {
+  background: #293d40;
+  color: #80e4ef;
+}
+.links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.scoreboard {
+  position: absolute;
+  top: 82px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  pointer-events: none;
+}
+.faction {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 14px;
+  min-width: 100px;
+}
+.faction > span:first-child {
+  font-size: 10px;
+  font-weight: 700;
+}
+.faction strong {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+.faction > span:last-child {
+  font-size: 10px;
+  color: #a4adb2;
+  white-space: nowrap;
+}
+.cyan {
+  color: #5de4f1;
+}
+.red {
+  color: #ff686f;
+}
+.battle-clock {
+  text-align: center;
+  display: grid;
+  gap: 2px;
+}
+.battle-clock > span {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.battle-clock small {
+  font-size: 9px;
+  color: #88979e;
+}
+#telemetry {
+  position: absolute;
+  left: 18px;
+  bottom: 64px;
+  width: 270px;
+  background: #101416ed;
+  border: 1px solid #364146;
+  padding: 12px;
+  border-radius: 4px;
+}
+.telemetry-heading {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+.telemetry-heading strong {
+  flex: 1;
+  font-size: 12px;
+}
+.telemetry-heading button {
+  height: 28px;
+  min-width: 28px;
+}
+.meter {
+  display: grid;
+  grid-template-columns: 48px 1fr 42px;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  margin: 10px 0;
+}
+.meter output {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.meter progress {
+  width: 100%;
+  height: 4px;
+  appearance: none;
+  border: 0;
+  background: #303a3e;
+}
+.meter progress::-webkit-progress-bar {
+  background: #303a3e;
+}
+.meter progress::-webkit-progress-value {
+  background: #64dbaa;
+}
+.meter progress::-moz-progress-bar {
+  background: #64dbaa;
+}
+.shield progress::-webkit-progress-value {
+  background: #5dcddd;
+}
+.heat progress::-webkit-progress-value {
+  background: #f5b35e;
+}
+.shield progress::-moz-progress-bar {
+  background: #5dcddd;
+}
+.heat progress::-moz-progress-bar {
+  background: #f5b35e;
+}
+#ship-position {
+  color: #84949c;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.camera-tools {
+  position: absolute;
+  right: 18px;
+  bottom: 64px;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  background: #101416ed;
+  border: 1px solid #364146;
+  border-radius: 4px;
+  gap: 2px;
+}
+#zoom-label {
+  font-size: 10px;
+  color: #9cabb2;
+  min-width: 42px;
+  text-align: center;
+}
+footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 10px 18px;
+  min-height: 38px;
+  background: #101416ee;
+  border-top: 1px solid #2a3236;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #9caab0;
+  font-size: 10px;
+}
+footer > div {
+  display: flex;
+  gap: 16px;
+  font-variant-numeric: tabular-nums;
+}
+#status {
+  color: #c3ced3;
+}
+#load-state {
+  position: absolute;
+  inset: 60px 0 38px;
+  background: #080a0cf5;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.load-content {
+  text-align: center;
+  max-width: 520px;
+}
+.load-content h1 {
+  font-size: 18px;
+  font-weight: 500;
+}
+.load-content p {
+  color: #96a7af;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+#spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #293438;
+  border-top-color: #5de4f1;
+  border-radius: 50%;
+  margin: auto;
+  animation: spin 1s linear infinite;
+}
+#retry {
+  margin: 12px auto;
+  border-color: #46565e;
+  padding: 0 14px;
+}
+[hidden] {
+  display: none !important;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 950px) {
+  .toolbar {
+    gap: 10px;
+    padding: 10px;
+  }
+  .identity > span:not(#live-dot) {
+    display: none;
+  }
+  .field {
+    margin: 0 2px;
+  }
+  .field > span {
+    display: none;
+  }
+  .links {
+    gap: 0;
+  }
+  .scoreboard {
+    top: 78px;
+  }
+  footer {
+    padding: 10px;
+  }
+}
+@media (max-width: 620px) {
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 100px;
+  }
+  .identity {
+    flex: 1;
+  }
+  .links {
+    order: 1;
+  }
+  .controls {
+    order: 2;
+    flex-basis: 100%;
+    justify-content: space-between;
+    gap: 2px;
+  }
+  .seed input {
+    width: 88px;
+  }
+  .field select {
+    width: 88px;
+  }
+  .segments {
+    margin-left: 0;
+  }
+  .segments button {
+    min-width: 31px;
+  }
+  .scoreboard {
+    top: 118px;
+    gap: 16px;
+  }
+  .faction {
+    min-width: 78px;
+    gap: 4px 8px;
+  }
+  .faction strong {
+    font-size: 23px;
+  }
+  .camera-tools {
+    right: 10px;
+    bottom: 56px;
+  }
+  #telemetry {
+    left: 10px;
+    bottom: 104px;
+    width: 245px;
+  }
+  footer > div {
+    gap: 8px;
+  }
+  #checksum {
+    display: none;
+  }
+  #load-state {
+    top: 100px;
+  }
+  .identity strong {
+    font-size: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #spinner {
+    animation: none;
+  }
+}
+@media (max-width: 380px) {
+  .controls > button {
+    min-width: 30px;
+    width: 30px;
+  }
+  .seed input {
+    width: 76px;
+  }
+  .field select {
+    width: 80px;
+  }
+  .segments button {
+    min-width: 28px;
+  }
+  .scoreboard {
+    gap: 10px;
+  }
+  .faction {
+    min-width: 76px;
+  }
+  .faction > span:first-child {
+    font-size: 9px;
+  }
+  footer {
+    font-size: 9px;
+  }
+}
+@media (max-width: 380px) {
+  .controls {
+    display: grid;
+    grid-template-columns: 30px 30px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 4px;
+  }
+  .controls .field {
+    margin: 0;
+    min-width: 0;
+  }
+  .controls .field input,
+  .controls .field select {
+    width: 100%;
+    min-width: 0;
+  }
+  .segments {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  .segments button {
+    min-width: 42px;
+  }
+  .toolbar {
+    min-height: 132px;
+  }
+  .scoreboard {
+    top: 146px;
+  }
+  #load-state {
+    top: 132px;
+  }
+}

@@ -20,6 +20,7 @@ __pycache__/
 /Benchmarks.Local/python-packages/
 /Benchmarks.Local/matplotlib-cache/
 /Benchmarks.Local/tmp/
+/tools/web/node_modules/
 /Benchmarks.Local/baseline-bin/
 /Benchmarks.Local/bdn-*/
 /Benchmarks.Local/*-bdn-artifacts/

@@ -1,0 +1,7 @@
+{
+  "name": "space-battle-browser-checks",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node check-web.mjs" },
+  "devDependencies": { "playwright": "1.62.1", "pngjs": "7.0.0" }
+}

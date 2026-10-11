@@ -1,0 +1,32 @@
+param(
+    [string]$OutputDirectory = "Benchmarks.Local/tmp/web-publish",
+    [string]$BasePath = "/secs/"
+)
+$ErrorActionPreference = "Stop"
+$root = Split-Path -Parent $PSScriptRoot
+$output = [IO.Path]::GetFullPath((Join-Path $root $OutputDirectory))
+if (-not $output.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "OutputDirectory must remain inside the project."
+}
+if ($BasePath -notmatch '^/([a-zA-Z0-9_-]+/)*$') { throw "BasePath must be an absolute URL directory, e.g. /secs/ or /." }
+$env:DOTNET_CLI_HOME = Join-Path $root "Benchmarks.Local/.dotnet"
+$env:NUGET_PACKAGES = Join-Path $root "Benchmarks.Local/nuget-packages"
+$env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+$env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = "1"
+$env:DOTNET_GENERATE_ASPNET_CERTIFICATE = "false"
+Push-Location (Join-Path $root "SpaceBattle.Web")
+try {
+    & dotnet publish SpaceBattle.Web.csproj -c Release --artifacts-path "$root/Benchmarks.Local/tmp/web-build" -o $output
+    if ($LASTEXITCODE -ne 0) { throw "WebAssembly publish failed ($LASTEXITCODE)." }
+    $site = Join-Path $output "wwwroot"
+    $index = Join-Path $site "index.html"
+    $html = [IO.File]::ReadAllText($index)
+    if ($html -notmatch '<base href="[^"]*"\s*/?>') { throw "Missing base URL in index.html." }
+    $html = [Text.RegularExpressions.Regex]::Replace($html, '<base href="[^"]*"\s*/?>', '<base href="' + $BasePath + '">')
+    [IO.File]::WriteAllText($index, $html, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText((Join-Path $site ".nojekyll"), "", [Text.UTF8Encoding]::new($false))
+    if (-not (Test-Path (Join-Path $site "_framework/blazor.boot.json"))) { throw "Missing WASM runtime manifest." }
+    if (-not (Test-Path (Join-Path $site "assets/ships-atlas.png"))) { throw "Missing shared ship atlas." }
+    Write-Output "Published Space Battle: $site (base $BasePath)"
+}
+finally { Pop-Location }

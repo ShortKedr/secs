@@ -16,6 +16,10 @@ class ReportLocaleTests(unittest.TestCase):
         self.assertIn("| low | 0.3966 | BC1ED478AF94A722 |", ru)
         self.assertIn("](SYSTEMS.ru.md)", ru)
         self.assertIn("## Tick Timing", en)
+        self.assertIn("https://shortkedr.github.io/secs/", en)
+        self.assertIn("https://shortkedr.github.io/secs/?lang=ru", ru)
+        self.assertIn("](../../SpaceBattle.Web/README.md)", en)
+        self.assertIn("](../../SpaceBattle.Web/README.ru.md)", ru)
 
     def test_missing_translation_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "Missing English"):

@@ -82,6 +82,19 @@ documentation, data, or artwork. Their publication license must be chosen by the
 rightsholder; the absence of a root license does not mean public-domain or MIT.
 Third-party terms above apply only to their covered code.
 
+## Browser Distribution
+
+The [WebAssembly demo](SpaceBattle.Web/README.md) distributes compiled SECS,
+SpaceBattle.Core and SpaceBattle.SECS with Aether.Physics2D 2.2.0 (MS-PL),
+.NET/Blazor 8.0.31 (MIT and upstream third-party notices), and Lucide 1.55.0
+(ISC / MIT for Feather-derived icons). The static site ships the original license
+texts, copyright notices and artwork provenance in its
+[license directory](SpaceBattle.Web/wwwroot/licenses/), including a
+[distribution inventory](SpaceBattle.Web/wwwroot/licenses/NOTICE.txt).
+The demo does not bundle the four comparison ECS libraries, native OpenGL
+dependencies, or benchmark/test dependencies. The broader source comparison
+licensing conditions above remain unchanged.
+
 ## Verification
 
 ```powershell

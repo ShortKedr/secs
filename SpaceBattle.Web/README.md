@@ -1,0 +1,86 @@
+English | [Русский](README.ru.md)
+
+# SpaceBattle.Web
+
+**[Run the live demo](https://shortkedr.github.io/secs/)** |
+[Benchmark report](../docs/space-battle/REPORT.md) |
+[Repository](../README.md)
+
+## Runtime and Scenario
+
+This is a real .NET 8 Blazor WebAssembly host for the unchanged
+[SpaceBattle.Core](../SpaceBattle.Core), [SpaceBattle.SECS](../SpaceBattle.SECS)
+and [SECS](../SECS) simulation with Aether.Physics2D. C# runs the simulation in
+the browser; JavaScript Canvas is a thin renderer, not a JavaScript rewrite of
+the battle. Web host and renderer sources are in this directory.
+
+The three existing churn profiles are low=0.5, nominal=1 and high=2, with
+96 initial escorts and 3 carriers per team. Shared Core retains predictive
+intercept aiming, deterministic spread and team-neutral projectile/debris
+damage, including friendly and self hits. See the
+[simulation systems](../docs/space-battle/SYSTEMS.md) for the rule details.
+
+## Publish and Serve Locally
+
+From the repository root, use .NET SDK 8.0.425 (or a later 8.0.4xx patch,
+as selected by [global.json](global.json)) and the
+[publish helper](../tools/build-space-battle-web.ps1), which runs `dotnet publish`.
+Its default `-OutputDirectory` is `Benchmarks.Local/tmp/web-publish`; its default
+`-BasePath` is `/secs/`, the published GitHub Pages path:
+
+```powershell
+./tools/build-space-battle-web.ps1
+```
+
+For a local static server, publish with `-BasePath /` so assets resolve from the
+server root. With Python installed, serve the published `wwwroot` directory:
+
+```powershell
+./tools/build-space-battle-web.ps1 -OutputDirectory Benchmarks.Local/tmp/web-publish -BasePath /
+Set-Location Benchmarks.Local/tmp/web-publish/wwwroot
+python -m http.server 8000
+```
+
+Open [the local demo](http://localhost:8000/) or
+[its Russian interface](http://localhost:8000/?lang=ru). Republish with the
+default `/secs/` base path for Pages; it is not the local server's root path.
+
+## GitHub Pages
+
+The [GitHub Actions workflow](../.github/workflows/space-battle-pages.yml)
+builds and deploys the static demo to
+[the `/secs/` Pages target](https://shortkedr.github.io/secs/).
+The demo links back to the bilingual benchmark report. The Russian demo URL is
+[`?lang=ru`](https://shortkedr.github.io/secs/?lang=ru).
+The target link alone does not establish that a deployment has completed.
+
+Actions runs real Chromium checks before deployment and retains desktop/mobile
+screenshots as the `space-battle-browser-checks` artifact. It checks all profiles,
+same-browser reset parity, combat counters, camera/selection controls, touch,
+responsive layout and error recovery. Run the same checks locally:
+
+```powershell
+./tools/build-space-battle-web.ps1
+$env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/Benchmarks.Local/tmp/playwright-browsers"
+npm ci --prefix tools/web --cache Benchmarks.Local/tmp/npm-cache
+node tools/web/node_modules/playwright/cli.js install chromium
+node tools/web/check-web.mjs --base /secs/
+```
+
+The published site's [license inventory](wwwroot/licenses/NOTICE.txt) and original
+third-party notices are included in `wwwroot/licenses/`.
+
+## Metrics and Reproduction
+
+This demo runs SECS only; it is not the full five-framework comparison.
+Browser timings describe the current browser, WebAssembly runtime, device and
+execution conditions. Rendering, interop, warmup and tab scheduling can affect
+the experience; browser readings are not interchangeable with the measured
+desktop headless Step results or the separate OpenGL frontend profile.
+No cross-platform checksum equality or realtime FPS guarantee is promised.
+
+For the measured comparison and its limitations, read the
+[report](../docs/space-battle/REPORT.md). To reproduce the desktop campaign,
+follow the [benchmark methodology](../docs/space-battle/README.md) and
+[implementation/build inventory](../Benchmarks.Local/README.md).
+Publishing or running this demo does not regenerate or replace those measurements.

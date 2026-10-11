@@ -12,6 +12,7 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 DOCUMENTS = [
     "README.md", "SECS.Benchmarks/README.md", "SpaceBattle.Game/README.md",
+    "SpaceBattle.Web/README.md",
     "SpaceBattle.Game/Assets/PROVENANCE.md", "SpaceBattle.Adapters/README.md",
     "docs/SECS_OPTIMIZATION.md", "docs/benchmarks/optimization-methodology.md",
     "docs/space-battle/README.md", "docs/space-battle/PLAN.md",

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#080a0c" />
+    <title>SECS · Space Battle</title>
+    <base href="/" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="battle">
+      <canvas id="scene" aria-label="Autonomous space battle"></canvas>
+      <header class="toolbar">
+        <div class="identity">
+          <strong>SECS</strong><span data-i18n="title">Space battle</span
+          ><span id="live-dot"></span>
+        </div>
+        <div class="controls">
+          <button id="pause" data-tip="pause" aria-label="Pause">
+            <i data-lucide="pause"></i>
+          </button>
+          <button id="reset" data-tip="reset" aria-label="Reset">
+            <i data-lucide="rotate-ccw"></i>
+          </button>
+          <label class="field"
+            ><span data-i18n="profile">Profile</span
+            ><select id="profile">
+              <option value="low" data-i18n="low">Low</option>
+              <option value="nominal" selected data-i18n="nominal">
+                Nominal
+              </option>
+              <option value="high" data-i18n="high">High</option>
+            </select></label
+          >
+          <label class="field seed"
+            ><span data-i18n="seed">Seed</span
+            ><input
+              id="seed"
+              type="number"
+              min="0"
+              max="4294967295"
+              step="1"
+              value="7331"
+              inputmode="numeric"
+          /></label>
+          <div class="segments" aria-label="Speed">
+            <button data-speed="1" class="active">1×</button
+            ><button data-speed="2">2×</button
+            ><button data-speed="4">4×</button>
+          </div>
+        </div>
+        <div class="links">
+          <a
+            id="report"
+            href="https://github.com/ShortKedr/secs/blob/main/docs/space-battle/REPORT.md"
+            target="_blank"
+            rel="noopener"
+            data-tip="report"
+            aria-label="Report"
+            ><i data-lucide="file-text"></i></a
+          ><button id="language">RU</button
+          ><button
+            id="fullscreen"
+            data-tip="fullscreen"
+            aria-label="Fullscreen"
+          >
+            <i data-lucide="maximize"></i>
+          </button>
+        </div>
+      </header>
+      <aside class="scoreboard" aria-live="off">
+        <div class="faction cyan">
+          <span data-i18n="cyan">CYAN</span><strong id="cyan-count">—</strong
+          ><span id="cyan-hull">—</span>
+        </div>
+        <div class="battle-clock">
+          <span id="clock">00:00</span><small id="tick">TICK 0</small>
+        </div>
+        <div class="faction red">
+          <span data-i18n="red">RED</span><strong id="red-count">—</strong
+          ><span id="red-hull">—</span>
+        </div>
+      </aside>
+      <section id="telemetry" hidden>
+        <div class="telemetry-heading">
+          <strong id="ship-name"></strong
+          ><button id="follow" data-tip="follow" aria-label="Follow">
+            <i data-lucide="crosshair"></i></button
+          ><button id="deselect" data-tip="close" aria-label="Close">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="meter">
+          <span data-i18n="hull">Hull</span
+          ><progress id="hull" max="100" value="0"></progress
+          ><output id="hull-value"></output>
+        </div>
+        <div class="meter shield">
+          <span data-i18n="shield">Shield</span
+          ><progress id="shield" max="100" value="0"></progress
+          ><output id="shield-value"></output>
+        </div>
+        <div class="meter heat">
+          <span data-i18n="heat">Heat</span
+          ><progress id="heat" max="100" value="0"></progress
+          ><output id="heat-value"></output>
+        </div>
+        <div id="ship-position"></div>
+      </section>
+      <div class="camera-tools">
+        <button id="zoom-in" data-tip="zoomIn" aria-label="Zoom in">
+          <i data-lucide="plus"></i></button
+        ><button id="zoom-out" data-tip="zoomOut" aria-label="Zoom out">
+          <i data-lucide="minus"></i></button
+        ><button id="fit" data-tip="fit" aria-label="Fit arena">
+          <i data-lucide="scan"></i></button
+        ><span id="zoom-label">100%</span>
+      </div>
+      <footer>
+        <span id="status" data-i18n="loading">Loading simulation</span>
+        <div><span id="stats"></span><span id="checksum"></span></div>
+      </footer>
+      <div id="load-state" role="status">
+        <div class="load-content">
+          <div id="spinner"></div>
+          <h1 id="load-title" data-i18n="loading">Loading simulation</h1>
+          <p id="load-detail"></p>
+          <button id="retry" hidden>
+            <i data-lucide="refresh-cw"></i><span data-i18n="retry">Retry</span>
+          </button>
+        </div>
+      </div>
+    </main>
+    <script src="assets/lucide.min.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

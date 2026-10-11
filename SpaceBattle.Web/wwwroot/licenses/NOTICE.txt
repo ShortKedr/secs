@@ -1,0 +1,28 @@
+Space Battle Web distribution
+
+This browser application bundles only SECS, SpaceBattle.Core, SpaceBattle.SECS,
+Aether.Physics2D, .NET/Blazor WebAssembly, and Lucide icons. It does not bundle
+LeoECS, LeoECS Lite, Morpeh, StaticEcs, Silk.NET, or the benchmark/test tooling.
+
+Aether.Physics2D 2.2.0
+Copyright (c) Kastellanos Nikolaos 2015-2024
+Microsoft Permissive License (MS-PL). Original license: AETHER.txt.
+https://github.com/nkast/Aether.Physics2D
+Source commit: 8f522b5b6d2c1edd427de2692bc627c6d38411c3
+
+.NET runtime and ASP.NET Core/Blazor 8.0.31
+Copyright (c) .NET Foundation and Contributors.
+MIT license: DOTNET.txt and ASPNETCORE.txt.
+Bundled upstream third-party notices: DOTNET-THIRD-PARTY.txt and
+ASPNETCORE-THIRD-PARTY.txt. These upstream inventories are intentionally retained
+in full and may describe runtime features not used by this application.
+
+Lucide 1.55.0
+ISC / MIT (Feather-derived icons). Original licenses and copyright: LUCIDE.txt.
+https://github.com/lucide-icons/lucide
+Pinned browser file: https://unpkg.com/lucide@1.55.0/dist/umd/lucide.min.js
+SHA256: 48b3b5d82216bbe1d0c49dea480ed38fca8420c275c98f20505e3f9556f6b1d1
+
+Artwork provenance: ARTWORK.md.
+No additional license is assigned to this repository's own code or artwork.
+See https://github.com/ShortKedr/secs/blob/main/THIRD_PARTY_NOTICES.md.
