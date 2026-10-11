@@ -100,6 +100,27 @@ try {
   assert.equal(initial.tick, 0);
   assert.equal(initial.counts.ships, 198);
   assert.equal(initial.paused, true);
+  assert.equal(initial.statistics.entities, 198);
+  assert.equal(initial.statistics.samples, 0);
+  assert.equal(initial.statistics.meanMs, 0);
+  assert.equal(initial.statistics.ticksPerSecond, 0);
+  assert.ok(
+    initial.statistics.nativeBytes > 0 && initial.statistics.managedBytes > 0,
+  );
+  await page.click("#statistics");
+  assert.equal(await page.locator("#simulation-stats").isVisible(), true);
+  assert.equal(
+    await page.locator("#statistics").getAttribute("aria-expanded"),
+    "true",
+  );
+  assert.equal(await page.locator("#metric-total").textContent(), "198");
+  await page.click("#stats-close");
+  assert.equal(await page.locator("#simulation-stats").isVisible(), false);
+  assert.equal(
+    (await state()).checksum,
+    initial.checksum,
+    "Statistics toggle does not alter simulation",
+  );
   assert.equal(await page.locator("#load-state").isVisible(), false);
   assert.ok(
     (await page.locator("button svg").count()) >= 8,
@@ -128,6 +149,42 @@ try {
   await page.evaluate(() => window.advanceTime(10000));
   const nominal = await state();
   assert.equal(nominal.tick, 600);
+  const metric = nominal.statistics;
+  assert.equal(metric.samples, 600);
+  assert.equal(
+    metric.entities,
+    Object.values(nominal.counts).reduce((sum, value) => sum + value, 0),
+  );
+  assert.equal(metric.stages.length, 9);
+  assert.ok(
+    metric.meanMs > 0 &&
+      metric.p95Ms > 0 &&
+      metric.p99Ms >= metric.p95Ms &&
+      metric.maxMs >= metric.p99Ms,
+  );
+  assert.ok(metric.stages.every((ms) => Number.isFinite(ms) && ms >= 0));
+  assert.ok(
+    metric.physicsBodies > 0 && metric.physicsFixtures >= metric.physicsBodies,
+  );
+  assert.equal(
+    metric.ticksPerSecond,
+    0,
+    "Offline advance does not count as realtime throughput",
+  );
+  assert.ok(Math.abs(metric.budgetMs - 1000 / 60) < 1e-8);
+  assert.ok(
+    Math.abs(
+      metric.budgetUsedPercent - (metric.meanMs / metric.budgetMs) * 100,
+    ) < 1e-8,
+  );
+  await page.click("#statistics");
+  assert.equal(await page.locator("#stage-metrics dd").count(), 9);
+  assert.match(
+    await page.locator("#metric-samples").textContent(),
+    /600 \/ 600/,
+  );
+  await page.screenshot({ path: path.join(evidence, "statistics-en.png") });
+  await page.click("#stats-close");
   assert.ok(
     nominal.tactics.targetRetentions > 0 && nominal.tactics.groupOrders > 0,
     "Target leases and group focus run in WASM",
@@ -317,12 +374,20 @@ try {
   );
   await page.click('[data-speed="4"]');
   assert.ok(
+    Math.abs((await state()).statistics.budgetMs - 1000 / 240) < 1e-8,
+    "Speed changes the requested tick budget",
+  );
+  assert.ok(
     await page
       .locator('[data-speed="4"]')
       .evaluate((button) => button.classList.contains("active")),
   );
   await page.click("#language");
   assert.equal(await page.locator("html").getAttribute("lang"), "ru");
+  await page.click("#statistics");
+  assert.equal(await page.locator("#stats-title").textContent(), "Статистика");
+  await page.screenshot({ path: path.join(evidence, "statistics-ru.png") });
+  await page.click("#stats-close");
   assert.match(
     await page.locator("#report").getAttribute("href"),
     /REPORT\.ru\.md$/,
@@ -359,6 +424,57 @@ try {
     assert.deepEqual(dimensions.bad, [], `All tools fit: ${name}`);
     assert.equal(Math.round(dimensions.canvas.width), width);
     await capture(name);
+    await page.click("#statistics");
+    const panelLayout = await page.evaluate(() => {
+      const panel = document
+        .getElementById("simulation-stats")
+        .getBoundingClientRect();
+      const overlaps = (a, b) =>
+        a.left < b.right &&
+        a.right > b.left &&
+        a.top < b.bottom &&
+        a.bottom > b.top;
+      return {
+        overflow:
+          panel.left < 0 ||
+          panel.right > innerWidth ||
+          panel.top < 0 ||
+          panel.bottom > innerHeight,
+        collisions: [
+          ".toolbar",
+          ".scoreboard",
+          ".camera-tools",
+          "footer",
+        ].filter((selector) =>
+          overlaps(
+            panel,
+            document.querySelector(selector).getBoundingClientRect(),
+          ),
+        ),
+        textOverflow: [
+          ...document.querySelectorAll("#simulation-stats dd"),
+        ].some((el) => el.scrollWidth > el.clientWidth + 1),
+      };
+    });
+    assert.equal(
+      panelLayout.overflow,
+      false,
+      `Statistics fit viewport: ${name}`,
+    );
+    assert.deepEqual(
+      panelLayout.collisions,
+      [],
+      `Statistics do not overlap controls: ${name}`,
+    );
+    assert.equal(
+      panelLayout.textOverflow,
+      false,
+      `Statistics values fit: ${name}`,
+    );
+    await page.screenshot({
+      path: path.join(evidence, `statistics-${name}.png`),
+    });
+    await page.click("#stats-close");
   }
   const mobileContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -436,17 +552,42 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(url, { waitUntil: "networkidle", timeout: 120000 });
   await page.waitForFunction(() => window.spaceBattle?.ready);
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(1400);
   const running = await state();
   assert.ok(running.tick > 0);
+  assert.ok(
+    running.statistics.ticksPerSecond > 0 &&
+      running.statistics.fps > 0 &&
+      running.statistics.renderCpuMs > 0,
+    "Live tick/render rates are distinct positive measurements",
+  );
   await page.click("#pause");
   const stopped = (await state()).tick;
   await page.waitForTimeout(250);
   assert.equal((await state()).tick, stopped);
+  assert.equal(
+    (await state()).statistics.ticksPerSecond,
+    0,
+    "Paused simulation rate is zero",
+  );
   await page.keyboard.press("Space");
   await page.waitForTimeout(250);
   assert.ok((await state()).tick > stopped);
   await capture("realtime");
+  await page.click("#statistics");
+  await page.screenshot({
+    path: path.join(evidence, "statistics-realtime.png"),
+  });
+  await page.click("#reset");
+  await page.click("#pause");
+  await page.evaluate(() => window.spaceBattle.reset());
+  const resetStats = (await state()).statistics;
+  assert.equal(resetStats.samples, 0);
+  assert.equal(resetStats.meanMs, 0);
+  assert.equal(resetStats.p99Ms, 0);
+  assert.equal(resetStats.maxMs, 0);
+  assert.equal(resetStats.discardedTicks, 0);
+  assert.ok(resetStats.stages.every((value) => value === 0));
   assert.deepEqual(errors, [], "No browser errors or missing assets");
   results.push({ check: "controls-responsive-realtime", passed: true });
   await fs.writeFile(

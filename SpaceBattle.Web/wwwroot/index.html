@@ -112,6 +112,132 @@
         </div>
         <div id="ship-position"></div>
       </section>
+      <section
+        id="simulation-stats"
+        class="stats-panel"
+        hidden
+        aria-labelledby="stats-title"
+      >
+        <header class="stats-heading">
+          <strong id="stats-title" data-i18n="statistics">Statistics</strong>
+          <button
+            id="stats-close"
+            data-tip="closeStats"
+            aria-label="Close statistics"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+        <div class="stats-scroll">
+          <h2 data-i18n="performance">Performance</h2>
+          <dl>
+            <div>
+              <dt data-i18n="renderFps">Render FPS</dt>
+              <dd id="metric-fps"></dd>
+            </div>
+            <div>
+              <dt data-i18n="tickRate">Ticks/s / target</dt>
+              <dd id="metric-rate"></dd>
+            </div>
+            <div>
+              <dt data-i18n="tickMean">Tick mean / last</dt>
+              <dd id="metric-mean"></dd>
+            </div>
+            <div>
+              <dt>p95 / p99</dt>
+              <dd id="metric-percentiles"></dd>
+            </div>
+            <div>
+              <dt data-i18n="tickMaximum">Maximum tick</dt>
+              <dd id="metric-max"></dd>
+            </div>
+            <div>
+              <dt data-i18n="tickBudget">Tick budget / used</dt>
+              <dd id="metric-budget"></dd>
+            </div>
+            <div>
+              <dt data-i18n="tickSamples">Tick samples</dt>
+              <dd id="metric-samples"></dd>
+            </div>
+            <div>
+              <dt data-i18n="renderCpu">Canvas CPU</dt>
+              <dd id="metric-render"></dd>
+            </div>
+            <div>
+              <dt data-i18n="exportCpu">Render export CPU</dt>
+              <dd id="metric-export"></dd>
+            </div>
+            <div>
+              <dt data-i18n="backlog">Backlog / discarded ticks</dt>
+              <dd id="metric-backlog"></dd>
+            </div>
+          </dl>
+          <h2 data-i18n="entities">ECS entities</h2>
+          <dl>
+            <div>
+              <dt data-i18n="total">Total</dt>
+              <dd id="metric-total"></dd>
+            </div>
+            <div>
+              <dt data-i18n="shipCounts">Ships / docked</dt>
+              <dd id="metric-ships"></dd>
+            </div>
+            <div>
+              <dt data-i18n="projectileCounts">Projectiles</dt>
+              <dd id="metric-projectiles"></dd>
+            </div>
+            <div>
+              <dt data-i18n="debrisCounts">Debris / particles</dt>
+              <dd id="metric-debris"></dd>
+            </div>
+            <div>
+              <dt data-i18n="physicsCounts">Bodies / fixtures</dt>
+              <dd id="metric-physics"></dd>
+            </div>
+          </dl>
+          <h2 data-i18n="stageCosts">Stages · mean ms</h2>
+          <dl id="stage-metrics"></dl>
+          <h2 data-i18n="storage">Storage</h2>
+          <dl>
+            <div>
+              <dt data-i18n="nativeMemory">Native ECS / accessors</dt>
+              <dd id="metric-native"></dd>
+            </div>
+            <div>
+              <dt data-i18n="managedMemory">Managed heap</dt>
+              <dd id="metric-managed"></dd>
+            </div>
+            <div>
+              <dt data-i18n="archetypes">Archetypes / chunks</dt>
+              <dd id="metric-archetypes"></dd>
+            </div>
+            <div>
+              <dt>GC 0 / 1 / 2</dt>
+              <dd id="metric-gc"></dd>
+            </div>
+          </dl>
+          <h2 data-i18n="combat">Combat</h2>
+          <dl>
+            <div>
+              <dt data-i18n="shotCounts">Shots / hits</dt>
+              <dd id="metric-shots"></dd>
+            </div>
+            <div>
+              <dt data-i18n="production">Destroyed / built</dt>
+              <dd id="metric-production"></dd>
+            </div>
+            <div>
+              <dt data-i18n="friendlyHits">Friendly / self hits</dt>
+              <dd id="metric-friendly"></dd>
+            </div>
+            <div>
+              <dt data-i18n="groupCounts">Group / cover orders</dt>
+              <dd id="metric-groups"></dd>
+            </div>
+          </dl>
+          <div id="stats-runtime"></div>
+        </div>
+      </section>
       <div class="camera-tools">
         <button id="zoom-in" data-tip="zoomIn" aria-label="Zoom in">
           <i data-lucide="plus"></i></button
@@ -123,7 +249,18 @@
       </div>
       <footer>
         <span id="status" data-i18n="loading">Loading simulation</span>
-        <div><span id="stats"></span><span id="checksum"></span></div>
+        <div class="stats-summary">
+          <span id="stats"></span><span id="checksum"></span>
+        </div>
+        <button
+          id="statistics"
+          data-tip="statistics"
+          aria-label="Statistics"
+          aria-expanded="false"
+          aria-controls="simulation-stats"
+        >
+          <i data-lucide="chart-no-axes-combined"></i>
+        </button>
       </footer>
       <div id="load-state" role="status">
         <div class="load-content">

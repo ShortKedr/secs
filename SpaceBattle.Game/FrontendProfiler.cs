@@ -198,7 +198,7 @@ internal sealed class FrontendProfiler : IDisposable
             StopwatchFrequencyHz = Stopwatch.Frequency, FirstMeasuredStartTimestamp = firstMeasuredStart, LastMeasuredBoundaryTimestamp = lastMeasuredBoundary,
             Definitions = new
             {
-                SimulationCPU = "Step wrapper, including its rolling HUD timing queue; no snapshot or render",
+                SimulationCPU = "Step wrapper; live rolling statistics are disabled in replay profiling; no snapshot or render",
                 SnapshotCaptureCPU = "Battle.Capture only",
                 RenderSubmissionCPU = "Scene/HUD generation, telemetry queries, window title and GL clear/upload/draw submission; no Step, Capture or timer-query bookkeeping",
                 TotalCPUFrame = "Render callback entry through post-draw query/error bookkeeping, before sample storage and callback return; includes query polling but excludes auto-present",

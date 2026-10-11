@@ -40,6 +40,47 @@
       invalidSeed: "Seed must be an integer from 0 to 4294967295",
       preparing: "Starting .NET WebAssembly and loading ship sprites",
       failed: "Reload to retry the runtime initialization.",
+      statistics: "Statistics",
+      closeStats: "Close statistics",
+      performance: "Performance",
+      renderFps: "Render FPS",
+      tickRate: "Ticks/s / target",
+      tickMean: "Tick mean / last",
+      tickMaximum: "Maximum tick",
+      tickBudget: "Tick budget / used",
+      tickSamples: "Tick samples",
+      renderCpu: "Canvas CPU",
+      exportCpu: "Render export CPU",
+      backlog: "Backlog / discarded ticks",
+      entities: "ECS entities",
+      total: "Total",
+      shipCounts: "Ships / docked",
+      projectileCounts: "Projectiles",
+      debrisCounts: "Debris / particles",
+      physicsCounts: "Bodies / fixtures",
+      stageCosts: "Stages · mean ms",
+      storage: "Storage",
+      nativeMemory: "Native ECS / accessors",
+      managedMemory: "Managed heap",
+      archetypes: "Archetypes / chunks",
+      combat: "Combat",
+      shotCounts: "Shots / hits",
+      production: "Destroyed / built",
+      friendlyHits: "Friendly / self hits",
+      groupCounts: "Group / cover orders",
+      collect: "Collect",
+      ai: "AI",
+      thermalInventory: "Thermal / inventory",
+      steering: "Steering",
+      weapons: "Weapons",
+      carriers: "Carriers",
+      physics: "Physics",
+      hits: "Hits",
+      lifecycle: "Lifecycle",
+      tickUnit: "ticks/s",
+      entityUnit: "entities",
+      ms: "ms",
+      tickTimeUnit: "ms/tick",
     },
     ru: {
       title: "Космический бой",
@@ -77,6 +118,47 @@
       invalidSeed: "Сид: целое число от 0 до 4294967295",
       preparing: "Запуск .NET WebAssembly и загрузка спрайтов",
       failed: "Перезагрузите страницу для повторного запуска.",
+      statistics: "Статистика",
+      closeStats: "Закрыть статистику",
+      performance: "Производительность",
+      renderFps: "FPS рендера",
+      tickRate: "Тики/с / цель",
+      tickMean: "Тик: среднее / последний",
+      tickMaximum: "Максимальный тик",
+      tickBudget: "Бюджет тика / занят",
+      tickSamples: "Замеров тиков",
+      renderCpu: "Canvas CPU",
+      exportCpu: "Экспорт рендера CPU",
+      backlog: "Очередь / отброшено тиков",
+      entities: "ECS-сущности",
+      total: "Всего",
+      shipCounts: "Корабли / в доке",
+      projectileCounts: "Снаряды",
+      debrisCounts: "Обломки / частицы",
+      physicsCounts: "Тела / коллайдеры",
+      stageCosts: "Стадии · среднее мс",
+      storage: "Хранилище",
+      nativeMemory: "ECS / буферы доступа",
+      managedMemory: "Управляемая куча",
+      archetypes: "Архетипы / чанки",
+      combat: "Бой",
+      shotCounts: "Выстрелы / попадания",
+      production: "Уничтожено / построено",
+      friendlyHits: "Союзные / самопопадания",
+      groupCounts: "Группы / укрытия: приказы",
+      collect: "Сбор",
+      ai: "ИИ",
+      thermalInventory: "Нагрев / инвентарь",
+      steering: "Движение",
+      weapons: "Оружие",
+      carriers: "Носители",
+      physics: "Физика",
+      hits: "Попадания",
+      lifecycle: "Жизненный цикл",
+      tickUnit: "тиков/с",
+      entityUnit: "сущностей",
+      ms: "мс",
+      tickTimeUnit: "мс/тик",
     },
   };
   let lang = query.get("lang");
@@ -106,6 +188,11 @@
     lastFrameMs = 0,
     lastAdvanceMs = 0,
     tickCostMs = 0;
+  let ticksPerSecond = 0,
+    rateTicks = 0,
+    rateStart = 0,
+    renderCpuMs = 0,
+    discardedTicks = 0;
   const rowViews = [];
   const frameGroups = [[], [], [], []];
   const profiles = ["low", "nominal", "high"];
@@ -128,6 +215,28 @@
     "structuralRemoves",
   ];
   const tickMs = 1000 / 60;
+  const headerValues = 64,
+    headerBytes = headerValues * 8;
+  const stageKeys = [
+    "collect",
+    "ai",
+    "thermalInventory",
+    "steering",
+    "weapons",
+    "carriers",
+    "physics",
+    "hits",
+    "lifecycle",
+  ];
+  for (const key of stageKeys) {
+    const row = document.createElement("div"),
+      label = document.createElement("dt"),
+      value = document.createElement("dd");
+    label.dataset.i18n = key;
+    value.id = "stage-" + key;
+    row.append(label, value);
+    $("stage-metrics").append(row);
+  }
   const catchUpBudgetMs = 6;
   let width = 1,
     height = 1,
@@ -163,24 +272,24 @@
       !Number.isInteger(pointer) ||
       pointer < 0 ||
       pointer % 8 !== 0 ||
-      pointer + 256 > buffer.byteLength
+      pointer + headerBytes > buffer.byteLength
     ) {
       throw new Error("Invalid WASM frame pointer");
     }
     if (buffer !== heapBuffer || pointer !== framePointer) {
       heapBuffer = buffer;
       framePointer = pointer;
-      header = new Float64Array(buffer, pointer, 32);
+      header = new Float64Array(buffer, pointer, headerValues);
       rowViews.length = 0;
     }
     const totalRows = header[30],
       byteLength = header[31];
     if (
-      header[0] !== 1 ||
+      header[0] !== 2 ||
       !Number.isInteger(totalRows) ||
       totalRows < 0 ||
       !Number.isInteger(byteLength) ||
-      byteLength < 256 + totalRows * 128 ||
+      byteLength < headerBytes + totalRows * 128 ||
       pointer + byteLength > buffer.byteLength
     ) {
       throw new Error("Invalid WASM binary frame header");
@@ -198,12 +307,20 @@
     // Views belong to buffer slots, not entities: grouping boundaries can move.
     while (rowViews.length < totalRows) {
       rowViews.push(
-        new Float64Array(buffer, pointer + 256 + rowViews.length * 128, 16),
+        new Float64Array(
+          buffer,
+          pointer + headerBytes + rowViews.length * 128,
+          16,
+        ),
       );
     }
     snapshot ||= {
       counts: {},
       counters: {},
+      performance: {
+        stages: new Array(stageKeys.length).fill(0),
+        gcCollections: [0, 0, 0],
+      },
       ships: frameGroups[0],
       projectiles: frameGroups[1],
       debris: frameGroups[2],
@@ -220,6 +337,27 @@
     snapshot.counts.projectiles = header[7];
     snapshot.counts.debris = header[8];
     snapshot.counts.particles = header[9];
+    Object.assign(snapshot.performance, {
+      samples: header[32],
+      meanMs: header[33],
+      p95Ms: header[34],
+      p99Ms: header[35],
+      maxMs: header[36],
+      entities: header[37],
+      nativeBytes: header[38],
+      accessorBytes: header[39],
+      archetypes: header[40],
+      chunks: header[41],
+      physicsBodies: header[42],
+      physicsFixtures: header[43],
+      managedBytes: header[44],
+      exportCpuMs: header[45],
+      dockedShips: header[62],
+    });
+    for (let i = 0; i < stageKeys.length; i++)
+      snapshot.performance.stages[i] = header[46 + i];
+    for (let i = 0; i < 3; i++)
+      snapshot.performance.gcCollections[i] = header[55 + i];
     for (let i = 0; i < counterNames.length; i++) {
       snapshot.counters[counterNames[i]] = header[14 + i];
     }
@@ -260,6 +398,14 @@
       last = 0;
       tickCostMs = 0;
       lastAdvanceMs = 0;
+      ticksPerSecond =
+        rateTicks =
+        renderCpuMs =
+        discardedTicks =
+        fps =
+        lastFrameMs =
+          0;
+      rateStart = performance.now();
       fit();
       updateUI();
       draw();
@@ -271,6 +417,8 @@
     paused = value;
     accumulator = 0;
     last = 0;
+    ticksPerSecond = rateTicks = 0;
+    rateStart = performance.now();
     $("pause").innerHTML =
       '<i data-lucide="' + (paused ? "play" : "pause") + '"></i>';
     icons();
@@ -447,9 +595,12 @@
         "% " +
         t("teamHull");
     }
+    const metrics = statistics();
     $("stats").textContent =
-      `${snapshot.counts.ships} ${t("ships")} · ${snapshot.counts.projectiles} ${t("projectiles")}`;
-    $("checksum").textContent = `WASM Step ${snapshot.stepMs.toFixed(2)} ms`;
+      `${metrics.entities.toLocaleString(lang)} ${t("entityUnit")} · ${metrics.fps.toFixed(0)} FPS`;
+    $("checksum").textContent =
+      `${metrics.ticksPerSecond.toFixed(1)} ${t("tickUnit")} · ${metrics.meanMs.toFixed(2)} ${t("tickTimeUnit")}`;
+    if (!$("simulation-stats").hidden) updateStatistics(metrics);
     const ship = snapshot.ships.find((r) => r[0] === selected);
     $("telemetry").hidden = selected === null;
     if (selected !== null) {
@@ -476,6 +627,84 @@
         ? `X ${ship[3].toFixed(0)} · Y ${ship[4].toFixed(0)} · V ${Math.hypot(ship[5], ship[6]).toFixed(1)}`
         : "";
     }
+  }
+  function statistics() {
+    if (!snapshot) return null;
+    const budgetMs = tickMs / speed;
+    return {
+      ...snapshot.performance,
+      fps,
+      ticksPerSecond:
+        paused || document.hidden || testMode ? 0 : ticksPerSecond,
+      targetTicksPerSecond: paused ? 0 : 60 * speed,
+      budgetMs,
+      budgetUsedPercent: (snapshot.performance.meanMs / budgetMs) * 100,
+      lastMs: snapshot.stepMs,
+      renderCpuMs,
+      backlogTicks: accumulator / tickMs,
+      discardedTicks,
+      counts: { ...snapshot.counts },
+      runtimeMode,
+    };
+  }
+  function updateStatistics(m) {
+    const number = (value, digits = 0) =>
+      Number.isFinite(value)
+        ? value.toLocaleString(lang, {
+            minimumFractionDigits: digits,
+            maximumFractionDigits: digits,
+          })
+        : "—";
+    const pair = (a, b, digits = 0) =>
+      `${number(a, digits)} / ${number(b, digits)}`;
+    const ms = (value) => `${number(value, 2)} ${t("ms")}`;
+    const put = (key, value) => {
+      $("metric-" + key).textContent = value;
+    };
+    put("fps", number(m.fps, 1));
+    put("rate", pair(m.ticksPerSecond, m.targetTicksPerSecond, 1));
+    put("mean", pair(m.meanMs, m.lastMs, 2) + " " + t("ms"));
+    put("percentiles", pair(m.p95Ms, m.p99Ms, 2) + " " + t("ms"));
+    put("max", ms(m.maxMs));
+    put("budget", `${ms(m.budgetMs)} / ${number(m.budgetUsedPercent)}%`);
+    put("samples", `${m.samples} / 600`);
+    put("render", ms(m.renderCpuMs));
+    put("export", ms(m.exportCpuMs));
+    put("backlog", pair(m.backlogTicks, m.discardedTicks, 1));
+    put("total", number(m.entities));
+    put("ships", pair(m.counts.ships, m.dockedShips));
+    put("projectiles", number(m.counts.projectiles));
+    put("debris", pair(m.counts.debris, m.counts.particles));
+    put("physics", pair(m.physicsBodies, m.physicsFixtures));
+    put(
+      "native",
+      pair(m.nativeBytes / 1048576, m.accessorBytes / 1048576, 2) + " MiB",
+    );
+    put("managed", number(m.managedBytes / 1048576, 2) + " MiB");
+    put("archetypes", pair(m.archetypes, m.chunks));
+    put("gc", m.gcCollections.join(" / "));
+    put("shots", pair(snapshot.counters.shots, snapshot.counters.hits));
+    put(
+      "production",
+      pair(snapshot.counters.shipsDestroyed, snapshot.counters.builds),
+    );
+    put(
+      "friendly",
+      pair(snapshot.counters.friendlyFireHits, snapshot.counters.selfHits),
+    );
+    put("groups", pair(header[60], header[61]));
+    stageKeys.forEach((key, i) => {
+      $("stage-" + key).textContent = number(m.stages[i], 3);
+    });
+    $("stats-runtime").textContent =
+      `SECS · ${runtimeMode} · ${snapshot.revision}`;
+  }
+  function showStatistics(value) {
+    $("simulation-stats").hidden = !value;
+    $("statistics").classList.toggle("active", value);
+    $("statistics").setAttribute("aria-expanded", String(value));
+    $("battle").classList.toggle("statistics-open", value);
+    updateUI();
   }
   function fail(error) {
     ready = false;
@@ -546,14 +775,28 @@
       if (ticks) {
         try {
           advance(ticks);
+          rateTicks += ticks;
           accumulator -= ticks * tickMs;
+          discardedTicks += Math.max(0, accumulator / tickMs - 12);
           accumulator = Math.min(accumulator, tickMs * 12);
         } catch (error) {
           fail(error);
         }
       }
     }
+    if (ready && !paused && !testMode && !document.hidden && interval > 100)
+      discardedTicks += ((interval - 100) * speed) / tickMs;
+    if (now - rateStart >= 1000) {
+      ticksPerSecond = (rateTicks * 1000) / (now - rateStart);
+      rateTicks = 0;
+      rateStart = now;
+    }
+    const renderStart = performance.now();
     draw();
+    const renderSample = performance.now() - renderStart;
+    renderCpuMs = renderCpuMs
+      ? renderCpuMs * 0.9 + renderSample * 0.1
+      : renderSample;
     if (now - uiTime > 120) {
       updateUI();
       uiTime = now;
@@ -650,9 +893,12 @@
     (button) =>
       (button.onclick = () => {
         speed = Number(button.dataset.speed);
+        ticksPerSecond = rateTicks = 0;
+        rateStart = performance.now();
         document
           .querySelectorAll("[data-speed]")
           .forEach((b) => b.classList.toggle("active", b === button));
+        updateUI();
       }),
   );
   $("language").onclick = () => {
@@ -703,9 +949,13 @@
     }
   });
   $("retry").onclick = () => (runtimeStarted ? start() : location.reload());
+  $("statistics").onclick = () => showStatistics($("simulation-stats").hidden);
+  $("stats-close").onclick = () => showStatistics(false);
   document.addEventListener("visibilitychange", () => {
     last = 0;
     accumulator = 0;
+    ticksPerSecond = rateTicks = 0;
+    rateStart = performance.now();
   });
   window.addEventListener("resize", resize);
   new ResizeObserver(resize).observe(canvas);
@@ -723,6 +973,8 @@
       }
       accumulator = 0;
       last = 0;
+      ticksPerSecond = rateTicks = 0;
+      rateStart = performance.now();
       draw();
       updateUI();
       return snapshot;
@@ -769,6 +1021,7 @@
       runtimeMode,
       revision: snapshot?.revision,
       tactics: tacticCounters(),
+      statistics: statistics(),
       fps,
       lastFrameMs,
       stepMs: snapshot?.stepMs ?? 0,
@@ -805,6 +1058,7 @@
     },
     validate: () => bridge.Validate(),
     tactics,
+    statistics,
     refresh: () => {
       accept(bridge.Snapshot());
       updateUI();

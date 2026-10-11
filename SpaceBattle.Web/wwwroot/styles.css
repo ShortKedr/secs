@@ -319,6 +319,122 @@ footer > div {
   gap: 16px;
   font-variant-numeric: tabular-nums;
 }
+footer {
+  align-items: center;
+}
+footer .stats-summary {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 16px;
+  min-width: 0;
+}
+footer #statistics {
+  flex-shrink: 0;
+  height: 28px;
+  min-width: 28px;
+}
+#statistics.active {
+  color: #80e4ef;
+  background: #293d40;
+}
+.stats-panel {
+  position: absolute;
+  right: 18px;
+  bottom: 112px;
+  width: 340px;
+  max-width: calc(100% - 36px);
+  max-height: calc(100dvh - 270px);
+  display: flex;
+  flex-direction: column;
+  background: #101416f5;
+  border: 1px solid #364146;
+  border-radius: 4px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.stats-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid #2a3236;
+}
+.stats-heading strong {
+  font-size: 12px;
+}
+.stats-heading button {
+  height: 28px;
+  min-width: 28px;
+}
+.stats-scroll {
+  padding: 0 12px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.stats-panel h2 {
+  margin: 14px 0 6px;
+  color: #d1dde0;
+  font-size: 11px;
+  font-weight: 600;
+}
+.stats-panel dl {
+  margin: 0;
+}
+.stats-panel dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px solid #20282b;
+}
+.stats-panel dt {
+  color: #98a9af;
+  overflow-wrap: anywhere;
+}
+.stats-panel dd {
+  margin: 0;
+  text-align: right;
+  color: #e4e9eb;
+}
+#stats-runtime {
+  margin-top: 14px;
+  color: #89979e;
+  font-size: 10px;
+}
+@media (max-width: 620px) {
+  footer {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  footer #status {
+    display: none;
+  }
+  footer .stats-summary {
+    flex: 1;
+    display: grid;
+    justify-content: start;
+    gap: 2px;
+  }
+  footer #checksum {
+    display: inline;
+  }
+  .stats-panel {
+    right: 10px;
+    bottom: 106px;
+    width: 340px;
+    max-width: calc(100% - 20px);
+    max-height: calc(100dvh - 292px);
+  }
+  #battle.statistics-open #telemetry {
+    display: none;
+  }
+}
+@media (max-height: 480px) {
+  .stats-panel {
+    bottom: 112px;
+    max-height: calc(100dvh - 258px);
+  }
+}
 #status {
   color: #c3ced3;
 }

@@ -83,6 +83,31 @@ third-party notices are included in `wwwroot/licenses/`.
 
 ## Metrics and Reproduction
 
+The chart button in the footer opens live statistics (EN/RU); the compact footer
+always shows total ECS entities, render FPS, real ticks/s and mean Step time.
+Alive counts include docked ships and offscreen entities, not just visible sprites.
+The panel separates ships/docked ships, projectiles, debris and particles, plus
+physics bodies/fixtures, combat counters, native ECS/accessor memory, managed heap,
+archetypes/chunks and runtime GC collection totals. Managed heap is not total
+browser/WASM/process memory; native and accessor bytes are separate storage figures.
+
+Tick mean, nearest-rank p95/p99, maximum and stage means use the latest 600 executed
+ticks (up to 10 simulated seconds at 60 Hz), including initial warmup. They are
+refreshed at most every 250 ms and retained on pause; reset clears the window.
+These consecutive ticks are diagnostic samples, not independent benchmark runs.
+Collection happens outside Core Step and does not alter its measured scope.
+The binary header carries the metrics; no per-frame JSON serialization is added.
+
+Real ticks/s counts only normal RAF-driven simulation over a wall-time window;
+offline `advanceTime` does not inflate it. Pause/hidden tabs show zero ticks/s.
+Render FPS is frame cadence, not tick throughput. Canvas CPU is smoothed CPU time
+for Canvas drawing, not GPU time or the full frame; render export CPU is the last
+Core capture/binary-buffer preparation, including throttled metric refresh when due.
+The requested tick budget is `1000 / (60 * speed)` ms and its used percentage is
+mean Core Step divided by that budget. It excludes rendering/export and does not
+promise the requested speed. Backlog/discarded ticks expose the browser catch-up
+limit; discarded time is not skipped gameplay state or an executed tick.
+
 This demo runs SECS only; it is not the full five-framework comparison.
 Browser timings describe the current browser, WebAssembly runtime, device and
 execution conditions. Rendering, interop, warmup and tab scheduling can affect

@@ -13,6 +13,44 @@ by AI. Use `--ships 2048` for the 4096-escort stress configuration.
 Controls: Space pauses, +/- changes simulation speed, R restarts the seeded
 battle, Home fits the arena, WASD/arrows pan, middle/right drag pans, wheel zooms
 at the cursor, left click selects a ship. The top HUD controls are clickable.
+F3 or the bar-chart icon toggles detailed simulation statistics; `--statistics`
+opens the panel on launch, including for automated captures.
+
+## Live Statistics
+
+The footer also shows physics bodies/fixtures, archetypes/chunks, native ECS and
+accessor storage bytes, and managed heap in MiB, sampled every 250 ms outside Step.
+Managed heap is not total process memory. Storage figures are separate, not added
+to an invented total. The first frame has no prior render CPU sample and shows `--`.
+
+The always-on summary separates alive ECS entities (ships, including docked
+ships, projectiles, debris and particles) from the render snapshot. Capture JSON
+also separates alive ships, docked ships, snapshot ships and submitted ships;
+submitted ships pass the camera bounds check, not a pixel visibility test.
+Team heat/shield averages cover undocked snapshot ships only.
+
+Tick last/mean/p95/p99/max and per-stage means use the shared, bounded rolling
+window of at most 600 ticks. Samples are recorded after Step, without sample
+allocations; percentile/stage snapshots refresh at most every 250 ms. Restart
+clears history. This is live telemetry, not an independent benchmark.
+The detailed panel shows sample count, stage means and the mean percentage of
+the `1000 / (TickRate * speed)` ms simulation budget. Wall ticks/s counts only
+real-time Update ticks, excluding preload, capture fast-forward and profiling;
+it is zero on pause. Render FPS remains independent of simulation pause.
+Render CPU is elapsed scene/HUD generation and GL submission time for the
+previous draw, not GPU time or present time. Rate windows restart after capture
+so PNG/readback stalls are excluded from subsequent live rates.
+
+For isolated-build validation, capture tick 300 with `--statistics --validate-controls
+--validate-render --width 960 --height 540`, then repeat at 1440 x 900 and
+3840 x 2160. Toggle the panel and check selection/controls at each size.
+The diagnostic JSON includes the statistics snapshot, count invariants and
+bounded-window validation; control checks cover pause, reset and both toggles.
+`--hidden --validate-controls --validate-live-statistics` separately checks the
+real Update/Render loop, positive tick/FPS rates, paused render cadence, history,
+speed-dependent budget and reset, then exits automatically. It must run without
+capture or replay profiling. OS window bounds may clamp a requested large size;
+the capture JSON records actual framebuffer dimensions.
 
 `Assets/ships-atlas.png` is optional during development and copied on build.
 The transparent atlas has four columns and three rows, row-major classes 0-10;
@@ -75,7 +113,7 @@ one million, measured count must be positive. `--profile-csv PATH` is optional.
 All output paths must remain under the current project directory.
 
 CPU phase values are host elapsed Stopwatch timings, not hardware CPU-cycle
-counters. SimulationCPU covers Step and its rolling HUD queue; SnapshotCaptureCPU
+counters. SimulationCPU covers Step (live statistics are excluded in profiling); SnapshotCaptureCPU
 covers only Battle.Capture. RenderSubmissionCPU covers scene/HUD generation,
 telemetry queries, title update, and GL clear/upload/draw submission. It excludes
 simulation, snapshot capture and GPU query bookkeeping. TotalCPUFrame spans

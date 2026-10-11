@@ -85,3 +85,17 @@ Original prompt: Add a GitHub Actions build and GitHub Pages deployment of the S
 - Prescribed Playwright client completed two 240-tick battle bursts; desktop/mobile/client screenshots were visually inspected. Evidence is in Benchmarks.Local/tmp/web-tactics-client. Local AOT demo remains available at http://127.0.0.1:8023/?lang=ru.
 - Bilingual tactical documentation and historical-report notices are complete. Offline rendering passed the original frozen evidence gate, 42 Space Battle Python tests plus 14 general tool tests passed, and docs passed 30 bilingual documents / 1286 local links / 194 publishable targets. All original report table text and original URLs are preserved; all 77 JSON/CSV/PNG evidence hashes and original native benchmark DLL hashes remain unchanged.
 - Old report evidence remains predictive-neutral-v1, not new-AI performance. No new timing benchmark, commit, push, Actions dispatch or other remote mutation occurred. Unrelated local changes were preserved.
+
+## Live Frontend Statistics
+
+- User requested simulation performance/entity statistics in both the WebAssembly and OpenGL frontends.
+- Added a shared allocation-free 600-tick rolling statistics buffer outside Core Step, nearest-rank p95/p99, maximum, mean and nine stage means. Tick samples are not independent benchmark repeats.
+- Web binary header v2 exports bounded timing/storage/physics counters without per-frame JSON. A chart button opens a bilingual, scrollable diagnostics panel; the footer retains a compact live summary.
+- Desktop HUD adds alive/docked/offscreen ECS category totals, wall ticks/s separate from FPS and render submission CPU, plus an F3/clickable chart panel and storage/physics summary.
+- Real rates exclude offline fast-forward; pause clears throughput, reset clears tick statistics. Requested budget follows simulation speed and excludes presentation costs. No source benchmark evidence is replaced.
+- Headless statistics tests passed: zero/single/rolling/invalid/reset samples, stage means, quantiles, no sampling allocations, true ECS counts and checksum neutrality. Isolated Headless and Game Release builds succeeded.
+- Final hidden OpenGL captures passed rendering/control/statistics invariants at 960x540, 1440x900 and actual 3840x1421 (OS clamped the requested 3840x2160). Minimum/desktop screenshots were visually inspected. Real Update/Render loop validation passed positive tick/FPS rates, paused render cadence/history, speed budget and reset.
+- Production AOT publish and complete Chromium checker passed all profiles, checksum/reset parity, squad/cover combat, live rates, EN/RU statistics, mobile/landscape layout, touch/error recovery and muted debris. Fixed a two-pixel landscape camera-tool overlap found by the new layout assertions.
+- Prescribed Playwright action client completed two 240-tick bursts; latest scene and full statistics screenshots were inspected. No console/page errors. Evidence: Benchmarks.Local/tmp/statistics-native, web-statistics-final-checks and web-statistics-client.
+- 42 Space Battle Python tests, 14 general tool tests and bilingual docs validation (30 documents / 1286 local links / 194 targets) passed. Existing reports/data and frozen Core/SECS/Game benchmark DLLs remain unchanged. No commit/push/remote changes for this task.
+- Local AOT demo is served at http://127.0.0.1:8024/?lang=ru by hidden Python process 43436; the earlier port 8023 was left alone. No remaining feature TODOs.

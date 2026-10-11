@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
+using System.Diagnostics;
 using SpaceBattle;
 
 namespace SpaceBattle.Web;
@@ -8,13 +9,15 @@ namespace SpaceBattle.Web;
 [SupportedOSPlatform("browser")]
 public static unsafe partial class BattleBridge
 {
-    private const int HeaderValues = 32;
+    private const int HeaderValues = 64;
     private const int RowValues = 16;
     private static Battle<SecsStore>? battle;
     private static readonly BattleFrame frame = new();
     private static double* buffer;
     private static int capacity;
     private static int profile;
+    private static readonly SimulationStatistics statistics = new(Battle<SecsStore>.StageNames.Length);
+    private static long nextStatisticsRefresh;
 
     [JSExport]
     public static int Reset(string requestedProfile, double seed)
@@ -41,6 +44,8 @@ public static unsafe partial class BattleBridge
         }
         catch { store.Dispose(); throw; }
         profile = requested;
+        statistics.Reset();
+        nextStatisticsRefresh = 0;
         battle.Validate();
         return Snapshot();
     }
@@ -50,7 +55,11 @@ public static unsafe partial class BattleBridge
     {
         if (ticks is < 0 or > 600) throw new ArgumentOutOfRangeException(nameof(ticks));
         var current = Current;
-        for (int i = 0; i < ticks; i++) current.Step();
+        for (int i = 0; i < ticks; i++)
+        {
+            current.Step();
+            statistics.RecordTick(current.LastTickMs, current.LastStageMs);
+        }
         return Snapshot();
     }
 
@@ -104,11 +113,12 @@ public static unsafe partial class BattleBridge
     [JSExport]
     public static int Snapshot()
     {
+        var started = Stopwatch.GetTimestamp();
         var current = Current;
         current.Capture(frame);
         int rows = frame.Ships.Count + frame.Projectiles.Count + frame.Debris.Count + frame.Particles.Count;
         EnsureCapacity(rows);
-        buffer[0] = 1;
+        buffer[0] = 2;
         buffer[1] = frame.Tick;
         buffer[2] = frame.ArenaHalfSize;
         buffer[3] = current.Config.Seed;
@@ -141,11 +151,39 @@ public static unsafe partial class BattleBridge
         buffer[29] = c.StructuralRemoves;
         buffer[30] = rows;
         buffer[31] = (HeaderValues + rows * RowValues) * sizeof(double);
+        if (started >= nextStatisticsRefresh || statistics.SampleCount == 1)
+        {
+            statistics.Refresh();
+            var storage = current.Store.Diagnostics();
+            buffer[32] = statistics.SampleCount;
+            buffer[33] = statistics.MeanMs;
+            buffer[34] = statistics.P95Ms;
+            buffer[35] = statistics.P99Ms;
+            buffer[36] = statistics.MaximumMs;
+            buffer[38] = storage.NativeBytes ?? double.NaN;
+            buffer[39] = storage.AccessorBytes ?? double.NaN;
+            buffer[40] = storage.Archetypes ?? double.NaN;
+            buffer[41] = storage.Chunks ?? double.NaN;
+            buffer[44] = GC.GetTotalMemory(false);
+            for (int i = 0; i < statistics.StageMeanMs.Length; i++) buffer[46 + i] = statistics.StageMeanMs[i];
+            for (int i = 0; i < 3; i++) buffer[55 + i] = GC.CollectionCount(i);
+            nextStatisticsRefresh = started + Stopwatch.Frequency / 4;
+        }
+        buffer[37] = current.ShipCount + current.ProjectileCount + current.DebrisCount + current.ParticleCount;
+        buffer[42] = current.PhysicsBodies;
+        buffer[43] = current.PhysicsFixtures;
+        buffer[58] = current.Tactics.TargetSwitches;
+        buffer[59] = current.Tactics.TargetRetentions;
+        buffer[60] = current.Tactics.GroupOrders;
+        buffer[61] = current.Tactics.CoverOrders;
+        buffer[62] = current.ShipCount - frame.Ships.Count;
+        buffer[63] = 0;
         double* destination = buffer + HeaderValues;
         CopyRows(frame.Ships, ref destination);
         CopyRows(frame.Projectiles, ref destination);
         CopyRows(frame.Debris, ref destination);
         CopyRows(frame.Particles, ref destination);
+        buffer[45] = (Stopwatch.GetTimestamp() - started) * 1000.0 / Stopwatch.Frequency;
         return checked((int)(nint)buffer);
     }
 
@@ -157,6 +195,7 @@ public static unsafe partial class BattleBridge
         int nextCapacity = Math.Max(rows, Math.Max(256, capacity * 2));
         var replacement = (double*)NativeMemory.Alloc((nuint)((HeaderValues + nextCapacity * RowValues) * sizeof(double)));
         if (replacement == null) throw new OutOfMemoryException();
+        if (buffer != null) Buffer.MemoryCopy(buffer, replacement, HeaderValues * sizeof(double), HeaderValues * sizeof(double));
         NativeMemory.Free(buffer);
         buffer = replacement;
         capacity = nextCapacity;
