@@ -5,6 +5,7 @@ import hashlib
 import math
 from pathlib import Path
 from report_locale import catalogue_body
+from heatmap import Metric, TimingPolicy, shade_rows
 
 NAMES = ("Identity Transform Motion Hull Shield Heat Brain Weapon SecondaryWeapon Collider PhysicsLink "
          "CombatState Carrier Docked Overheated InCombat Boosting ShieldBroken Projectile Debris Particle Lifetime Inventory").split()
@@ -15,7 +16,8 @@ BASE_SHIP = "Identity Hull Shield Heat Brain Weapon Collider PhysicsLink CombatS
 TAGS = "Docked Overheated InCombat Boosting ShieldBroken".split()
 
 
-def composition_section(docs, runs, read_json, require, table):
+def composition_section(docs, runs, read_json, require, table, heat_policy=None):
+    heat_policy = heat_policy or TimingPolicy()
     profiles = ("low", "nominal", "high")
     measured = {}
     for profile in profiles:
@@ -134,9 +136,10 @@ def composition_section(docs, runs, read_json, require, table):
     frameworks = ("secs", "lite", "classic", "morpeh", "static")
     stage_times = {f: {s["Name"]: s["Timing"]["MeanMs"] for s in runs["nominal", f]["Stages"]} for f in frameworks}
     lines += table(["Стадия", "SECS ms", "Lite ms", "Classic ms", "Morpeh ms", "Static ms", "Доля SECS Step %"],
-                   [(s["Name"], *(f"{stage_times[f][s['Name']]:.5f}" for f in frameworks),
+                   shade_rows([(s["Name"], *(Metric(f"{stage_times[f][s['Name']]:.5f}", comparison=stage_times[f][s['Name']]) for f in frameworks),
                      f"{100 * stage_times['secs'][s['Name']] / runs['nominal', 'secs']['Timing']['MeanMs']:.2f}")
-                    for s in runs["nominal", "secs"]["Stages"]])
+                    for s in runs["nominal", "secs"]["Stages"]], range(1, 6),
+                              absolute_thresholds=lambda row: heat_policy.threshold("nominal", f"stage.{row[0]}.mean_ms")))
     lines += ["", "## Измеренный состав сущностей", "",
               "Для каждого профиля выполнен отдельный диагностический SECS replay всех 108000 тиков, "
               "без изменения ранее измеренных Core/SECS/Aether DLL: их SHA256 совпадает с исходными JSON. "

@@ -1,7 +1,7 @@
 using System.Numerics;
 using SpaceBattle;
 
-internal static class Validation
+internal static partial class Validation
 {
     public static void ComparePorts()
     {
@@ -52,7 +52,7 @@ internal static class Validation
             for (var i = 0; i < 1800; i++) battle.Step();
             Require(first == battle.Checksum(), "deterministic replay");
         }
-        PhysicsChecks(); FireControlChecks(); ProjectileChecks(); MechanicsChecks();
+        PhysicsChecks(); FireControlChecks(); ProjectileChecks(); MechanicsChecks(); TacticalChecks();
         Console.WriteLine("PASS: classes, plasma heat, live combat, production, structural churn, damaging debris, deterministic replay, compound physics and swept hits.");
     }
     private static void PhysicsChecks()
@@ -190,7 +190,8 @@ internal static class Validation
             var position = new Vector2(80 + i % 8 * 30, 80 + i / 8 * 30);
             battle.Store.Get<Transform>(e) = new Transform { Position = position, Previous = position };
             battle.Store.Get<Motion>(e) = default;
-            battle.Store.Get<Brain>(e) = new Brain { Mode = BrainMode.Patrol, NextDecisionTick = int.MaxValue };
+            battle.Store.Get<Brain>(e) = new Brain { Mode = BrainMode.Patrol, NextDecisionTick = int.MaxValue,
+                Target = EntityKey.None, Home = EntityKey.None, SquadLeader = EntityKey.None, CoverAlly = EntityKey.None };
             battle.Store.Get<Inventory>(e).NextUseTick = int.MaxValue;
             battle.Store.Get<Weapon>(e).NextFireTick = int.MaxValue;
             if (battle.Store.Has<SecondaryWeapon>(e)) battle.Store.Get<SecondaryWeapon>(e).Value.NextFireTick = int.MaxValue;

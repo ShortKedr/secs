@@ -4,7 +4,7 @@ English | [Русский](SYSTEMS.ru.md)
 
 # SpaceBattle Systems and Components
 
-This catalogue describes the current implementation from source code, without measuring performance or access frequency. A component here means an independent value attached to an entity through `IEcsStore.Set<T>`, not every field, nested structure, or type registered in an adapter.
+This catalogue describes the measured `predictive-neutral-v1` implementation, without measuring performance or access frequency. Current source has a different AI revision, `tactical-lock-v2`, described in [Tactical AI](TACTICS.md). The tables below retain the measured snapshot; in current code, `Brain` also holds squad/cover references, target/cover leases and a kill-cost estimate, and `CombatState` records the last live enemy attacker. No component types were added. A component here means an independent value attached to an entity through `IEcsStore.Set<T>`, not every field, nested structure, or type registered in an adapter.
 
 Primary sources: [Battle.cs](../../SpaceBattle.Core/Battle.cs) (`StageNames`, `Step`, `Collect`, `SpawnShip` and processors), [CombatSystems.cs](../../SpaceBattle.Core/CombatSystems.cs) (weapons, carriers, movement, hits and lifecycle), [Components.cs](../../SpaceBattle.Core/Components.cs) (types and ship catalogue), [EcsContract.cs](../../SpaceBattle.Core/EcsContract.cs) (storage contract).
 

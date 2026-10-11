@@ -11,6 +11,7 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
     public int Tick { get; private set; }
     public string Framework => Store.Name;
     public BattleCounters Counters { get; } = new();
+    public AiCounters Tactics { get; } = new();
     public double LastTickMs { get; private set; }
     public double[] LastStageMs { get; } = new double[StageNames.Length];
     public int ShipCount => ships.Count;
@@ -67,10 +68,11 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         Store.Set(e, new Hull { Current = hull, Maximum = hull, Armor = carrier ? 0.4f : (int)kind * 0.025f });
         Store.Set(e, new Shield { Current = shield, Maximum = shield, RegenPerSecond = shield * 0.075f, RegenDelayTicks = 240, LastHitTick = -1000 });
         Store.Set(e, new Heat { Limit = carrier ? 220 : 100 + (int)kind * 10, CoolingPerSecond = carrier ? 20 : 8 + (int)kind });
-        Store.Set(e, new Brain { Home = home, Target = EntityKey.None, OrbitSign = id.Serial % 2 == 0 ? 1 : -1 });
+        Store.Set(e, new Brain { Home = home, Target = EntityKey.None, SquadLeader = EntityKey.None,
+            CoverAlly = EntityKey.None, OrbitSign = id.Serial % 2 == 0 ? 1 : -1 });
         Store.Set(e, ShipCatalog.Primary(kind)); Store.Set(e, collider);
         Store.Set(e, new PhysicsLink { Body = physics.AddShip(id.Serial, transform, collider) });
-        Store.Set(e, new CombatState { LastDamageTick = -1000 });
+        Store.Set(e, new CombatState { LastDamageTick = -1000, LastAttacker = EntityKey.None });
         var inventory = new Inventory { Capacity = carrier ? 16 : 2 + (int)kind };
         for (var i = 0; i < inventory.Capacity; i++)
             inventory.Items[i] = new InventoryItem { Kind = i % 3 == 0 ? ItemKind.ShieldCell : i % 3 == 1 ? ItemKind.HeatSink : ItemKind.RepairKit, Count = carrier ? 10 : 2 };
@@ -93,6 +95,7 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         var start = Stopwatch.GetTimestamp(); var previous = start;
         Tick++;
         Collect(); Mark(0);
+        PrepareTactics();
         var ai = new AiSystem { Battle = this }; Store.ForEach<Identity, Brain, Transform, AiSystem>(ref ai); Mark(1);
         var thermal = new ThermalSystem { Battle = this }; Store.ForEach<Identity, Heat, Shield, ThermalSystem>(ref thermal);
         var inventory = new InventorySystem { Battle = this }; Store.ForEach<Identity, Inventory, Hull, InventorySystem>(ref inventory); Mark(2);
@@ -157,31 +160,7 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
     {
         public Battle<TStore> Battle;
         public void Execute(EntityKey e, ref Identity id, ref Brain b, ref Transform t)
-        {
-            if (Battle.Store.Has<Docked>(e) || b.NextDecisionTick > Battle.Tick) return;
-            b.NextDecisionTick = Battle.Tick + 12 + id.Serial % 8;
-            ref var hull = ref Battle.Store.Get<Hull>(e); ref var heat = ref Battle.Store.Get<Heat>(e);
-            if (!Battle.AliveShip(b.Home)) b.Home = Battle.NearestHome(id.Team, t.Position);
-            var retreat = !ShipCatalog.IsCarrier(id.Class) && !b.Home.IsNone &&
-                (hull.Current < hull.Maximum * 0.4f || heat.Value > heat.Limit * 0.92f || b.Mode == BrainMode.Retreat && hull.Current < hull.Maximum * 0.85f);
-            if (retreat) b.Mode = BrainMode.Retreat;
-            else if (b.Mode != BrainMode.Docking) b.Mode = BrainMode.Attack;
-            var best = float.MaxValue; var target = EntityKey.None;
-            foreach (var row in Battle.ships)
-            {
-                if (row.Identity.Team == id.Team || !Battle.AliveShip(row.Entity) || Battle.Store.Has<Docked>(row.Entity)) continue;
-                var distance = Vector2.DistanceSquared(t.Position, row.Transform.Position);
-                if (distance < best) { best = distance; target = row.Entity; }
-            }
-            b.Target = target;
-            if (b.Mode == BrainMode.Retreat && Battle.AliveShip(b.Home))
-            {
-                var homePosition = Battle.Store.Get<Transform>(b.Home).Position;
-                var dockRange = Battle.Store.Get<Collider>(b.Home).Radius + Battle.Store.Get<Collider>(e).Radius + 3;
-                if (Vector2.DistanceSquared(t.Position, homePosition) < dockRange * dockRange)
-                    Battle.State(e, StateKind.Dock, true, b.Home);
-            }
-        }
+            => Battle.DecideTactics(e, id, ref b, t);
     }
 
     private struct ThermalSystem : IProcessor<Identity, Heat, Shield>
@@ -236,18 +215,28 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
             if (Battle.Store.Has<Docked>(e)) { m.Velocity = m.Acceleration = Vector2.Zero; return; }
             var dt = 1f / Battle.Config.TickRate;
             var desired = Vector2.Zero;
-            if (b.Mode == BrainMode.Retreat && Battle.AliveShip(b.Home))
+            if (b.Mode == BrainMode.Screen && Battle.AliveShip(b.CoverAlly))
+                desired = ClampMagnitude(Battle.CoverVelocity(b.CoverAlly) +
+                    (Battle.ScreenDestination(e, b) - t.Position) * 2, m.MaxSpeed);
+            else if (b.Mode == BrainMode.Retreat && Battle.AliveShip(b.Home))
                 desired = Direction(Battle.Store.Get<Transform>(b.Home).Position - t.Position) * m.MaxSpeed;
             else if (Battle.AliveShip(b.Target))
             {
                 var delta = Battle.Store.Get<Transform>(b.Target).Position - t.Position;
-                var range = Battle.Store.Get<Weapon>(e).Range * 0.48f;
+                var carrier = ShipCatalog.IsCarrier(Battle.Store.Get<Identity>(e).Class);
+                var range = Battle.Store.Get<Weapon>(e).Range * (carrier ? 0.65f : 0.48f);
                 var direction = Direction(delta);
                 var tangent = new Vector2(-direction.Y, direction.X) * b.OrbitSign;
-                desired = direction * Math.Clamp((delta.Length() - range) * 0.7f, -m.MaxSpeed * 0.55f, m.MaxSpeed) + tangent * m.MaxSpeed * 0.65f;
-                var aim = MathF.Atan2(delta.Y, delta.X); var difference = WrapAngle(aim - t.Angle);
-                m.AngularVelocity = Math.Clamp(difference * 5, -2.5f, 2.5f);
+                desired = direction * Math.Clamp((delta.Length() - range) * 0.7f, -m.MaxSpeed * 0.55f, m.MaxSpeed)
+                    + tangent * m.MaxSpeed * (carrier ? 0.15f : b.SquadLeader.IsNone ? 0.65f : 0.35f);
+                desired += Battle.FormationSteering(e, b, t.Position, m.MaxSpeed);
             }
+            var facing = b.Mode == BrainMode.Attack && Battle.AliveShip(b.Target)
+                ? Battle.Store.Get<Transform>(b.Target).Position - t.Position : desired;
+            var heavy = ShipCatalog.IsCarrier(Battle.Store.Get<Identity>(e).Class);
+            var desiredTurn = facing.LengthSquared() > 0.001f
+                ? Math.Clamp(WrapAngle(MathF.Atan2(facing.Y, facing.X) - t.Angle) * 5, heavy ? -0.8f : -2.5f, heavy ? 0.8f : 2.5f) : 0;
+            m.AngularVelocity += Math.Clamp(desiredTurn - m.AngularVelocity, -(heavy ? 1.5f : 10) * dt, (heavy ? 1.5f : 10) * dt);
             var inward = -t.Position;
             if (MathF.Abs(t.Position.X) > Battle.Config.ArenaHalfSize - 15 || MathF.Abs(t.Position.Y) > Battle.Config.ArenaHalfSize - 15)
                 desired = Direction(inward) * m.MaxSpeed;

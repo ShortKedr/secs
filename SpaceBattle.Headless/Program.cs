@@ -122,7 +122,10 @@ internal static class Runner
                 TimingScope = "Step includes all systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
                 MemoryScope = "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
                 Collision = "Aether.Physics2D 2.2.0; compound ship fixtures; five-ray approximate projectile CCD",
-                GameplayRules = new { Revision = "predictive-neutral-v1", Aim = "constant-velocity intercept including inherited shooter velocity and muzzle offset",
+                GameplayRules = new { Revision = TacticalRules.Revision, Ai = "kill-cost target leases, stable squads of 2-4, focus fire and wounded-ship screening",
+                    TargetLockTicks = TacticalRules.MinimumTargetLockTicks, SwitchImprovement = TacticalRules.SwitchImprovement,
+                    MaxSquadSize = TacticalRules.MaxSquadSize,
+                    Aim = "constant-velocity intercept including inherited shooter velocity and muzzle offset",
                     ImpreciseAimProbability = 0.25, MaxSpreadRadians = FireControl.MaxSpreadRadians,
                     ProjectileTeam = "none", CollisionImmunity = "none; all enabled ship fixtures can be hit, including the shooter",
                     FriendlyFireCounter = "observed hits with a still-live owner identity; excludes attribution after owner destruction" } },
@@ -136,7 +139,7 @@ internal static class Runner
             HarnessAndSimulationAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocationStart,
             GcCollections = Enumerable.Range(0, 3).Select(g => GC.CollectionCount(g) - initialCollections[g]).ToArray(),
             Stages = Battle<T>.StageNames.Select((name, i) => new { Name = name, Timing = Stats(stages[i]) }).ToArray(),
-            Windows = windows, Checkpoints = checkpoints, Counters = battle.Counters.Copy(), Checksum = battle.Checksum().ToString("X16")
+            Windows = windows, Checkpoints = checkpoints, Counters = battle.Counters.Copy(), Tactics = battle.Tactics, Checksum = battle.Checksum().ToString("X16")
         };
         File.WriteAllText(options.Output, JsonSerializer.Serialize(report, JsonOptions));
         using var csv = new StreamWriter(csvPath);

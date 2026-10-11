@@ -1,5 +1,6 @@
 """Offline analysis of the PascalCase SpaceBattle.Headless JSON contract."""
 
+import argparse
 import csv
 from datetime import datetime
 import hashlib
@@ -10,6 +11,7 @@ from pathlib import Path
 import sys
 from composition_report import composition_section
 from report_locale import report_versions
+from heatmap import Metric, TimingPolicy, legend, shade_columns, write_assets
 
 ROOT = Path(__file__).resolve().parents[2]
 DOCS = ROOT / "docs/space-battle"
@@ -589,7 +591,8 @@ def plots(runs):
     return chart_names
 
 
-def report(runs, capture, charts, frontend, hardware, gc_samples):
+def report(runs, capture, charts, frontend, hardware, gc_samples, heat_policy=None):
+    heat_policy = heat_policy or TimingPolicy()
     lines = ["![Снимок реального фронтенда](action.png)", "",
              "Снимок OpenGL-фронтенда: 1600 x 1000, seed 7331, 256 эскортов на команду, tick 900, zoom 2. "
              f"Кораблей в snapshot: {capture['Ships']}; отрисовано после clipping: {capture['RenderedShips']}; "
@@ -618,15 +621,18 @@ def report(runs, capture, charts, frontend, hardware, gc_samples):
     lines += [f"- SECS nominal: MeanMs={nominal['MeanMs']:.4f} ms, P99Ms={nominal['P99Ms']:.4f} ms.",
               f"- physics + hits занимают {min(shares):.0f}-{max(shares):.0f}% среднего Step по 15 случаям; общая боевая логика может маскировать различия ECS.",
               ""]
-    lines += composition_section(DOCS, runs, read_json, require, table)
+    lines += legend(heat_policy)
+    lines += composition_section(DOCS, runs, read_json, require, table, heat_policy)
     lines += ["## Данные запусков", ""]
     rows = []
     for (p, f), r in runs.items():
         path = RESULTS / f"{p}-{f}.json"
         m = r["Metadata"]
-        rows.append((p, f, m["Ticks"], len(r["Windows"]), f"{m['WallSeconds']:.2f}", m["Date"], r["Checksum"],
+        rows.append((p, f, m["Ticks"], len(r["Windows"]), Metric(f"{m['WallSeconds']:.2f}", comparison=m["WallSeconds"]), m["Date"], r["Checksum"],
                      f"[{path.name}](results/{path.name})", hashlib.sha256(path.read_bytes()).hexdigest()))
-    lines += table(["Профиль", "Фреймворк", "Тики", "Окна", "Реальное время, s", "Дата", "Итоговый checksum", "JSON", "JSON SHA256"], rows)
+    lines += table(["Профиль", "Фреймворк", "Тики", "Окна", "Реальное время, s", "Дата", "Итоговый checksum", "JSON", "JSON SHA256"],
+                   shade_columns(rows, [4], group_by=[0],
+                                 absolute_thresholds=lambda row, column: heat_policy.threshold(row[0], "wall_seconds")))
     lines += ["", "Конфигурация: seed 7331, 96 эскортов и 3 авианосца на команду (198 кораблей в начале), "
               "churn low/nominal/high = 0.5/1/2, particles 1, без realtime-пейсинга. Остальные параметры BattleConfig проверены на соответствие значениям по умолчанию.",
               "", "ChurnMultiplier меняет cooldown стрельбы, интервал производства и длительность boost. "
@@ -704,10 +710,13 @@ def report(runs, capture, charts, frontend, hardware, gc_samples):
     rows = []
     for (p, f), r in runs.items():
         t = r["Timing"]
-        rows.append((p, f, *(f"{t[k]:.4f}" for k in ("MeanMs", "P95Ms", "P99Ms", "MaxMs")),
-                     t["BudgetMisses"], f"{t['BudgetMissPercent']:.5f}",
-                     f"{r['AllocatedBytes'] / TICKS:.2f}"))
-    lines += table(["Профиль", "Фреймворк", "Mean ms", "p95 ms", "p99 ms", "Max ms", "Тики >16.67ms", "Miss %", "Step managed alloc B/tick"], rows)
+        rows.append((p, f, *(Metric(f"{t[k]:.4f}", comparison=t[k]) for k in ("MeanMs", "P95Ms", "P99Ms", "MaxMs")),
+                     t["BudgetMisses"], Metric(f"{t['BudgetMissPercent']:.5f}", comparison=t['BudgetMissPercent']),
+                     Metric(f"{r['AllocatedBytes'] / TICKS:.2f}", comparison=r['AllocatedBytes'] / TICKS)))
+    timing_columns = {2: "tick.mean_ms", 3: "tick.p95_ms", 4: "tick.p99_ms", 5: "tick.max_ms"}
+    lines += table(["Профиль", "Фреймворк", "Mean ms", "p95 ms", "p99 ms", "Max ms", "Тики >16.67ms", "Miss %", "Step managed alloc B/tick"],
+                   shade_columns(rows, range(2, 9), group_by=[0],
+                                 absolute_thresholds=lambda row, column: heat_policy.threshold(row[0], timing_columns.get(column))))
     lines += ["", "Глобальные квантили взяты непосредственно из JSON полного запуска, а не усреднены из минутных квантилей. "
               "AllocatedBytes и приведённые B/tick означают managed-аллокации текущего потока строго внутри Step; "
               "timing-квантили и эта метрика не включают последующую обработку результатов.", "", "### GC и широкие интервалы обвязки", ""]
@@ -717,7 +726,8 @@ def report(runs, capture, charts, frontend, hardware, gc_samples):
         rows.append((p, f, "/".join(map(str, sample["FirstPostStep"])), "/".join(map(str, sample["LastPostStep"])),
                      "/".join(map(str, sample["Delta"])), "/".join(map(str, r["GcCollections"])), r["HarnessAndSimulationAllocatedBytes"]))
     lines += table(["Профиль", "Фреймворк", "GC sample после tick 1 (0/1/2)", "GC sample после tick 108000 (0/1/2)",
-                    "CSV GC delta tick 1→108000 (0/1/2)", "JSON GC широкий интервал (0/1/2)", "HarnessAndSimulationAllocatedBytes широкий интервал, B"], rows)
+                    "CSV GC delta tick 1→108000 (0/1/2)", "JSON GC широкий интервал (0/1/2)", "HarnessAndSimulationAllocatedBytes широкий интервал, B"],
+                   shade_columns(rows, [6], group_by=[0]))
     lines += ["", "CSV GC delta = последний post-Step GC sample минус первый post-Step sample, ticks 1→108000. "
               "Интервал включает телеметрию между Step, но исключает неизвестные GC первого Step. Начальный baseline "
               "tick 0 не сохранён: точное число GC только за игровой цикл из этих данных восстановить нельзя. "
@@ -742,9 +752,11 @@ def report(runs, capture, charts, frontend, hardware, gc_samples):
             minute, peak = max(known, key=lambda pair: pair[1])
             slope = sum((i - sum(x for x, _ in known) / len(known)) * (v - sum(y for _, y in known) / len(known)) for i, v in known)
             denominator = sum((i - sum(x for x, _ in known) / len(known)) ** 2 for i, _ in known)
-            rows.append((p, f, metric, f"{peak:.2f} @ {minute}", f"{known[-1][1]:.2f}",
+            rows.append((p, f, metric, Metric(f"{peak:.2f}", f" @ {minute}", comparison=peak),
+                         Metric(f"{known[-1][1]:.2f}", comparison=known[-1][1]),
                          f"{known[-1][1] - known[0][1]:+.2f}", f"{slope / denominator:+.3f}" if denominator else "неизвестно"))
-    lines += table(["Профиль", "Фреймворк", "Метрика", "Пик выборок MiB @ минута", "Последняя MiB", "Последняя-первая MiB", "OLS MiB/min"], rows)
+    lines += table(["Профиль", "Фреймворк", "Метрика", "Пик выборок MiB @ минута", "Последняя MiB", "Последняя-первая MiB", "OLS MiB/min"],
+                   shade_columns(rows, [3, 4], group_by=[0, 2]))
     lines += ["", "Пики - максимумы выборок в конце каждой минуты, а не непрерывно измеренные пики процесса. "
               "Тренды - описательные OLS-аппроксимации, не диагностика утечек. Managed heap, process private и working set "
               "являются разными метриками, их нельзя складывать. Native storage SECS показан отдельно; неизвестные diagnostics "
@@ -758,11 +770,14 @@ def report(runs, capture, charts, frontend, hardware, gc_samples):
         stage = max(r["Stages"], key=lambda s: s["Timing"]["MeanMs"])
         physics = next(s for s in r["Stages"] if s["Name"] == "physics")["Timing"]["MeanMs"]
         hits = next(s for s in r["Stages"] if s["Name"] == "hits")["Timing"]["MeanMs"]
-        rows.append((p, f, *(f"{v:.4f}" for v in phase_means), f"{phase_means[-1] / phase_means[0]:.3f}" if phase_means[0] else "не определено",
+        rows.append((p, f, *(Metric(f"{v:.4f}", comparison=v) for v in phase_means), f"{phase_means[-1] / phase_means[0]:.3f}" if phase_means[0] else "не определено",
                      stage["Name"], f"{stage['Timing']['MeanMs'] / r['Timing']['MeanMs'] * 100:.1f}",
                      f"{physics / r['Timing']['MeanMs'] * 100:.1f}",
                      f"{(physics + hits) / r['Timing']['MeanMs'] * 100:.1f}"))
-    lines += table(["Профиль", "Фреймворк", "Мин 1-10 mean ms", "Мин 11-20 mean ms", "Мин 21-30 mean ms", "Поздняя/ранняя", "Наибольшая стадия", "Stage % of Step", "physics % of Step", "physics + hits % of Step"], rows)
+    phase_columns = {2: "phase.early.mean_ms", 3: "phase.middle.mean_ms", 4: "phase.late.mean_ms"}
+    lines += table(["Профиль", "Фреймворк", "Мин 1-10 mean ms", "Мин 11-20 mean ms", "Мин 21-30 mean ms", "Поздняя/ранняя", "Наибольшая стадия", "Stage % of Step", "physics % of Step", "physics + hits % of Step"],
+                   shade_columns(rows, [2, 3, 4], group_by=[0],
+                                 absolute_thresholds=lambda row, column: heat_policy.threshold(row[0], phase_columns[column])))
     lines += ["", "Фазы по фиксированным интервалам времени симуляции описывают наблюдения, а не причинный эксперимент. "
               "Средние времена стадий можно складывать; p95/p99 стадий складывать нельзя. Доля physics + hits вычислена "
               "из суммы средних времён этих стадий относительно среднего Step отдельно для каждого запуска, не задана заранее. "
@@ -836,8 +851,12 @@ def write_csv(runs, gc_samples):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--heatmap-policy", type=Path, default=Path(__file__).with_name("heatmap_policy.json"))
+    arguments = parser.parse_args()
     DOCS.mkdir(parents=True, exist_ok=True)
     try:
+        heat_policy = TimingPolicy.from_file(arguments.heatmap_policy)
         runs, errors = collect()
         try:
             capture = screenshot()
@@ -848,9 +867,11 @@ def main():
         validate_parity(runs, capture, frontend)
         hardware = validate_hardware(runs)
         gc_samples = tick_gc_samples(runs)
+        write_assets(DOCS)
         charts = plots(runs)
         write_csv(runs, gc_samples)
-        english, russian = report_versions(report(runs, capture, charts, frontend, hardware, gc_samples), DOCS)
+        english, russian = report_versions(report(runs, capture, charts, frontend, hardware, gc_samples, heat_policy),
+                                           DOCS, extra_phrases=heat_policy.phrases)
         (DOCS / "REPORT.md").write_text(english, encoding="utf-8")
         (DOCS / "REPORT.ru.md").write_text(russian, encoding="utf-8")
     except Exception as error:

@@ -4,6 +4,8 @@ English | [Русский](README.ru.md)
 
 # Space Battle Benchmark
 
+> **Revision boundary:** current simulation uses [tactical AI `tactical-lock-v2`](TACTICS.md). The report and frozen evidence use `predictive-neutral-v1`. No new timing campaign was run. The full-suite/offline-analysis instructions below describe that historical campaign; the analyzer deliberately accepts only its v1 evidence. Do not overwrite the frozen results with v2 runs or treat old measurements as current-AI performance. A future v2 campaign needs separate outputs and an explicitly updated evidence gate.
+
 The headless host measures the shared `Battle<TStore>.Step` workload using five
 native ECS implementations. Do not run analysis, rendering, replay, builds or
 profilers concurrently with the main timing suite. All commands below are local;
@@ -14,10 +16,10 @@ none publishes, pushes or changes remote state. Run from the project root.
 Build against the existing local package cache before starting timed runs.
 
 ```powershell
-dotnet build SpaceBattle.Headless/SpaceBattle.Headless.csproj -c Release --no-restore -m:1
-dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate
-dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate-adapters
-dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate-ports
+dotnet build SpaceBattle.Headless/SpaceBattle.Headless.csproj -c Release --artifacts-path Benchmarks.Local/tmp/tactics-build -m:1
+dotnet Benchmarks.Local/tmp/tactics-build/bin/SpaceBattle.Headless/release/SpaceBattle.Headless.dll --validate
+dotnet Benchmarks.Local/tmp/tactics-build/bin/SpaceBattle.Headless/release/SpaceBattle.Headless.dll --validate-adapters
+dotnet Benchmarks.Local/tmp/tactics-build/bin/SpaceBattle.Headless/release/SpaceBattle.Headless.dll --validate-ports
 ```
 
 ## Full Suite
@@ -81,9 +83,51 @@ if ($LASTEXITCODE -ne 0) { throw 'FAIL: analysis or fairness gate' }
 
 No installation or network access is needed. The script uses standard JSON/CSV
 plus local NumPy/Matplotlib with a noninteractive Agg backend and project-local
-Matplotlib cache. Outputs are English `REPORT.md`, Russian `REPORT.ru.md`, `summary.csv`, `windows.csv` and
-`charts/*.png` under this directory. The report is generated, not hand-maintained.
+Matplotlib cache. Outputs are English `REPORT.md`, Russian `REPORT.ru.md`, `summary.csv`, `windows.csv`,
+`charts/*.png` and `heatmap/*.svg` under this directory. The report is generated, not hand-maintained.
 Do not invoke the analyzer while benchmarks are timing.
+
+Comparative timing, allocation and memory tables use fixed lag thresholds relative
+to the best result: up to 5% green, 5-15% green-to-yellow, 15-30% yellow-to-red,
+from 30% red. Local SVG markers and unchanged text values work in GitHub Markdown.
+The nine color steps are shared by all tables, never stretched to each group's
+min/max. Entire groups within 5% are gray; numeric extremes are not bold.
+Comparison groups and neutral diagnostics are defined in the report's
+[color scale](REPORT.md#color-scale). The [heatmap helper](../../tools/space-battle/heatmap.py)
+and [focused tests](../../tools/space-battle/test_heatmap.py) preserve this behavior
+when reports are regenerated.
+
+The 5/15/30% boundaries are agreed effect-size conventions, not significance
+tests. Current evidence has one independent run per profile/framework: colors
+show observed lag, not statistically significant differences. Ticks, contiguous
+minute windows and tick `StddevMs` are not independent repeats. The helper accepts
+explicit `IndependentRun(run_id, value)` summaries through `Metric.runs`, uses
+their median rather than the luckiest run, and conservatively suppresses colors
+when observed repeat envelopes do not separate beyond both tolerances. These
+envelopes are not confidence intervals. Partial repeat coverage is gray; the
+frozen analyzer inventory does not invent or import extra repeats.
+
+Absolute timing tolerances are optional and scoped to an exact profile/metric.
+The [default policy](../../tools/space-battle/heatmap_policy.json) disables all of
+them (`null` by absence): no calibrated practical floor is supported by this
+one-run dataset. Neither displayed precision nor the tick budget justifies a
+universal floor, especially for stages with very different durations. This
+default supports descriptive effect colors, not practical-significance claims.
+
+To configure a justified floor, add an entry to `timing_absolute_thresholds`
+with `profile`, `metric`, finite nonnegative `threshold_ms`, and nonempty
+`reason_en`/`reason_ru`. State the target-specific acceptance criterion or
+calibration behind the chosen milliseconds; the report prints each selection
+and both rationales. Supported profiles are `low`, `nominal`, `high`; metric IDs
+are `wall_seconds`, `tick.mean_ms`, `tick.p95_ms`, `tick.p99_ms`, `tick.max_ms`,
+`phase.early.mean_ms`, `phase.middle.mean_ms`, `phase.late.mean_ms`, and
+`stage.<stage-name>.mean_ms` for each of the nine stages. There is no wildcard or
+automatic inheritance across stages, profiles or percentiles. All thresholds
+are specified in ms; wall-duration comparisons convert them to seconds.
+Use `analyze.py --heatmap-policy <project-local-policy.json>` for a separate
+policy, or edit the default. This changes presentation only, not measurements.
+All-zero groups are gray; a positive lower-is-better value against zero is red
+only beyond the absolute floor, without division by zero or an invented epsilon.
 
 Static syntax validation without execution, imports or generated files:
 

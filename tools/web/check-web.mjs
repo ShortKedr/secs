@@ -96,6 +96,7 @@ try {
       "Expected production AOT/binary build",
     );
   assert.equal(initial.seed, 7331);
+  assert.equal(initial.revision, "tactical-lock-v2");
   assert.equal(initial.tick, 0);
   assert.equal(initial.counts.ships, 198);
   assert.equal(initial.paused, true);
@@ -127,6 +128,36 @@ try {
   await page.evaluate(() => window.advanceTime(10000));
   const nominal = await state();
   assert.equal(nominal.tick, 600);
+  assert.ok(
+    nominal.tactics.targetRetentions > 0 && nominal.tactics.groupOrders > 0,
+    "Target leases and group focus run in WASM",
+  );
+  const tactical = await page.evaluate(() => window.spaceBattle.tactics());
+  assert.ok(tactical.coverOrders > 0, "Wounded-ship screening runs in WASM");
+  await fs.writeFile(
+    path.join(evidence, "tactics.json"),
+    JSON.stringify(tactical, null, 2),
+  );
+  const squads = new Map();
+  for (const ship of tactical.ships) {
+    if (ship.squadLeader < 0) continue;
+    if (!squads.has(ship.squadLeader)) squads.set(ship.squadLeader, []);
+    squads.get(ship.squadLeader).push(ship);
+  }
+  assert.ok(squads.size > 0, "Live small-ship squads");
+  for (const squad of squads.values()) {
+    assert.ok(squad.length <= 4, "Bounded live squads");
+    assert.equal(
+      new Set(squad.map((ship) => ship.team)).size,
+      1,
+      "Friendly squads only",
+    );
+    assert.equal(
+      new Set(squad.map((ship) => ship.target)).size,
+      1,
+      "Shared squad focus",
+    );
+  }
   assert.ok(
     nominal.counters.shots > 0 && nominal.counters.hits > 0,
     "Live weapons and collisions",

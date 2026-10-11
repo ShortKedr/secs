@@ -21,7 +21,11 @@ The three existing churn profiles are low=0.5, nominal=1 and high=2, with
 96 initial escorts and 3 carriers per team. Shared Core retains predictive
 intercept aiming, deterministic spread and team-neutral projectile/debris
 damage, including friendly and self hits. See the
-[simulation systems](../docs/space-battle/SYSTEMS.md) for the rule details.
+[measured simulation systems](../docs/space-battle/SYSTEMS.md) for the historical rule details.
+Current source uses [tactical AI `tactical-lock-v2`](../docs/space-battle/TACTICS.md):
+kill-cost target locks, 2-4 ship focus groups and wounded-ship screening.
+The benchmark report remains a `predictive-neutral-v1` snapshot, not a timing
+measurement of this new AI. Updating local source does not publish the live demo.
 
 ## Publish and Serve Locally
 

@@ -6,6 +6,17 @@ the same render; missing English prose fails instead of publishing mixed text.
 
 import re
 
+HISTORICAL_NOTICE_EN = (
+    "> **Historical measurements:** the tables, charts and captures below use `predictive-neutral-v1`. "
+    "Current source uses `tactical-lock-v2` ([tactical AI](TACTICS.md)); no timing campaign for that revision has been run. "
+    "The recorded results do not measure the new AI or its current browser build.\n\n"
+)
+HISTORICAL_NOTICE_RU = (
+    "> **Исторические измерения:** таблицы, графики и захваты ниже относятся к `predictive-neutral-v1`. "
+    "Текущие исходники используют `tactical-lock-v2` ([тактический AI](TACTICS.ru.md)); серия замеров для этой версии не запускалась. "
+    "Записанные результаты не измеряют новый AI или его текущую браузерную сборку.\n\n"
+)
+
 
 def catalogue_body(docs, language):
     name = "SYSTEMS.ru.md" if language == "ru" else "SYSTEMS.md"
@@ -16,6 +27,34 @@ def catalogue_body(docs, language):
 
 
 PHRASES = {
+    "Цветовая шкала": "Color Scale",
+    "Отставание до 5%": "Lag up to 5%",
+    "Отставание от 30%": "Lag from 30%",
+    "Отставание между 5% и 30%": "Lag between 5% and 30%",
+    "Практически неразличимо или недостаточно данных о разбросе": "Practically indistinguishable or insufficient spread evidence",
+    "До 5%": "Up to 5%",
+    "От 30%": "From 30%",
+    "нейтральная группа или неразличимое отставание.": "neutral group or indistinguishable lag.",
+    "Шкала общая для всех таблиц, без растяжения по min-max: до 5% - зелёный; 5-15% - переход к жёлтому; 15-30% - переход к красному; от 30% - красный. Линейный переход показан девятью фиксированными SVG-ступенями. 5/15/30% - договорённые пороги величины эффекта, не статистической значимости. Худшее значение не обязано быть красным; числовые минимумы и максимумы не выделяются жирным.":
+        "The scale is shared by all tables, without min-max stretching: up to 5% is green; 5-15% transitions to yellow; 15-30% transitions to red; from 30% is red. Linear transitions use nine fixed SVG steps. 5/15/30% are agreed effect-size thresholds, not statistical significance thresholds. The worst value need not be red; numeric minima and maxima are not bold.",
+    "Для метрик «меньше лучше»: отставание = (значение / лучшее - 1) * 100%; для «больше лучше»: (1 - значение / лучшее) * 100%. Сравнение использует исходную неокруглённую метрику; показанные числа не меняются. При нулевой базе для «меньше лучше» ноль равен базе, положительное значение имеет неопределённое относительное отставание и красный маркер только после абсолютного порога. При «больше лучше» нулевая база означает группу нулей. Деления на ноль и вымышленного epsilon нет.":
+        "For lower-is-better metrics: lag = (value / best - 1) * 100%; for higher-is-better: (1 - value / best) * 100%. Comparison uses the original unrounded metric; displayed numbers are unchanged. With a zero lower-is-better reference, zero matches the reference and a positive value has undefined relative lag, receiving a red marker only beyond the absolute threshold. For higher-is-better, a zero reference means an all-zero group. There is no division by zero or invented epsilon.",
+    "Если вся группа укладывается в 5% от лучшего, она серая без победителя. Абсолютный порог также может сделать группу или отдельное отставание нейтральным. Серый не доказывает статистического равенства. Неизвестные значения и группы с единственным известным значением не ранжируются.":
+        "If the entire group is within 5% of the best, it is gray without a winner. An absolute threshold can also make a group or individual lag neutral. Gray does not prove statistical equality. Unknown values and groups with only one known value are not ranked.",
+    "В текущем наборе один независимый прогон на профиль/фреймворк: цвет показывает наблюдаемую величину отставания, а не статистическую значимость или устойчивый рейтинг. Последовательные тики, минутные окна и StddevMs одного прогона не являются независимыми повторами.":
+        "The current suite has one independent run per profile/framework: color shows observed lag magnitude, not statistical significance or a stable ranking. Consecutive ticks, minute windows and a single run's StddevMs are not independent repeats.",
+    "При явно переданных независимых повторах база - лучшая медиана метрики отдельных прогонов, не самый удачный одиночный замер. Интервалы min-max повторов - описательный разброс, не доверительные интервалы. Отставание свыше 5% окрашивается только если консервативное разделение интервалов превышает и 5%, и выбранный абсолютный порог; иначе оно серое. Неполные повторные данные делают всю группу серой. Повторы должны иметь уникальные run_id и совпадающие условия; текущие файлы не содержат таких повторов.":
+        "With explicitly supplied independent repeats, the reference is the best median of run-level metric summaries, not the luckiest single sample. Repeat min-max envelopes describe observed spread, not confidence intervals. Lag above 5% is colored only when conservative envelope separation exceeds both 5% and the selected absolute threshold; otherwise it is gray. Incomplete repeated data make the whole group gray. Repeats require unique run_id values and matching conditions; the current files contain no such repeats.",
+    "Фреймворки сравниваются только внутри одного профиля и одной метрики; для стадий - в одной стадии и профиле. Память дополнительно разделена по типу метрики, фазы - по одинаковому интервалу симуляции. Широкие аллокации включают обвязку и не означают аллокации только Step.":
+        "Frameworks are compared only within one profile and metric; stage times only within one stage and profile. Memory is also grouped by metric type, phases by the same simulated interval. Broad allocation totals include the harness, not just Step.",
+    "Абсолютные временные пороги задаются отдельно для точной пары profile/metric в tools/space-battle/heatmap_policy.json, в ms с обоснованием EN/RU; wall_seconds переводится из ms в секунды. Общего порога для всех стадий нет. По умолчанию все пороги отключены (null): нет независимых повторов, калибровки или заданной цены улучшения для выбора обоснованных ms. Точность печати и бюджет тика не являются основанием практически существенного порога. Это описательная шкала величины эффекта.":
+        "Absolute timing thresholds are configured for each exact profile/metric pair in tools/space-battle/heatmap_policy.json, in ms with EN/RU rationale; wall_seconds converts ms to seconds. No threshold applies universally to every stage. All defaults are disabled (null): there are no independent repeats, calibration or specified value of improvement to justify a practical ms floor. Display precision and tick budget do not establish a practically meaningful threshold. This is a descriptive effect-size scale.",
+    "Выбранные абсолютные пороги:": "Selected absolute thresholds:",
+    "нет (все null).": "none (all null).",
+    "Численности, состав, события боя, GC-счётчики, доли стадий, тренды памяти и отношение поздней фазы к ранней остаются нейтральными. Единственный frontend replay также не ранжируется: разные операции и квантили не являются конкурирующими фреймворками.":
+        "Population, composition, gameplay events, GC counts, stage shares, memory trends and late/early ratios remain neutral. The single frontend replay is also unranked: different operations and quantiles are not competing frameworks.",
+    "Маркеры - локальные SVG-изображения для GitHub Markdown без CSS и внешних сервисов; сами числа остаются текстом.":
+        "Markers are local SVG images for GitHub Markdown, without CSS or external services; the numbers remain text.",
     "Снимок реального фронтенда": "Actual frontend capture",
     "Результаты Space Battle": "Space Battle Results",
     "Ключевые результаты": "Key Results",
@@ -177,17 +216,19 @@ PHRASES = {
 }
 
 
-def report_versions(markdown, docs):
+def report_versions(markdown, docs, extra_phrases=None):
     russian_catalogue = catalogue_body(docs, "ru")
     if markdown.count(russian_catalogue) != 1:
         raise ValueError("Report must contain exactly one complete systems catalogue")
     english = markdown.replace(russian_catalogue, catalogue_body(docs, "en"), 1)
-    for source in sorted(PHRASES, key=len, reverse=True):
-        english = english.replace(source, PHRASES[source])
+    phrases = {**PHRASES, **(extra_phrases or {})}
+    for source in sorted(phrases, key=len, reverse=True):
+        english = english.replace(source, phrases[source])
     remaining = [line for line in english.splitlines() if re.search("[А-Яа-яЁё]", line)]
     if remaining:
         raise ValueError("Missing English report translation: " + "\n".join(remaining[:8]))
-    russian = re.sub(r"(?<=\]\()([^()]+?)(\.md)(?=\))", lambda m: m[1] + ".ru.md", markdown)
+    russian = re.sub(r"(?<=\]\()([^()]+?)(\.md)(?=\))",
+                     lambda m: m[1] + ("" if m[1].endswith(".ru") else ".ru") + m[2], markdown)
     en_nav = ("English | [Русский](REPORT.ru.md)\n\n"
               "[Repository](../../README.md) | [Methodology](README.md) | [Systems](SYSTEMS.md)\n\n"
               "[Key results](#key-results) | [Entity composition](#measured-entity-composition) | "
@@ -206,4 +247,4 @@ def report_versions(markdown, docs):
               "Браузер выполняет общую симуляцию Core + SECS + Aether, а не полное сравнение пяти фреймворков.\n"
               "Браузерные тайминги не являются результатами настольных бенчмарков ниже;\n"
               "равенство checksum между платформами не обещается.\n\n")
-    return en_nav + english, ru_nav + russian
+    return en_nav + HISTORICAL_NOTICE_EN + english, ru_nav + HISTORICAL_NOTICE_RU + russian

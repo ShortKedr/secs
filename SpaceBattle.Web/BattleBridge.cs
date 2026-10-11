@@ -58,6 +58,33 @@ public static unsafe partial class BattleBridge
     public static string Checksum() => Current.Checksum().ToString("X16");
 
     [JSExport]
+    public static string Revision() => TacticalRules.Revision;
+
+    // On-demand diagnostics do not enlarge the per-frame rendering buffer.
+    [JSExport]
+    public static double TacticCounter(int field) => field switch
+    {
+        0 => Current.Tactics.TargetSwitches, 1 => Current.Tactics.TargetRetentions,
+        2 => Current.Tactics.GroupOrders, 3 => Current.Tactics.CoverOrders,
+        _ => throw new ArgumentOutOfRangeException(nameof(field))
+    };
+
+    [JSExport]
+    public static int ShipTactic(int serial, int field)
+    {
+        if (!Current.TryFindShip(serial, out var entity)) return -1;
+        var brain = Current.Store.Get<Brain>(entity);
+        return field switch
+        {
+            0 => (int)brain.Mode, 1 => Serial(brain.Target), 2 => Serial(brain.SquadLeader),
+            3 => Serial(brain.CoverAlly), 4 => brain.TargetLockUntilTick,
+            _ => throw new ArgumentOutOfRangeException(nameof(field))
+        };
+        static int Serial(EntityKey e) => Current.Store.Alive(e) && Current.Store.Has<Identity>(e)
+            ? Current.Store.Get<Identity>(e).Serial : -1;
+    }
+
+    [JSExport]
     public static string Validate()
     {
         Current.Validate();

@@ -20,10 +20,19 @@ class ReportLocaleTests(unittest.TestCase):
         self.assertIn("https://shortkedr.github.io/secs/?lang=ru", ru)
         self.assertIn("](../../SpaceBattle.Web/README.md)", en)
         self.assertIn("](../../SpaceBattle.Web/README.ru.md)", ru)
+        self.assertIn(report_locale.HISTORICAL_NOTICE_EN, en)
+        self.assertIn(report_locale.HISTORICAL_NOTICE_RU, ru)
+        self.assertIn("](TACTICS.md)", en)
+        self.assertIn("](TACTICS.ru.md)", ru)
 
     def test_missing_translation_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "Missing English"):
             report_locale.report_versions(self.source("Новая непереведённая фраза"), analyze.DOCS)
+
+    def test_existing_russian_link_is_not_localized_twice(self):
+        _, ru = report_locale.report_versions(self.source("[TACTICS](TACTICS.ru.md)"), analyze.DOCS)
+        self.assertIn("](TACTICS.ru.md)", ru)
+        self.assertNotIn(".ru.ru.md", ru)
 
     def test_missing_catalogue_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "exactly one"):

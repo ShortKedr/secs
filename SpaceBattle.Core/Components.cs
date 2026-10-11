@@ -6,7 +6,7 @@ namespace SpaceBattle;
 public enum ShipClass { Interceptor, Fighter, Bomber, Gunship, Corvette, Frigate, Destroyer, Support, LightCarrier, FleetCarrier, FoundryCarrier }
 public enum WeaponKind { MachineGun, Cannon, Plasma, Missile }
 public enum ItemKind { Empty, ShieldCell, HeatSink, RepairKit }
-public enum BrainMode { Attack, Retreat, Docking, Patrol }
+public enum BrainMode { Attack, Retreat, Docking, Patrol, Screen }
 
 public struct Identity { public int Serial, Team; public ShipClass Class; }
 public struct Transform { public Vector2 Position, Previous; public float Angle; }
@@ -14,12 +14,18 @@ public struct Motion { public Vector2 Velocity, Acceleration; public float Angul
 public struct Hull { public float Current, Maximum, Armor; }
 public struct Shield { public float Current, Maximum, RegenPerSecond; public int LastHitTick, RegenDelayTicks; }
 public struct Heat { public float Value, Limit, CoolingPerSecond; }
-public struct Brain { public EntityKey Target, Home; public BrainMode Mode; public int NextDecisionTick; public float OrbitSign; }
+public struct Brain
+{
+    public EntityKey Target, Home, SquadLeader, CoverAlly;
+    public BrainMode Mode;
+    public int NextDecisionTick, TargetLockUntilTick, CoverUntilTick;
+    public float OrbitSign, EstimatedKillSeconds;
+}
 public struct Weapon { public WeaponKind Kind; public int Cooldown, NextFireTick, Burst; public float Range, Damage, Speed, HeatPerShot; }
 public struct SecondaryWeapon { public Weapon Value; }
 public struct Collider { public float Radius, Mass; public int ShapeCount; }
 public struct PhysicsLink { public int Body; }
-public struct CombatState { public int LastDamageTick; }
+public struct CombatState { public int LastDamageTick; public EntityKey LastAttacker; }
 public struct Carrier { public int NextBuildTick, BuildInterval, Capacity, Built, RepairSlots; }
 public struct Docked { public EntityKey Carrier; public int ReleaseTick; }
 public struct Overheated { public int SinceTick; }

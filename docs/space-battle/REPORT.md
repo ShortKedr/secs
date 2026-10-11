@@ -11,6 +11,8 @@ The browser runs shared Core + SECS + Aether, not the full five-framework compar
 Browser timings are not the desktop benchmark results below; cross-platform
 checksum equality is not promised.
 
+> **Historical measurements:** the tables, charts and captures below use `predictive-neutral-v1`. Current source uses `tactical-lock-v2` ([tactical AI](TACTICS.md)); no timing campaign for that revision has been run. The recorded results do not measure the new AI or its current browser build.
+
 ![Actual frontend capture](action.png)
 
 OpenGL frontend capture: 1600 x 1000, seed 7331, 256 escorts per team, tick 900, zoom 2. Ships in snapshot: 101; rendered after clipping: 94; live ships by team: 60/65 (docked ships can be excluded from the snapshot list). This is NOT the benchmark configuration with 96 escorts per team and is not a timing result. The PNG sidecar has no seed field. Seed 7331 is confirmed by Options.Seed in the paired [headless capture replay](custom/frontend-capture-parity.json), matching checksum and Core/adapter hashes against the current action sidecar, and the known capture command; it is not a field read from the PNG sidecar.
@@ -26,11 +28,35 @@ OpenGL frontend capture: 1600 x 1000, seed 7331, 256 escorts per team, tick 900,
 - SECS nominal: MeanMs=0.4945 ms, P99Ms=1.0863 ms.
 - physics + hits account for 67-72% of mean Step across the 15 cases; shared combat logic can mask ECS differences.
 
+### Color Scale
+
+Up to 5% ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") ![Lag between 5% and 30%](heatmap/bad.svg "Lag between 5% and 30%") ![Lag from 30%](heatmap/worst.svg "Lag from 30%") From 30%; ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") neutral group or indistinguishable lag.
+
+The scale is shared by all tables, without min-max stretching: up to 5% is green; 5-15% transitions to yellow; 15-30% transitions to red; from 30% is red. Linear transitions use nine fixed SVG steps. 5/15/30% are agreed effect-size thresholds, not statistical significance thresholds. The worst value need not be red; numeric minima and maxima are not bold.
+
+For lower-is-better metrics: lag = (value / best - 1) * 100%; for higher-is-better: (1 - value / best) * 100%. Comparison uses the original unrounded metric; displayed numbers are unchanged. With a zero lower-is-better reference, zero matches the reference and a positive value has undefined relative lag, receiving a red marker only beyond the absolute threshold. For higher-is-better, a zero reference means an all-zero group. There is no division by zero or invented epsilon.
+
+If the entire group is within 5% of the best, it is gray without a winner. An absolute threshold can also make a group or individual lag neutral. Gray does not prove statistical equality. Unknown values and groups with only one known value are not ranked.
+
+The current suite has one independent run per profile/framework: color shows observed lag magnitude, not statistical significance or a stable ranking. Consecutive ticks, minute windows and a single run's StddevMs are not independent repeats.
+
+With explicitly supplied independent repeats, the reference is the best median of run-level metric summaries, not the luckiest single sample. Repeat min-max envelopes describe observed spread, not confidence intervals. Lag above 5% is colored only when conservative envelope separation exceeds both 5% and the selected absolute threshold; otherwise it is gray. Incomplete repeated data make the whole group gray. Repeats require unique run_id values and matching conditions; the current files contain no such repeats.
+
+Frameworks are compared only within one profile and metric; stage times only within one stage and profile. Memory is also grouped by metric type, phases by the same simulated interval. Broad allocation totals include the harness, not just Step.
+
+Absolute timing thresholds are configured for each exact profile/metric pair in tools/space-battle/heatmap_policy.json, in ms with EN/RU rationale; wall_seconds converts ms to seconds. No threshold applies universally to every stage. All defaults are disabled (null): there are no independent repeats, calibration or specified value of improvement to justify a practical ms floor. Display precision and tick budget do not establish a practically meaningful threshold. This is a descriptive effect-size scale.
+
+Population, composition, gameplay events, GC counts, stage shares, memory trends and late/early ratios remain neutral. The single frontend replay is also unranked: different operations and quantiles are not competing frameworks.
+
+Markers are local SVG images for GitHub Markdown, without CSS or external services; the numbers remain text.
+
+Selected absolute thresholds: none (all null).
+
 ## Systems and Components
 
 The catalogue below describes the current scenario. Standalone version: [SYSTEMS.md](SYSTEMS.md). Composition counts refer to logical gameplay components, excluding adapters' private LifetimeMarker.
 
-This catalogue describes the current implementation from source code, without measuring performance or access frequency. A component here means an independent value attached to an entity through `IEcsStore.Set<T>`, not every field, nested structure, or type registered in an adapter.
+This catalogue describes the measured `predictive-neutral-v1` implementation, without measuring performance or access frequency. Current source has a different AI revision, `tactical-lock-v2`, described in [Tactical AI](TACTICS.md). The tables below retain the measured snapshot; in current code, `Brain` also holds squad/cover references, target/cover leases and a kill-cost estimate, and `CombatState` records the last live enemy attacker. No component types were added. A component here means an independent value attached to an entity through `IEcsStore.Set<T>`, not every field, nested structure, or type registered in an adapter.
 
 Primary sources: [Battle.cs](../../SpaceBattle.Core/Battle.cs) (`StageNames`, `Step`, `Collect`, `SpawnShip` and processors), [CombatSystems.cs](../../SpaceBattle.Core/CombatSystems.cs) (weapons, carriers, movement, hits and lifecycle), [Components.cs](../../SpaceBattle.Core/Components.cs) (types and ship catalogue), [EcsContract.cs](../../SpaceBattle.Core/EcsContract.cs) (storage contract).
 
@@ -149,15 +175,15 @@ Times in ms come from the original performance runs, not the diagnostic observer
 
 | Stage | SECS ms | Lite ms | Classic ms | Morpeh ms | Static ms | SECS Step Share % |
 | --- | --- | --- | --- | --- | --- | --- |
-| collect | 0.05678 | 0.05508 | 0.04762 | 0.04622 | 0.05175 | 11.48 |
-| ai | 0.00425 | 0.00424 | 0.00426 | 0.00369 | 0.00446 | 0.86 |
-| thermal-inventory | 0.00739 | 0.00857 | 0.00821 | 0.00682 | 0.00839 | 1.49 |
-| steering | 0.00706 | 0.00811 | 0.00781 | 0.00694 | 0.00860 | 1.43 |
-| weapons | 0.00557 | 0.00532 | 0.00509 | 0.00446 | 0.00489 | 1.13 |
-| carriers | 0.00108 | 0.00102 | 0.00088 | 0.00090 | 0.00129 | 0.22 |
-| physics | 0.08833 | 0.09076 | 0.08465 | 0.08606 | 0.08867 | 17.87 |
-| hits | 0.24745 | 0.25286 | 0.27435 | 0.24829 | 0.24633 | 50.04 |
-| lifecycle | 0.07648 | 0.07899 | 0.07427 | 0.06669 | 0.07002 | 15.47 |
+| collect | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 0.05678 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.05508 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.04762 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.04622 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.05175 | 11.48 |
+| ai | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.00425 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.00424 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.00426 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.00369 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 0.00446 | 0.86 |
+| thermal-inventory | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.00739 | ![Lag between 5% and 30%](heatmap/bad.svg "Lag between 5% and 30%") 0.00857 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.00821 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.00682 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 0.00839 | 1.49 |
+| steering | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.00706 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.00811 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.00781 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.00694 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 0.00860 | 1.43 |
+| weapons | ![Lag between 5% and 30%](heatmap/bad.svg "Lag between 5% and 30%") 0.00557 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.00532 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.00509 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.00446 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.00489 | 1.13 |
+| carriers | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 0.00108 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.00102 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.00088 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.00090 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 0.00129 | 0.22 |
+| physics | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.08833 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.09076 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.08465 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.08606 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.08867 | 17.87 |
+| hits | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.24745 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.25286 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.27435 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.24829 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.24633 | 50.04 |
+| lifecycle | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.07648 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.07899 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.07427 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.06669 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.07002 | 15.47 |
 
 ## Measured Entity Composition
 
@@ -327,21 +353,21 @@ Composition was directly measured in a SECS diagnostic replay, not five new timi
 
 | Profile | Framework | Ticks | Windows | Wall Time, s | Date | Final Checksum | JSON | JSON SHA256 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| low | secs | 108000 | 30 | 42.88 | 2026-10-11T14:52:14.2068018+05:00 | BC1ED478AF94A722 | [low-secs.json](results/low-secs.json) | 5e01cabf66f78cddf469a5f1b05f16d4afce42cbe04a81989ed015d3a8957d52 |
-| low | lite | 108000 | 30 | 45.23 | 2026-10-11T14:53:00.9042133+05:00 | BC1ED478AF94A722 | [low-lite.json](results/low-lite.json) | ec5143af5af7e80e6c2595ee6f1b3673510a79c258327023841936d92c239be2 |
-| low | classic | 108000 | 30 | 43.65 | 2026-10-11T14:53:46.0179844+05:00 | BC1ED478AF94A722 | [low-classic.json](results/low-classic.json) | 1fbf2991d233a0a0d1dfdc7745da6604eea1c8522b3374d2ccd061be912ec61b |
-| low | morpeh | 108000 | 30 | 39.70 | 2026-10-11T14:54:27.1267049+05:00 | BC1ED478AF94A722 | [low-morpeh.json](results/low-morpeh.json) | b509c591e5339fd8c14a2c3709acd989957ea1738d48ba27df48ee08c77ed4ee |
-| low | static | 108000 | 30 | 46.41 | 2026-10-11T14:55:15.1760859+05:00 | BC1ED478AF94A722 | [low-static.json](results/low-static.json) | be86a5326409709a1718702b1939c71398c777d3d5fd04a92c54042e795a02f4 |
-| nominal | secs | 108000 | 30 | 53.46 | 2026-10-11T14:58:53.3110155+05:00 | 374773A7D7A76049 | [nominal-secs.json](results/nominal-secs.json) | 3cbe8776024cfd9db958bc3e3e353bddfdba2033142d4414dee37d46a628a1b1 |
-| nominal | lite | 108000 | 30 | 54.60 | 2026-10-11T14:59:49.5309385+05:00 | 374773A7D7A76049 | [nominal-lite.json](results/nominal-lite.json) | 983a2207e3f7b064d6722fa5583c1e933aa780aacb3569fdcc4de6e18baefc46 |
-| nominal | classic | 108000 | 30 | 54.84 | 2026-10-11T14:56:11.6803987+05:00 | 374773A7D7A76049 | [nominal-classic.json](results/nominal-classic.json) | 1be44c49adff02052e6db8b345e38872f65802c26f3ff4da5ef1ccee48d54a92 |
-| nominal | morpeh | 108000 | 30 | 50.84 | 2026-10-11T14:57:04.1186441+05:00 | 374773A7D7A76049 | [nominal-morpeh.json](results/nominal-morpeh.json) | f7d0a5460039b43fda2a57588a9a6e425747f1c447ebe539e2c8be5999e0a1e5 |
-| nominal | static | 108000 | 30 | 52.38 | 2026-10-11T14:57:58.2543959+05:00 | 374773A7D7A76049 | [nominal-static.json](results/nominal-static.json) | 0c3127ea3e4336b866a3e924b89f2f125f75529abc18140fd5e985f617b7ea5a |
-| high | secs | 108000 | 30 | 65.69 | 2026-10-11T15:02:05.4081584+05:00 | D359225CC9541DE1 | [high-secs.json](results/high-secs.json) | 1f0123188d14686b7a2a6ef59d91627dae4cd99b523f67724cb86f014f101bbd |
-| high | lite | 108000 | 30 | 71.95 | 2026-10-11T15:03:19.0151513+05:00 | D359225CC9541DE1 | [high-lite.json](results/high-lite.json) | da1983c0564b167a844448d08e125a3a32f897e463ca1e1c7d74bdbfff283bb4 |
-| high | classic | 108000 | 30 | 66.29 | 2026-10-11T15:04:26.9721727+05:00 | D359225CC9541DE1 | [high-classic.json](results/high-classic.json) | ced4525a003a10c12e4f7e85470584331245a2a460924b423e938a4690845230 |
-| high | morpeh | 108000 | 30 | 63.17 | 2026-10-11T15:05:31.7833263+05:00 | D359225CC9541DE1 | [high-morpeh.json](results/high-morpeh.json) | 6b7ff80019b423d4845a4dac5bf6dc808edefc03ee90012cdcefcca6fafcdd7e |
-| high | static | 108000 | 30 | 66.64 | 2026-10-11T15:00:57.9463337+05:00 | D359225CC9541DE1 | [high-static.json](results/high-static.json) | f510fcacc0fcad7c24f55b71436851d3985713a62c9405225474d722043fa1fa |
+| low | secs | 108000 | 30 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 42.88 | 2026-10-11T14:52:14.2068018+05:00 | BC1ED478AF94A722 | [low-secs.json](results/low-secs.json) | 5e01cabf66f78cddf469a5f1b05f16d4afce42cbe04a81989ed015d3a8957d52 |
+| low | lite | 108000 | 30 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 45.23 | 2026-10-11T14:53:00.9042133+05:00 | BC1ED478AF94A722 | [low-lite.json](results/low-lite.json) | ec5143af5af7e80e6c2595ee6f1b3673510a79c258327023841936d92c239be2 |
+| low | classic | 108000 | 30 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 43.65 | 2026-10-11T14:53:46.0179844+05:00 | BC1ED478AF94A722 | [low-classic.json](results/low-classic.json) | 1fbf2991d233a0a0d1dfdc7745da6604eea1c8522b3374d2ccd061be912ec61b |
+| low | morpeh | 108000 | 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 39.70 | 2026-10-11T14:54:27.1267049+05:00 | BC1ED478AF94A722 | [low-morpeh.json](results/low-morpeh.json) | b509c591e5339fd8c14a2c3709acd989957ea1738d48ba27df48ee08c77ed4ee |
+| low | static | 108000 | 30 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 46.41 | 2026-10-11T14:55:15.1760859+05:00 | BC1ED478AF94A722 | [low-static.json](results/low-static.json) | be86a5326409709a1718702b1939c71398c777d3d5fd04a92c54042e795a02f4 |
+| nominal | secs | 108000 | 30 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 53.46 | 2026-10-11T14:58:53.3110155+05:00 | 374773A7D7A76049 | [nominal-secs.json](results/nominal-secs.json) | 3cbe8776024cfd9db958bc3e3e353bddfdba2033142d4414dee37d46a628a1b1 |
+| nominal | lite | 108000 | 30 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 54.60 | 2026-10-11T14:59:49.5309385+05:00 | 374773A7D7A76049 | [nominal-lite.json](results/nominal-lite.json) | 983a2207e3f7b064d6722fa5583c1e933aa780aacb3569fdcc4de6e18baefc46 |
+| nominal | classic | 108000 | 30 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 54.84 | 2026-10-11T14:56:11.6803987+05:00 | 374773A7D7A76049 | [nominal-classic.json](results/nominal-classic.json) | 1be44c49adff02052e6db8b345e38872f65802c26f3ff4da5ef1ccee48d54a92 |
+| nominal | morpeh | 108000 | 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 50.84 | 2026-10-11T14:57:04.1186441+05:00 | 374773A7D7A76049 | [nominal-morpeh.json](results/nominal-morpeh.json) | f7d0a5460039b43fda2a57588a9a6e425747f1c447ebe539e2c8be5999e0a1e5 |
+| nominal | static | 108000 | 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 52.38 | 2026-10-11T14:57:58.2543959+05:00 | 374773A7D7A76049 | [nominal-static.json](results/nominal-static.json) | 0c3127ea3e4336b866a3e924b89f2f125f75529abc18140fd5e985f617b7ea5a |
+| high | secs | 108000 | 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 65.69 | 2026-10-11T15:02:05.4081584+05:00 | D359225CC9541DE1 | [high-secs.json](results/high-secs.json) | 1f0123188d14686b7a2a6ef59d91627dae4cd99b523f67724cb86f014f101bbd |
+| high | lite | 108000 | 30 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 71.95 | 2026-10-11T15:03:19.0151513+05:00 | D359225CC9541DE1 | [high-lite.json](results/high-lite.json) | da1983c0564b167a844448d08e125a3a32f897e463ca1e1c7d74bdbfff283bb4 |
+| high | classic | 108000 | 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 66.29 | 2026-10-11T15:04:26.9721727+05:00 | D359225CC9541DE1 | [high-classic.json](results/high-classic.json) | ced4525a003a10c12e4f7e85470584331245a2a460924b423e938a4690845230 |
+| high | morpeh | 108000 | 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 63.17 | 2026-10-11T15:05:31.7833263+05:00 | D359225CC9541DE1 | [high-morpeh.json](results/high-morpeh.json) | 6b7ff80019b423d4845a4dac5bf6dc808edefc03ee90012cdcefcca6fafcdd7e |
+| high | static | 108000 | 30 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 66.64 | 2026-10-11T15:00:57.9463337+05:00 | D359225CC9541DE1 | [high-static.json](results/high-static.json) | f510fcacc0fcad7c24f55b71436851d3985713a62c9405225474d722043fa1fa |
 
 Configuration: seed 7331, 96 escorts and 3 carriers per team (198 initial ships), churn low/nominal/high = 0.5/1/2, particles 1, no realtime pacing. All remaining BattleConfig parameters are checked against defaults.
 
@@ -422,21 +448,21 @@ Measurement scope (original metadata fields): TimingScope=Step includes all syst
 
 | Profile | Framework | Mean ms | p95 ms | p99 ms | Max ms | Ticks >16.67ms | Miss % | Step managed alloc B/tick |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| low | secs | 0.3966 | 0.5952 | 1.0000 | 3.3685 | 0 | 0.00000 | 296.75 |
-| low | lite | 0.4183 | 0.6389 | 1.0607 | 4.1879 | 0 | 0.00000 | 338.97 |
-| low | classic | 0.4037 | 0.6144 | 1.0411 | 3.6632 | 0 | 0.00000 | 332.43 |
-| low | morpeh | 0.3671 | 0.5648 | 0.9766 | 3.2843 | 0 | 0.00000 | 352.99 |
-| low | static | 0.4291 | 0.6803 | 1.1193 | 3.7314 | 0 | 0.00000 | 299.21 |
-| nominal | secs | 0.4945 | 0.7874 | 1.0863 | 5.4774 | 0 | 0.00000 | 444.00 |
-| nominal | lite | 0.5050 | 0.8095 | 1.1391 | 5.1888 | 0 | 0.00000 | 485.65 |
-| nominal | classic | 0.5072 | 0.8347 | 1.1696 | 5.6009 | 0 | 0.00000 | 487.84 |
-| nominal | morpeh | 0.4701 | 0.7585 | 1.0540 | 4.5252 | 0 | 0.00000 | 503.74 |
-| nominal | static | 0.4845 | 0.7838 | 1.0605 | 3.7494 | 0 | 0.00000 | 447.69 |
-| high | secs | 0.6077 | 1.1922 | 1.6188 | 5.8415 | 0 | 0.00000 | 666.08 |
-| high | lite | 0.6656 | 1.3187 | 1.8535 | 7.2050 | 0 | 0.00000 | 754.10 |
-| high | classic | 0.6133 | 1.2087 | 1.6922 | 6.2805 | 0 | 0.00000 | 741.54 |
-| high | morpeh | 0.5844 | 1.1642 | 1.5711 | 6.2446 | 0 | 0.00000 | 737.26 |
-| high | static | 0.6164 | 1.2096 | 1.5914 | 9.4549 | 0 | 0.00000 | 672.20 |
+| low | secs | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.3966 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 0.5952 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.0000 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 3.3685 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 296.75 |
+| low | lite | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.4183 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.6389 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 1.0607 | ![Lag between 5% and 30%](heatmap/bad.svg "Lag between 5% and 30%") 4.1879 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 338.97 |
+| low | classic | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.4037 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.6144 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 1.0411 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 3.6632 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 332.43 |
+| low | morpeh | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.3671 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5648 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.9766 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 3.2843 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 352.99 |
+| low | static | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.4291 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.6803 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 1.1193 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 3.7314 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 299.21 |
+| nominal | secs | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 0.4945 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.7874 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.0863 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 5.4774 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 444.00 |
+| nominal | lite | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.5050 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.8095 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 1.1391 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 5.1888 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 485.65 |
+| nominal | classic | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.5072 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.8347 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 1.1696 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 5.6009 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 487.84 |
+| nominal | morpeh | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.4701 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.7585 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.0540 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 4.5252 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 503.74 |
+| nominal | static | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.4845 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.7838 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.0605 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 3.7494 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 447.69 |
+| high | secs | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.6077 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.1922 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.6188 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 5.8415 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 666.08 |
+| high | lite | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 0.6656 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 1.3187 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 1.8535 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 7.2050 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 754.10 |
+| high | classic | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.6133 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.2087 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 1.6922 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 6.2805 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 741.54 |
+| high | morpeh | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5844 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.1642 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.5711 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 6.2446 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 737.26 |
+| high | static | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 0.6164 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.2096 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 1.5914 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 9.4549 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0 | ![Practically indistinguishable or insufficient spread evidence](heatmap/equal.svg "Practically indistinguishable or insufficient spread evidence") 0.00000 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 672.20 |
 
 Global quantiles come directly from the full-run JSON, not averages of per-minute quantiles. AllocatedBytes and B/tick mean current-thread managed allocations strictly inside Step; timing quantiles and this allocation metric exclude subsequent result processing.
 
@@ -444,21 +470,21 @@ Global quantiles come directly from the full-run JSON, not averages of per-minut
 
 | Profile | Framework | GC Sample After Tick 1 (0/1/2) | GC Sample After Tick 108000 (0/1/2) | CSV GC delta tick 1→108000 (0/1/2) | JSON GC Broad Interval (0/1/2) | HarnessAndSimulationAllocatedBytes Broad Interval, B |
 | --- | --- | --- | --- | --- | --- | --- |
-| low | secs | 4/4/4 | 6/5/4 | 2/1/0 | 2/1/0 | 36977272 |
-| low | lite | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | 41536912 |
-| low | classic | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | 40830552 |
-| low | morpeh | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | 43051232 |
-| low | static | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | 37275392 |
-| nominal | secs | 4/4/4 | 6/5/4 | 2/1/0 | 3/1/0 | 52838760 |
-| nominal | lite | 4/4/4 | 7/4/4 | 3/0/0 | 3/0/0 | 57325024 |
-| nominal | classic | 4/4/4 | 7/5/4 | 3/1/0 | 3/1/0 | 57561896 |
-| nominal | morpeh | 4/4/4 | 7/5/5 | 3/1/1 | 3/1/1 | 59278840 |
-| nominal | static | 4/4/4 | 7/4/4 | 3/0/0 | 3/0/0 | 53282400 |
-| high | secs | 4/4/4 | 8/5/4 | 4/1/0 | 4/1/0 | 76940296 |
-| high | lite | 4/4/4 | 8/4/4 | 4/0/0 | 4/0/0 | 86434896 |
-| high | classic | 4/4/4 | 9/6/5 | 5/2/1 | 5/2/1 | 85079304 |
-| high | morpeh | 4/4/4 | 8/6/6 | 4/2/2 | 4/2/2 | 84616104 |
-| high | static | 4/4/4 | 8/4/4 | 4/0/0 | 4/0/0 | 77621784 |
+| low | secs | 4/4/4 | 6/5/4 | 2/1/0 | 2/1/0 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 36977272 |
+| low | lite | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 41536912 |
+| low | classic | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 40830552 |
+| low | morpeh | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 43051232 |
+| low | static | 4/4/4 | 6/4/4 | 2/0/0 | 2/0/0 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 37275392 |
+| nominal | secs | 4/4/4 | 6/5/4 | 2/1/0 | 3/1/0 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 52838760 |
+| nominal | lite | 4/4/4 | 7/4/4 | 3/0/0 | 3/0/0 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 57325024 |
+| nominal | classic | 4/4/4 | 7/5/4 | 3/1/0 | 3/1/0 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 57561896 |
+| nominal | morpeh | 4/4/4 | 7/5/5 | 3/1/1 | 3/1/1 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 59278840 |
+| nominal | static | 4/4/4 | 7/4/4 | 3/0/0 | 3/0/0 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 53282400 |
+| high | secs | 4/4/4 | 8/5/4 | 4/1/0 | 4/1/0 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 76940296 |
+| high | lite | 4/4/4 | 8/4/4 | 4/0/0 | 4/0/0 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 86434896 |
+| high | classic | 4/4/4 | 9/6/5 | 5/2/1 | 5/2/1 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 85079304 |
+| high | morpeh | 4/4/4 | 8/6/6 | 4/2/2 | 4/2/2 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 84616104 |
+| high | static | 4/4/4 | 8/4/4 | 4/0/0 | 4/0/0 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 77621784 |
 
 CSV GC delta = last post-Step GC sample minus first post-Step sample, ticks 1→108000. The interval includes between-Step telemetry but excludes unknown first-Step collections. Initial tick-zero baseline was not saved: exact gameplay-loop-only collections cannot be recovered from these data. Minute-window Gc fields are also absolute cumulative values.
 
@@ -468,65 +494,65 @@ JSON GcCollections is computed later, after battle.Validate, DLL/SHA256 provenan
 
 | Profile | Framework | Metric | Sample Peak MiB @ Minute | Last MiB | Last - First MiB | OLS MiB/min |
 | --- | --- | --- | --- | --- | --- | --- |
-| low | secs | ManagedHeapBytes | 32.81 @ 29 | 8.23 | -10.87 | +0.092 |
-| low | secs | PrivateBytes | 59.48 @ 29 | 56.23 | +15.50 | +0.632 |
-| low | secs | WorkingSetBytes | 78.91 @ 29 | 75.91 | +27.82 | +1.051 |
+| low | secs | ManagedHeapBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 32.81 @ 29 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 8.23 | -10.87 | +0.092 |
+| low | secs | PrivateBytes | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 59.48 @ 29 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 56.23 | +15.50 | +0.632 |
+| low | secs | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 78.91 @ 29 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 75.91 | +27.82 | +1.051 |
 | low | secs | NativeBytes | 6.17 @ 29 | 6.17 | +1.86 | +0.054 |
-| low | lite | ManagedHeapBytes | 36.12 @ 27 | 23.86 | -0.05 | +0.102 |
-| low | lite | PrivateBytes | 51.82 @ 13 | 51.73 | +10.21 | +0.386 |
-| low | lite | WorkingSetBytes | 72.68 @ 30 | 72.68 | +21.75 | +0.774 |
+| low | lite | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 36.12 @ 27 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 23.86 | -0.05 | +0.102 |
+| low | lite | PrivateBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 51.82 @ 13 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 51.73 | +10.21 | +0.386 |
+| low | lite | WorkingSetBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 72.68 @ 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 72.68 | +21.75 | +0.774 |
 | low | lite | NativeBytes | unknown | unknown | unknown | unknown |
-| low | classic | ManagedHeapBytes | 35.00 @ 27 | 22.82 | -0.06 | +0.080 |
-| low | classic | PrivateBytes | 51.19 @ 14 | 51.16 | +11.63 | +0.454 |
-| low | classic | WorkingSetBytes | 72.29 @ 30 | 72.29 | +24.20 | +0.875 |
+| low | classic | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 35.00 @ 27 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 22.82 | -0.06 | +0.080 |
+| low | classic | PrivateBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 51.19 @ 14 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 51.16 | +11.63 | +0.454 |
+| low | classic | WorkingSetBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 72.29 @ 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 72.29 | +24.20 | +0.875 |
 | low | classic | NativeBytes | unknown | unknown | unknown | unknown |
-| low | morpeh | ManagedHeapBytes | 38.41 @ 27 | 17.46 | -7.48 | +0.003 |
-| low | morpeh | PrivateBytes | 61.19 @ 28 | 61.19 | +16.20 | +0.605 |
-| low | morpeh | WorkingSetBytes | 82.55 @ 30 | 82.55 | +30.50 | +1.087 |
+| low | morpeh | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 38.41 @ 27 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 17.46 | -7.48 | +0.003 |
+| low | morpeh | PrivateBytes | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 61.19 @ 28 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 61.19 | +16.20 | +0.605 |
+| low | morpeh | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 82.55 @ 30 | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 82.55 | +30.50 | +1.087 |
 | low | morpeh | NativeBytes | unknown | unknown | unknown | unknown |
-| low | static | ManagedHeapBytes | 32.80 @ 28 | 19.18 | -0.55 | +0.137 |
-| low | static | PrivateBytes | 50.38 @ 29 | 50.38 | +13.48 | +0.545 |
-| low | static | WorkingSetBytes | 75.98 @ 30 | 75.98 | +27.39 | +1.017 |
+| low | static | ManagedHeapBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 32.80 @ 28 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 19.18 | -0.55 | +0.137 |
+| low | static | PrivateBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 50.38 @ 29 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 50.38 | +13.48 | +0.545 |
+| low | static | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 75.98 @ 30 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 75.98 | +27.39 | +1.017 |
 | low | static | NativeBytes | unknown | unknown | unknown | unknown |
-| nominal | secs | ManagedHeapBytes | 33.02 @ 30 | 33.02 | +13.75 | -0.027 |
-| nominal | secs | PrivateBytes | 60.17 @ 20 | 57.59 | +15.78 | +0.495 |
-| nominal | secs | WorkingSetBytes | 76.64 @ 30 | 76.64 | +27.57 | +0.904 |
+| nominal | secs | ManagedHeapBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 33.02 @ 30 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 33.02 | +13.75 | -0.027 |
+| nominal | secs | PrivateBytes | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 60.17 @ 20 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 57.59 | +15.78 | +0.495 |
+| nominal | secs | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 76.64 @ 30 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 76.64 | +27.57 | +0.904 |
 | nominal | secs | NativeBytes | 6.93 @ 28 | 6.93 | +2.13 | +0.053 |
-| nominal | lite | ManagedHeapBytes | 35.69 @ 28 | 22.94 | -1.09 | +0.063 |
-| nominal | lite | PrivateBytes | 51.80 @ 29 | 51.80 | +10.02 | +0.276 |
-| nominal | lite | WorkingSetBytes | 73.08 @ 30 | 73.08 | +21.60 | +0.666 |
+| nominal | lite | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 35.69 @ 28 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 22.94 | -1.09 | +0.063 |
+| nominal | lite | PrivateBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 51.80 @ 29 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 51.80 | +10.02 | +0.276 |
+| nominal | lite | WorkingSetBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 73.08 @ 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 73.08 | +21.60 | +0.666 |
 | nominal | lite | NativeBytes | unknown | unknown | unknown | unknown |
-| nominal | classic | ManagedHeapBytes | 35.84 @ 28 | 23.00 | -0.75 | +0.078 |
-| nominal | classic | PrivateBytes | 51.77 @ 9 | 48.94 | +7.96 | +0.273 |
-| nominal | classic | WorkingSetBytes | 72.58 @ 28 | 70.98 | +20.48 | +0.677 |
+| nominal | classic | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 35.84 @ 28 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 23.00 | -0.75 | +0.078 |
+| nominal | classic | PrivateBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 51.77 @ 9 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 48.94 | +7.96 | +0.273 |
+| nominal | classic | WorkingSetBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 72.58 @ 28 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 70.98 | +20.48 | +0.677 |
 | nominal | classic | NativeBytes | unknown | unknown | unknown | unknown |
-| nominal | morpeh | ManagedHeapBytes | 38.66 @ 28 | 25.15 | +2.52 | -0.107 |
-| nominal | morpeh | PrivateBytes | 61.81 @ 28 | 61.75 | +16.64 | +0.635 |
-| nominal | morpeh | WorkingSetBytes | 83.89 @ 30 | 83.89 | +31.62 | +1.124 |
+| nominal | morpeh | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 38.66 @ 28 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 25.15 | +2.52 | -0.107 |
+| nominal | morpeh | PrivateBytes | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 61.81 @ 28 | ![Lag between 5% and 30%](heatmap/bad.svg "Lag between 5% and 30%") 61.75 | +16.64 | +0.635 |
+| nominal | morpeh | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 83.89 @ 30 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 83.89 | +31.62 | +1.124 |
 | nominal | morpeh | NativeBytes | unknown | unknown | unknown | unknown |
-| nominal | static | ManagedHeapBytes | 33.18 @ 29 | 18.62 | -1.43 | +0.131 |
-| nominal | static | PrivateBytes | 50.75 @ 30 | 50.75 | +13.29 | +0.415 |
-| nominal | static | WorkingSetBytes | 76.25 @ 30 | 76.25 | +27.22 | +0.885 |
+| nominal | static | ManagedHeapBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 33.18 @ 29 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 18.62 | -1.43 | +0.131 |
+| nominal | static | PrivateBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 50.75 @ 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 50.75 | +13.29 | +0.415 |
+| nominal | static | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 76.25 @ 30 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 76.25 | +27.22 | +0.885 |
 | nominal | static | NativeBytes | unknown | unknown | unknown | unknown |
-| high | secs | ManagedHeapBytes | 33.51 @ 27 | 18.85 | -2.23 | -0.105 |
-| high | secs | PrivateBytes | 59.02 @ 13 | 57.30 | +14.90 | +0.440 |
-| high | secs | WorkingSetBytes | 76.65 @ 30 | 76.65 | +26.68 | +0.843 |
+| high | secs | ManagedHeapBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 33.51 @ 27 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 18.85 | -2.23 | -0.105 |
+| high | secs | PrivateBytes | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 59.02 @ 13 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 57.30 | +14.90 | +0.440 |
+| high | secs | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 76.65 @ 30 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 76.65 | +26.68 | +0.843 |
 | high | secs | NativeBytes | 7.11 @ 30 | 7.11 | +1.49 | +0.033 |
-| high | lite | ManagedHeapBytes | 41.06 @ 18 | 36.20 | +4.87 | +0.108 |
-| high | lite | PrivateBytes | 55.56 @ 19 | 55.56 | +5.29 | +0.077 |
-| high | lite | WorkingSetBytes | 76.70 @ 30 | 76.70 | +19.33 | +0.551 |
+| high | lite | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 41.06 @ 18 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 36.20 | +4.87 | +0.108 |
+| high | lite | PrivateBytes | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 55.56 @ 19 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 55.56 | +5.29 | +0.077 |
+| high | lite | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 76.70 @ 30 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 76.70 | +19.33 | +0.551 |
 | high | lite | NativeBytes | unknown | unknown | unknown | unknown |
-| high | classic | ManagedHeapBytes | 38.75 @ 18 | 31.59 | +2.41 | -0.098 |
-| high | classic | PrivateBytes | 54.87 @ 5 | 50.41 | +2.95 | -0.131 |
-| high | classic | WorkingSetBytes | 72.64 @ 30 | 72.64 | +18.02 | +0.385 |
+| high | classic | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 38.75 @ 18 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 31.59 | +2.41 | -0.098 |
+| high | classic | PrivateBytes | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 54.87 @ 5 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 50.41 | +2.95 | -0.131 |
+| high | classic | WorkingSetBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 72.64 @ 30 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 72.64 | +18.02 | +0.385 |
 | high | classic | NativeBytes | unknown | unknown | unknown | unknown |
-| high | morpeh | ManagedHeapBytes | 37.87 @ 11 | 33.53 | +6.21 | +0.130 |
-| high | morpeh | PrivateBytes | 75.75 @ 30 | 75.75 | +29.07 | +0.830 |
-| high | morpeh | WorkingSetBytes | 97.78 @ 30 | 97.78 | +43.40 | +1.322 |
+| high | morpeh | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 37.87 @ 11 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 33.53 | +6.21 | +0.130 |
+| high | morpeh | PrivateBytes | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 75.75 @ 30 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 75.75 | +29.07 | +0.830 |
+| high | morpeh | WorkingSetBytes | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 97.78 @ 30 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 97.78 | +43.40 | +1.322 |
 | high | morpeh | NativeBytes | unknown | unknown | unknown | unknown |
-| high | static | ManagedHeapBytes | 35.92 @ 27 | 26.65 | +3.87 | +0.117 |
-| high | static | PrivateBytes | 52.20 @ 21 | 52.20 | +12.02 | +0.252 |
-| high | static | WorkingSetBytes | 77.71 @ 30 | 77.71 | +25.23 | +0.698 |
+| high | static | ManagedHeapBytes | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 35.92 @ 27 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 26.65 | +3.87 | +0.117 |
+| high | static | PrivateBytes | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 52.20 @ 21 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 52.20 | +12.02 | +0.252 |
+| high | static | WorkingSetBytes | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 77.71 @ 30 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 77.71 | +25.23 | +0.698 |
 | high | static | NativeBytes | unknown | unknown | unknown | unknown |
 
 Peaks are maxima of end-of-minute samples, not continuously measured process peaks. Trends are descriptive OLS fits, not leak diagnosis. Managed heap, process private bytes and working set are different metrics and cannot be added. SECS native storage is separate; unavailable diagnostics from other frameworks remain null, not zero. Process memory includes measurement harness buffers.
@@ -535,21 +561,21 @@ Peaks are maxima of end-of-minute samples, not continuously measured process pea
 
 | Profile | Framework | Minutes 1-10 Mean ms | Minutes 11-20 Mean ms | Minutes 21-30 Mean ms | Late / Early | Largest Stage | Stage % of Step | physics % of Step | physics + hits % of Step |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| low | secs | 0.4085 | 0.3807 | 0.4005 | 0.980 | hits | 46.6 | 22.4 | 69.0 |
-| low | lite | 0.4333 | 0.3960 | 0.4255 | 0.982 | hits | 46.7 | 22.6 | 69.3 |
-| low | classic | 0.4273 | 0.3887 | 0.3951 | 0.925 | hits | 50.2 | 21.5 | 71.7 |
-| low | morpeh | 0.3958 | 0.3512 | 0.3541 | 0.895 | hits | 49.4 | 22.9 | 72.3 |
-| low | static | 0.4456 | 0.4124 | 0.4294 | 0.964 | hits | 46.6 | 23.4 | 70.0 |
-| nominal | secs | 0.5251 | 0.4665 | 0.4918 | 0.937 | hits | 50.0 | 17.9 | 67.9 |
-| nominal | lite | 0.5465 | 0.4810 | 0.4876 | 0.892 | hits | 50.1 | 18.0 | 68.0 |
-| nominal | classic | 0.5568 | 0.4715 | 0.4933 | 0.886 | hits | 54.1 | 16.7 | 70.8 |
-| nominal | morpeh | 0.5063 | 0.4381 | 0.4660 | 0.920 | hits | 52.8 | 18.3 | 71.1 |
-| nominal | static | 0.5125 | 0.4517 | 0.4892 | 0.955 | hits | 50.8 | 18.3 | 69.1 |
-| high | secs | 0.6750 | 0.5738 | 0.5744 | 0.851 | hits | 50.2 | 16.9 | 67.1 |
-| high | lite | 0.7314 | 0.6262 | 0.6393 | 0.874 | hits | 49.7 | 17.4 | 67.1 |
-| high | classic | 0.6905 | 0.5760 | 0.5734 | 0.830 | hits | 54.6 | 15.6 | 70.3 |
-| high | morpeh | 0.6575 | 0.5584 | 0.5372 | 0.817 | hits | 52.7 | 17.4 | 70.1 |
-| high | static | 0.7077 | 0.5733 | 0.5683 | 0.803 | hits | 51.0 | 17.6 | 68.6 |
+| low | secs | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.4085 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.3807 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.4005 | 0.980 | hits | 46.6 | 22.4 | 69.0 |
+| low | lite | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.4333 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.3960 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.4255 | 0.982 | hits | 46.7 | 22.6 | 69.3 |
+| low | classic | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.4273 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.3887 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.3951 | 0.925 | hits | 50.2 | 21.5 | 71.7 |
+| low | morpeh | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.3958 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.3512 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.3541 | 0.895 | hits | 49.4 | 22.9 | 72.3 |
+| low | static | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.4456 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.4124 | ![Lag between 5% and 30%](heatmap/poor.svg "Lag between 5% and 30%") 0.4294 | 0.964 | hits | 46.6 | 23.4 | 70.0 |
+| nominal | secs | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5251 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.4665 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 0.4918 | 0.937 | hits | 50.0 | 17.9 | 67.9 |
+| nominal | lite | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.5465 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.4810 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.4876 | 0.892 | hits | 50.1 | 18.0 | 68.0 |
+| nominal | classic | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.5568 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.4715 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 0.4933 | 0.886 | hits | 54.1 | 16.7 | 70.8 |
+| nominal | morpeh | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5063 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.4381 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.4660 | 0.920 | hits | 52.8 | 18.3 | 71.1 |
+| nominal | static | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5125 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.4517 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.4892 | 0.955 | hits | 50.8 | 18.3 | 69.1 |
+| high | secs | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.6750 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5738 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.5744 | 0.851 | hits | 50.2 | 16.9 | 67.1 |
+| high | lite | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.7314 | ![Lag between 5% and 30%](heatmap/fair.svg "Lag between 5% and 30%") 0.6262 | ![Lag between 5% and 30%](heatmap/weak.svg "Lag between 5% and 30%") 0.6393 | 0.874 | hits | 49.7 | 17.4 | 67.1 |
+| high | classic | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 0.6905 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5760 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.5734 | 0.830 | hits | 54.6 | 15.6 | 70.3 |
+| high | morpeh | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.6575 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5584 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5372 | 0.817 | hits | 52.7 | 17.4 | 70.1 |
+| high | static | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 0.7077 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.5733 | ![Lag between 5% and 30%](heatmap/best.svg "Lag between 5% and 30%") 0.5683 | 0.803 | hits | 51.0 | 17.6 | 68.6 |
 
 Fixed simulated-time phases describe observations, not a causal experiment. Stage means can be added; stage p95/p99 cannot. The physics + hits share is their summed mean divided by mean Step separately for each run, not a preset percentage. A large share means shared physics/hit processing dominates this workload and can hide ECS differences. This is not direct evidence of a universal framework advantage. One run per profile/framework combination does not establish ranking confidence.
 

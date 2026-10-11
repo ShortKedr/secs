@@ -148,7 +148,7 @@ public sealed partial class Battle<TStore>
             if (p.ExpiresTick <= Tick || Outside(t.Position)) { retired.Add(row.Entity); continue; }
             if (!physics.Sweep(t.Previous, t.Position, p.Radius, out var targetSerial, out var impact)) continue;
             if (!serialToShip.TryGetValue(targetSerial, out var target) || !AliveShip(target)) continue;
-            Damage(target, p.Damage, p.Kind == WeaponKind.Plasma, false); Counters.Hits++;
+            Damage(target, p.Damage, p.Kind == WeaponKind.Plasma, false, p.Owner); Counters.Hits++;
             if (Store.Alive(p.Owner) && Store.Has<Identity>(p.Owner) &&
                 Store.Get<Identity>(p.Owner).Team == Store.Get<Identity>(target).Team) Counters.FriendlyFireHits++;
             if (target == p.Owner) Counters.SelfHits++;
@@ -172,13 +172,18 @@ public sealed partial class Battle<TStore>
     }
     private bool Outside(Vector2 position) => MathF.Abs(position.X) > Config.ArenaHalfSize * 2.5f || MathF.Abs(position.Y) > Config.ArenaHalfSize * 2.5f;
     public void Damage(EntityKey e, float amount, bool plasma, bool fragment)
+        => Damage(e, amount, plasma, fragment, EntityKey.None);
+    public void Damage(EntityKey e, float amount, bool plasma, bool fragment, EntityKey attacker)
     {
         if (!AliveShip(e)) return;
         ref var shield = ref Store.Get<Shield>(e); ref var hull = ref Store.Get<Hull>(e);
         var absorb = MathF.Min(shield.Current, amount); shield.Current -= absorb; shield.LastHitTick = Tick;
         if (plasma && absorb > 0) { Store.Get<Heat>(e).Value += absorb * 1.8f; Counters.PlasmaShieldHits++; }
         hull.Current = MathF.Max(0, hull.Current - (amount - absorb) * (1 - hull.Armor));
-        Store.Get<CombatState>(e).LastDamageTick = Tick;
+        ref var combat = ref Store.Get<CombatState>(e);
+        combat.LastDamageTick = Tick;
+        combat.LastAttacker = AliveShip(attacker) && Store.Get<Identity>(attacker).Team != Store.Get<Identity>(e).Team
+            ? attacker : EntityKey.None;
         State(e, StateKind.Combat, true);
         if (shield.Current <= 0) State(e, StateKind.ShieldBreak, true);
         if (hull.Current <= 0) State(e, StateKind.Destroy, true);

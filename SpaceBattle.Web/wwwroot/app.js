@@ -208,7 +208,7 @@
       projectiles: frameGroups[1],
       debris: frameGroups[2],
       particles: frameGroups[3],
-      revision: "predictive-neutral-v1",
+      revision: bridge.Revision(),
     };
     snapshot.tick = header[1];
     snapshot.arenaHalfSize = header[2];
@@ -730,6 +730,32 @@
       busy = false;
     }
   };
+  function tacticCounters() {
+    if (!ready) return null;
+    return {
+      targetSwitches: bridge.TacticCounter(0),
+      targetRetentions: bridge.TacticCounter(1),
+      groupOrders: bridge.TacticCounter(2),
+      coverOrders: bridge.TacticCounter(3),
+    };
+  }
+  function tactics() {
+    if (!ready) return null;
+    return {
+      ...tacticCounters(),
+      ships: snapshot.ships.map((r) => ({
+        serial: r[0],
+        team: r[1],
+        mode: ["attack", "retreat", "docking", "patrol", "screen"][
+          bridge.ShipTactic(r[0], 0)
+        ],
+        target: bridge.ShipTactic(r[0], 1),
+        squadLeader: bridge.ShipTactic(r[0], 2),
+        coverAlly: bridge.ShipTactic(r[0], 3),
+        lockUntilTick: bridge.ShipTactic(r[0], 4),
+      })),
+    };
+  }
   window.render_game_to_text = () =>
     JSON.stringify({
       ready,
@@ -741,6 +767,8 @@
       counters: snapshot?.counters || {},
       checksum: ready ? bridge.Checksum() : undefined,
       runtimeMode,
+      revision: snapshot?.revision,
+      tactics: tacticCounters(),
       fps,
       lastFrameMs,
       stepMs: snapshot?.stepMs ?? 0,
@@ -776,6 +804,7 @@
       return runtimeMode;
     },
     validate: () => bridge.Validate(),
+    tactics,
     refresh: () => {
       accept(bridge.Snapshot());
       updateUI();
