@@ -3,7 +3,7 @@
 # Библиотека SECS
 
 <p align="center">
-  <img src="docs/branding/shortkedr-ecs-cone.png" width="240" alt="ShortKedr ECS — эмблема кедровой шишки">
+  <img src="docs/branding/shortkedr-ecs-emblem.png" width="240" alt="ShortKedr ECS — белка как продолжение кедровой шишки">
 </p>
 
 Архетипная ECS для .NET 8 с тестами выполнения, микробенчмарками и автономным
