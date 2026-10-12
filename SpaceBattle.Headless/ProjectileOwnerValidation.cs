@@ -96,7 +96,7 @@ internal static partial class Validation
         if (liveWithoutIdentity) owner = battle.Store.Create();
         var round = OwnerRound(battle, owner, WeaponKind.MachineGun, new(-20, 0), new(2400, 0));
         battle.Step();
-        Require(!battle.Store.Alive(round) && battle.Store.Get<Hull>(victim).Current == 9990 && battle.Counters.Hits == 1,
+        Require(!battle.Store.Alive(round) && battle.Store.Get<Hull>(victim).Current == 9985 && battle.Counters.Hits == 1,
             liveWithoutIdentity ? "live owner without Identity grants no immunity" : "Owner None grants no immunity");
         Require(battle.Counters.FriendlyFireHits == 0 && battle.Counters.SelfHits == 0,
             "missing owner identity cannot fabricate friendly/self telemetry");
@@ -163,7 +163,7 @@ internal static partial class Validation
             Require(replacement.Id == stale.Id && replacement.Generation != stale.Generation && !battle.Store.Alive(stale),
                 battle.Framework + " owner EntityKey slot reused with distinct generation");
             battle.Step();
-            Require(!battle.Store.Alive(round) && battle.Store.Get<Hull>(replacement).Current == 9990 && battle.Counters.Hits == 1,
+            Require(!battle.Store.Alive(round) && battle.Store.Get<Hull>(replacement).Current == 9985 && battle.Counters.Hits == 1,
                 battle.Framework + " stale owner cannot immunize replacement ship");
             Require(battle.Counters.FriendlyFireHits == 0 && battle.Counters.SelfHits == 0,
                 battle.Framework + " stale owner cannot credit replacement team");

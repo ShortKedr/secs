@@ -56,14 +56,15 @@ internal static partial class Validation
         var first = Spawn(battle, 0, new(-38, -48), true);
         var tied = Spawn(battle, 0, new(-58, -48), true);
         var boundary = Spawn(battle, 0, new(0, -48), true);
+        Spawn(battle, 1, new(20, -48), false);
         Prepare(battle);
         Require(battle.Store.Get<Brain>(leader).SquadLeader == leader &&
             battle.Store.Get<Brain>(first).SquadLeader == leader && battle.Store.Get<Brain>(tied).SquadLeader == leader,
-            "formation candidates retain nearest-first snapshot ties");
+            "compatible formation candidates retain stable serial order");
         Require(battle.Store.Get<Brain>(boundary).SquadLeader.IsNone, "formation uses strict less-than at 48 boundary");
         var squads = (IList)BattleType.GetField("squadBuffers", PrivateInstance)!.GetValue(battle)!;
         var squad = squads[0]!;
-        var members = (int[])squad.GetType().GetField("Members")!.GetValue(squad)!;
+        var members = ((Squad)squad).Members;
         var rows = Rows(battle);
         Require(rows[members[1]].Entity == first && rows[members[2]].Entity == tied, "equal-distance member slot order unchanged");
         battle.Store.Get<Transform>(tied).Position = new(400, 400);
@@ -114,6 +115,7 @@ internal static partial class Validation
         {
             var leader = Spawn(battle, 0, new(240, 240), true);
             var member = Spawn(battle, 0, new(241, 240), true);
+            Spawn(battle, 1, new(270, 240), false);
             Prepare(battle);
             Require(battle.Store.Get<Brain>(member).SquadLeader == leader, "fresh squad created in formation loop");
             var grid = (SpatialPointIndex)BattleType.GetField("squadLeaderPoints", PrivateInstance)!.GetValue(battle)!;
@@ -185,7 +187,8 @@ internal static partial class Validation
 
     private static Battle<SecsStore> CreateBattle()
     {
-        var battle = new Battle<SecsStore>(new(), new BattleConfig { ShipsPerTeam = 16, Seed = 27 });
+        var battle = new Battle<SecsStore>(new(), new BattleConfig { ShipsPerTeam = 16, Seed = 27,
+            Tactics = new TacticsSettings { MemberCandidates = 64 } });
         var frame = new BattleFrame(); battle.Capture(frame);
         foreach (var ship in frame.Ships)
         {

@@ -21,6 +21,12 @@ public interface IProcessor<T1, T2, T3> where T1 : unmanaged where T2 : unmanage
     void Execute(EntityKey entity, ref T1 first, ref T2 second, ref T3 third);
 }
 
+// For row-local work that does not observe entity identity or queue structural changes.
+public interface IComponentProcessor<T1, T2, T3> where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged
+{
+    void Execute(ref T1 first, ref T2 second, ref T3 third);
+}
+
 // Each adapter uses its framework's native query, storage, and entity lifetime.
 public interface IEcsStore : IDisposable
 {
@@ -36,6 +42,7 @@ public interface IEcsStore : IDisposable
     void ForEach<T, P>(ref P processor) where T : unmanaged where P : struct, IProcessor<T>;
     void ForEach<T1, T2, P>(ref P processor) where T1 : unmanaged where T2 : unmanaged where P : struct, IProcessor<T1, T2>;
     void ForEach<T1, T2, T3, P>(ref P processor) where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where P : struct, IProcessor<T1, T2, T3>;
+    void ForEachComponents<T1, T2, T3, P>(ref P processor) where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where P : struct, IComponentProcessor<T1, T2, T3>;
     StoreDiagnostics Diagnostics();
 }
 

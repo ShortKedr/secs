@@ -14,6 +14,11 @@ public sealed record PhysicsSettings
     public float CorrectionFraction { get; init; } = 0.8f;
     public float MaximumCorrection { get; init; } = 0.5f;
     public bool CollectTimings { get; init; }
+    public bool CollectDiagnostics { get; init; }
+    public double ContactCellSize { get; init; } = 48;
+    public bool CacheContactCandidates { get; init; } = true;
+    public double ContactCandidateMargin { get; init; } = 4;
+    public int MaximumCandidatePairs { get; init; } = 262144;
 
     public void Validate()
     {
@@ -24,7 +29,10 @@ public sealed record PhysicsSettings
             MaximumContactPairs is < 1 or > 1048576 ||
             !float.IsFinite(PositionSlop) || PositionSlop < 0 ||
             !float.IsFinite(CorrectionFraction) || CorrectionFraction is <= 0 or > 1 ||
-            !float.IsFinite(MaximumCorrection) || MaximumCorrection <= 0)
+            !float.IsFinite(MaximumCorrection) || MaximumCorrection <= 0 ||
+            !double.IsFinite(ContactCellSize) || ContactCellSize <= 0 ||
+            !double.IsFinite(ContactCandidateMargin) || ContactCandidateMargin < 0 || ContactCandidateMargin > float.MaxValue ||
+            MaximumCandidatePairs is < 1 or > 1048576)
             throw new ArgumentOutOfRangeException(nameof(PhysicsSettings));
     }
 }

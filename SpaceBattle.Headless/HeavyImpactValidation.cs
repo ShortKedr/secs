@@ -104,8 +104,8 @@ internal static partial class Validation
             Require(!battle.Store.Alive(target), label + " target destroyed");
         else
             Require(battle.Store.Alive(target) && (kind is WeaponKind.Cannon or WeaponKind.Missile
-                ? battle.Store.Get<Hull>(target).Current <= 9990
-                : battle.Store.Get<Hull>(target).Current == 9990),
+                ? battle.Store.Get<Hull>(target).Current <= (kind == WeaponKind.Cannon ? 9985 : 9990)
+                : battle.Store.Get<Hull>(target).Current == (kind is WeaponKind.Plasma ? 9990 : 9985)),
                 label + " nonlethal collision damage (ordinary explosive rounds may add fragments)");
         if (kind == WeaponKind.HeavyCannon)
         {
@@ -162,7 +162,7 @@ internal static partial class Validation
         battle.Step();
         var frame = HeavyImpactFrame(battle);
         var count = Math.Min(12 * multiplier, maxParticles);
-        Require(battle.Counters.Hits == 1 && battle.Store.Get<Hull>(target).Current == 9990,
+        Require(battle.Counters.Hits == 1 && battle.Store.Get<Hull>(target).Current == 9985,
             battle.Framework + " heavy damage independent of particle budget");
         Require(frame.Particles.Count == count && battle.ParticleCount == count &&
             frame.Particles.All(p => p.Kind == HeavyImpactEffect.Kind), battle.Framework + " heavy bounded multiplier count");
@@ -173,7 +173,7 @@ internal static partial class Validation
         {
             OwnerRound(battle, owner, WeaponKind.HeavyCannon, new(-20, 0), new(2400, 0));
             battle.Step();
-            Require(battle.Store.Get<Hull>(target).Current == 9980 && battle.Counters.Hits == 2 &&
+            Require(battle.Store.Get<Hull>(target).Current == 9970 && battle.Counters.Hits == 2 &&
                 HeavyImpactFrame(battle).Particles.Count == 1 && battle.ParticleCount == 1,
                 battle.Framework + " already-full particle cap cannot suppress subsequent heavy damage");
         }
@@ -209,7 +209,7 @@ internal static partial class Validation
             var frame = HeavyImpactFrame(battle);
             trace.Hashes.Add(battle.Checksum());
             trace.Frames.Add(frame.Particles.ToArray());
-            Require(battle.Store.Get<Hull>(target).Current == 9990 && battle.Store.Get<Hull>(owner).Current == 10000 &&
+            Require(battle.Store.Get<Hull>(target).Current == 9985 && battle.Store.Get<Hull>(owner).Current == 10000 &&
                 battle.Store.Get<Hull>(behind).Current == 10000 && battle.Store.Get<Hull>(nearby).Current == 10000 &&
                 battle.Counters.Hits == 1 && battle.Counters.DebrisHits == 0 && battle.Counters.ShipsDestroyed == 0 &&
                 battle.DebrisCount == 0 && battle.ProjectileCount == 0,

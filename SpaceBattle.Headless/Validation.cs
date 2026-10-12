@@ -34,6 +34,16 @@ internal static partial class Validation
     }
     public static void Run()
     {
+        FlatSpatialValidation.Run();
+        HardwareOptimizationValidation.Run();
+        SecsMappingChecks();
+        ComponentPassChecks();
+        DampingLocalityValidation.Run();
+        AiLocalityValidation.Run();
+        AiLocalityValidation.RunDamage();
+        SquadCompositionValidation.Run();
+        TacticalScoringValidation.Run();
+        WeaponDamageValidation.Run();
         var config = new BattleConfig { ShipsPerTeam = 16, Seed = 27 };
         ulong first;
         using (var battle = new Battle<SecsStore>(new(), config))
@@ -44,7 +54,7 @@ internal static partial class Validation
             Require(battle.TryFindShip(victim.Serial, out var e), "ship lookup");
             var shield = battle.Store.Get<Shield>(e).Current;
             battle.Damage(e, 10, true, false);
-            Require(battle.Store.Get<Shield>(e).Current == shield - 10 && battle.Store.Get<Heat>(e).Value > 0, "plasma heats shield");
+            Require(battle.Store.Get<Shield>(e).Current == shield - 15 && battle.Store.Get<Heat>(e).Value > 0, "specialized plasma heats shield");
             for (var i = 0; i < 1800; i++) { battle.Step(); if (i % 100 == 0) battle.Validate(); }
             Require(battle.Counters.Shots > 0 && battle.Counters.Hits > 0 && battle.Counters.Builds > 0 && battle.Counters.ShipsDestroyed > 0, "live combat and production");
             Require(battle.Counters.StructuralAdds > 0 && battle.Counters.StructuralRemoves > 0 && battle.Counters.DebrisHits > 0, "real churn and damaging debris");
@@ -58,6 +68,7 @@ internal static partial class Validation
             Require(first == battle.Checksum(), "deterministic replay");
         }
         FleetCompositionChecks();
+        FleetDeploymentValidation.Run();
         ObservationChecks();
         ColliderChecks();
         PhysicsChecks(); SpatialChecks(); FireControlChecks(); ProjectileChecks(); ProjectileOwnerChecks(); HeavyImpactChecks(); WarpReinforcementChecks(); MechanicsChecks(); TacticalChecks(); TacticalSpatialChecks(); ArmamentChecks(); LifecycleSpatialChecks(); StatisticsChecks();
@@ -67,6 +78,8 @@ internal static partial class Validation
     {
         AnalyticSweepChecks();
         PhysicsKernelChecks();
+        ContactCacheChecks();
+        PreparedCcdChecks();
         PhysicsPrecisionChecks();
         using var physics = new PhysicsService();
         var shape = new Collider { Radius = 2, Mass = 20, ShapeCount = 6 };
@@ -195,7 +208,7 @@ internal static partial class Validation
                     "self exclusion produces no hit telemetry");
                 return;
             }
-            Require(MathF.Abs(battle.Store.Get<Hull>(victim).Current - (before - 10 * (1 - armor))) < 0.002f, name + " projectile damages actual swept victim regardless of telemetry target");
+            Require(MathF.Abs(battle.Store.Get<Hull>(victim).Current - (before - 15 * (1 - armor))) < 0.002f, name + " specialized projectile damages actual swept victim regardless of telemetry target");
             Require(!battle.Store.Alive(projectile) && battle.Counters.Hits == 1, name + " projectile consumed on hit");
             Require(battle.Counters.FriendlyFireHits == (friendly ? 1 : 0) && battle.Counters.SelfHits == (self ? 1 : 0), name + " friendly/self telemetry");
         }

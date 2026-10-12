@@ -1,0 +1,1802 @@
+[
+  {
+    "stage": "before-game-all",
+    "port": "SECS",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.9986436666666663,
+    "minMs": 0.9614099999999998,
+    "maxMs": 1.1986830000000006,
+    "stages": {
+      "collect": 0.27451699999999996,
+      "ai": 0.08540700000000004,
+      "thermal-inventory": 0.017562,
+      "steering": 0.047035999999999994,
+      "weapons": 0.030855666666666667,
+      "carriers": 0.000599333333333334,
+      "physics": 0.29417233333333304,
+      "hits": 0.1972566666666666,
+      "lifecycle": 0.05121966666666669
+    },
+    "allocatedBytes": 2198936,
+    "managedHeapBytes": 7355432,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": 41,
+      "Chunks": 64,
+      "NativeBytes": 2989057,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.22945500000000002
+  },
+  {
+    "stage": "before-game-all",
+    "port": "SECS",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.39730399999999993,
+    "minMs": 0.35194933333333334,
+    "maxMs": 0.5384153333333337,
+    "stages": {
+      "collect": 0.11592466666666662,
+      "ai": 0.027734000000000016,
+      "thermal-inventory": 0.006578999999999999,
+      "steering": 0.016230333333333336,
+      "weapons": 0.02036633333333333,
+      "carriers": 0.0006940000000000024,
+      "physics": 0.07980766666666668,
+      "hits": 0.10846666666666664,
+      "lifecycle": 0.021479666666666675
+    },
+    "allocatedBytes": 230008,
+    "managedHeapBytes": 7767672,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": 48,
+      "Chunks": 71,
+      "NativeBytes": 3692545,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.052685
+  },
+  {
+    "stage": "before-game-all",
+    "port": "SECS",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.541097333333333,
+    "minMs": 0.5277240000000004,
+    "maxMs": 0.7063699999999997,
+    "stages": {
+      "collect": 0.15171699999999994,
+      "ai": 0.044398,
+      "thermal-inventory": 0.01120699999999999,
+      "steering": 0.028190666666666673,
+      "weapons": 0.025914999999999987,
+      "carriers": 0.0017253333333333346,
+      "physics": 0.12518633333333337,
+      "hits": 0.12305300000000009,
+      "lifecycle": 0.030403000000000003
+    },
+    "allocatedBytes": 171080,
+    "managedHeapBytes": 8375752,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": 52,
+      "Chunks": 76,
+      "NativeBytes": 4104193,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.13883500000000001
+  },
+  {
+    "stage": "before-game-all",
+    "port": "SECS",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.7610683333333332,
+    "minMs": 0.7582039999999997,
+    "maxMs": 0.8211430000000003,
+    "stages": {
+      "collect": 0.24080399999999996,
+      "ai": 0.05587600000000001,
+      "thermal-inventory": 0.013498000000000005,
+      "steering": 0.033866333333333346,
+      "weapons": 0.02608433333333333,
+      "carriers": 0.0011616666666666672,
+      "physics": 0.1696343333333333,
+      "hits": 0.1839656666666668,
+      "lifecycle": 0.03680566666666666
+    },
+    "allocatedBytes": 225280,
+    "managedHeapBytes": 8779232,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": 55,
+      "Chunks": 79,
+      "NativeBytes": 4402177,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.13087
+  },
+  {
+    "stage": "before-game-all",
+    "port": "LeoECSLite",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 1.0904506666666671,
+    "minMs": 1.0697553333333338,
+    "maxMs": 1.2388219999999996,
+    "stages": {
+      "collect": 0.27926633333333356,
+      "ai": 0.08926833333333331,
+      "thermal-inventory": 0.01964400000000001,
+      "steering": 0.05745199999999998,
+      "weapons": 0.034810333333333346,
+      "carriers": 0.0005250000000000014,
+      "physics": 0.2888389999999999,
+      "hits": 0.21929699999999996,
+      "lifecycle": 0.10145766666666665
+    },
+    "allocatedBytes": 6972752,
+    "managedHeapBytes": 12573024,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.13399
+  },
+  {
+    "stage": "before-game-all",
+    "port": "LeoECSLite",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.458442666666667,
+    "minMs": 0.4472653333333333,
+    "maxMs": 0.5811889999999997,
+    "stages": {
+      "collect": 0.11648633333333326,
+      "ai": 0.030873666666666667,
+      "thermal-inventory": 0.008098666666666664,
+      "steering": 0.020307333333333323,
+      "weapons": 0.025608999999999993,
+      "carriers": 0.0007940000000000004,
+      "physics": 0.08618200000000002,
+      "hits": 0.124784,
+      "lifecycle": 0.045285666666666696
+    },
+    "allocatedBytes": 324744,
+    "managedHeapBytes": 13067184,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.10044
+  },
+  {
+    "stage": "before-game-all",
+    "port": "LeoECSLite",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.7158803333333332,
+    "minMs": 0.6709926666666665,
+    "maxMs": 0.7856603333333335,
+    "stages": {
+      "collect": 0.16815133333333332,
+      "ai": 0.060947999999999995,
+      "thermal-inventory": 0.01817666666666666,
+      "steering": 0.042170999999999986,
+      "weapons": 0.03838633333333335,
+      "carriers": 0.001245999999999999,
+      "physics": 0.15313633333333343,
+      "hits": 0.16343466666666673,
+      "lifecycle": 0.07021000000000005
+    },
+    "allocatedBytes": 146904,
+    "managedHeapBytes": 13658816,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.20632999999999999
+  },
+  {
+    "stage": "before-game-all",
+    "port": "LeoECSLite",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.9076950000000004,
+    "minMs": 0.9052480000000003,
+    "maxMs": 0.9103963333333343,
+    "stages": {
+      "collect": 0.24924933333333346,
+      "ai": 0.06815866666666669,
+      "thermal-inventory": 0.018521000000000003,
+      "steering": 0.04535600000000001,
+      "weapons": 0.03378366666666667,
+      "carriers": 0.0011816666666666666,
+      "physics": 0.18340966666666644,
+      "hits": 0.22177066666666662,
+      "lifecycle": 0.0876046666666667
+    },
+    "allocatedBytes": 211104,
+    "managedHeapBytes": 14045848,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.16254500000000002
+  },
+  {
+    "stage": "before-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 1.0160073333333333,
+    "minMs": 0.961297333333334,
+    "maxMs": 1.058744666666666,
+    "stages": {
+      "collect": 0.2477606666666667,
+      "ai": 0.08412633333333333,
+      "thermal-inventory": 0.01916666666666667,
+      "steering": 0.049076000000000015,
+      "weapons": 0.028146333333333353,
+      "carriers": 0.0003816666666666667,
+      "physics": 0.2526656666666668,
+      "hits": 0.2337393333333334,
+      "lifecycle": 0.09978200000000004
+    },
+    "allocatedBytes": 5920928,
+    "managedHeapBytes": 11373848,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.13735999999999998
+  },
+  {
+    "stage": "before-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.3934836666666666,
+    "minMs": 0.3916846666666666,
+    "maxMs": 0.40425400000000006,
+    "stages": {
+      "collect": 0.09484099999999994,
+      "ai": 0.028174333333333343,
+      "thermal-inventory": 0.006895333333333326,
+      "steering": 0.016358666666666664,
+      "weapons": 0.02034233333333335,
+      "carriers": 0.0005293333333333347,
+      "physics": 0.06229266666666663,
+      "hits": 0.12502066666666659,
+      "lifecycle": 0.04088633333333332
+    },
+    "allocatedBytes": 394688,
+    "managedHeapBytes": 11947840,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.05062
+  },
+  {
+    "stage": "before-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.612328333333333,
+    "minMs": 0.5774253333333332,
+    "maxMs": 0.6380146666666668,
+    "stages": {
+      "collect": 0.13761300000000004,
+      "ai": 0.052891,
+      "thermal-inventory": 0.014996333333333323,
+      "steering": 0.033952333333333355,
+      "weapons": 0.029888333333333322,
+      "carriers": 0.0008670000000000013,
+      "physics": 0.11483966666666665,
+      "hits": 0.16186566666666669,
+      "lifecycle": 0.06545800000000002
+    },
+    "allocatedBytes": 161448,
+    "managedHeapBytes": 12547696,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.20206
+  },
+  {
+    "stage": "before-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.7794676666666664,
+    "minMs": 0.7726250000000002,
+    "maxMs": 0.8504889999999996,
+    "stages": {
+      "collect": 0.2066846666666667,
+      "ai": 0.05831266666666666,
+      "thermal-inventory": 0.015361333333333333,
+      "steering": 0.037394666666666666,
+      "weapons": 0.026114,
+      "carriers": 0.0008116666666666679,
+      "physics": 0.13953333333333334,
+      "hits": 0.21634533333333328,
+      "lifecycle": 0.07992633333333332
+    },
+    "allocatedBytes": 214328,
+    "managedHeapBytes": 12934728,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.16147
+  },
+  {
+    "stage": "before-game-all",
+    "port": "Morpeh",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.8974950000000002,
+    "minMs": 0.8933729999999998,
+    "maxMs": 0.8982900000000003,
+    "stages": {
+      "collect": 0.22899933333333342,
+      "ai": 0.07751833333333333,
+      "thermal-inventory": 0.016274000000000004,
+      "steering": 0.044827333333333316,
+      "weapons": 0.02653866666666665,
+      "carriers": 0.0003596666666666675,
+      "physics": 0.25203733333333345,
+      "hits": 0.18069666666666673,
+      "lifecycle": 0.06653500000000002
+    },
+    "allocatedBytes": 8162152,
+    "managedHeapBytes": 11807296,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.12515000000000004
+  },
+  {
+    "stage": "before-game-all",
+    "port": "Morpeh",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.35968500000000003,
+    "minMs": 0.3566056666666666,
+    "maxMs": 0.36340666666666666,
+    "stages": {
+      "collect": 0.09272999999999998,
+      "ai": 0.02551266666666665,
+      "thermal-inventory": 0.005971666666666659,
+      "steering": 0.015101333333333335,
+      "weapons": 0.019271333333333317,
+      "carriers": 0.0005696666666666684,
+      "physics": 0.06759266666666665,
+      "hits": 0.10313899999999998,
+      "lifecycle": 0.029680333333333333
+    },
+    "allocatedBytes": 212128,
+    "managedHeapBytes": 12192288,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.052934999999999996
+  },
+  {
+    "stage": "before-game-all",
+    "port": "Morpeh",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.5474300000000002,
+    "minMs": 0.5441606666666665,
+    "maxMs": 0.5587136666666663,
+    "stages": {
+      "collect": 0.13020500000000002,
+      "ai": 0.04807733333333332,
+      "thermal-inventory": 0.012466000000000019,
+      "steering": 0.03152633333333336,
+      "weapons": 0.028204000000000017,
+      "carriers": 0.0009823333333333338,
+      "physics": 0.12047333333333332,
+      "hits": 0.12937533333333326,
+      "lifecycle": 0.046986333333333324
+    },
+    "allocatedBytes": 156832,
+    "managedHeapBytes": 12790360,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.16075500000000004
+  },
+  {
+    "stage": "before-game-all",
+    "port": "Morpeh",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.7585249999999997,
+    "minMs": 0.720857666666667,
+    "maxMs": 0.768422666666667,
+    "stages": {
+      "collect": 0.20555866666666653,
+      "ai": 0.05842333333333333,
+      "thermal-inventory": 0.01480900000000001,
+      "steering": 0.036808666666666684,
+      "weapons": 0.027091333333333346,
+      "carriers": 0.0010293333333333335,
+      "physics": 0.15786399999999998,
+      "hits": 0.19186500000000004,
+      "lifecycle": 0.06232666666666668
+    },
+    "allocatedBytes": 212216,
+    "managedHeapBytes": 14979880,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.142255
+  },
+  {
+    "stage": "before-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.9164940000000001,
+    "minMs": 0.8814253333333338,
+    "maxMs": 0.9597523333333335,
+    "stages": {
+      "collect": 0.1987773333333334,
+      "ai": 0.08726133333333336,
+      "thermal-inventory": 0.021557333333333338,
+      "steering": 0.05750433333333337,
+      "weapons": 0.03277533333333334,
+      "carriers": 0.000685666666666666,
+      "physics": 0.27831066666666676,
+      "hits": 0.171761,
+      "lifecycle": 0.067796
+    },
+    "allocatedBytes": 3142392,
+    "managedHeapBytes": 2487368,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.11632999999999998
+  },
+  {
+    "stage": "before-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.38942499999999974,
+    "minMs": 0.38837333333333335,
+    "maxMs": 0.3910250000000001,
+    "stages": {
+      "collect": 0.10083299999999999,
+      "ai": 0.029031,
+      "thermal-inventory": 0.008132666666666667,
+      "steering": 0.01994966666666667,
+      "weapons": 0.024760333333333353,
+      "carriers": 0.0009606666666666656,
+      "physics": 0.07502600000000001,
+      "hits": 0.1005983333333334,
+      "lifecycle": 0.03058266666666668
+    },
+    "allocatedBytes": 191528,
+    "managedHeapBytes": 2849840,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.062025
+  },
+  {
+    "stage": "before-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.603894,
+    "minMs": 0.5848523333333336,
+    "maxMs": 0.6836346666666666,
+    "stages": {
+      "collect": 0.14731966666666654,
+      "ai": 0.053111000000000005,
+      "thermal-inventory": 0.01653933333333333,
+      "steering": 0.04083766666666666,
+      "weapons": 0.035417666666666646,
+      "carriers": 0.001505000000000003,
+      "physics": 0.1332256666666668,
+      "hits": 0.12661433333333338,
+      "lifecycle": 0.04930066666666666
+    },
+    "allocatedBytes": 169456,
+    "managedHeapBytes": 3463576,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.16910499999999998
+  },
+  {
+    "stage": "before-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.815738,
+    "minMs": 0.779487333333333,
+    "maxMs": 0.854068333333333,
+    "stages": {
+      "collect": 0.22567599999999993,
+      "ai": 0.06470233333333332,
+      "thermal-inventory": 0.018492333333333312,
+      "steering": 0.047892333333333315,
+      "weapons": 0.03353533333333334,
+      "carriers": 0.001563000000000001,
+      "physics": 0.17614966666666673,
+      "hits": 0.18550166666666665,
+      "lifecycle": 0.06220633333333334
+    },
+    "allocatedBytes": 211192,
+    "managedHeapBytes": 3851088,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.13087500000000002
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "SECS",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.7253313333333331,
+    "minMs": 0.7225410000000002,
+    "maxMs": 0.9086393333333329,
+    "stages": {
+      "collect": 0.2115326666666666,
+      "ai": 0.058864333333333324,
+      "thermal-inventory": 0.010064666666666677,
+      "steering": 0.03599833333333336,
+      "weapons": 0.022940666666666665,
+      "carriers": 0.00024466666666666625,
+      "physics": 0.17869000000000004,
+      "hits": 0.171436,
+      "lifecycle": 0.03991700000000001
+    },
+    "allocatedBytes": 2687960,
+    "managedHeapBytes": 8209416,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": 41,
+      "Chunks": 64,
+      "NativeBytes": 2989057,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.242835
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "SECS",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.30397333333333343,
+    "minMs": 0.27864166666666684,
+    "maxMs": 0.30900700000000003,
+    "stages": {
+      "collect": 0.08849266666666669,
+      "ai": 0.02100033333333332,
+      "thermal-inventory": 0.0045573333333333325,
+      "steering": 0.01307299999999998,
+      "weapons": 0.01619366666666664,
+      "carriers": 0.0005530000000000017,
+      "physics": 0.045309999999999996,
+      "hits": 0.09457566666666667,
+      "lifecycle": 0.019068333333333333
+    },
+    "allocatedBytes": 227648,
+    "managedHeapBytes": 8621656,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": 48,
+      "Chunks": 71,
+      "NativeBytes": 3692545,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.07214999999999999
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "SECS",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.46606866666666663,
+    "minMs": 0.4241986666666666,
+    "maxMs": 0.47234466666666675,
+    "stages": {
+      "collect": 0.12771233333333332,
+      "ai": 0.03778,
+      "thermal-inventory": 0.009178333333333342,
+      "steering": 0.02681466666666667,
+      "weapons": 0.023716000000000015,
+      "carriers": 0.0009530000000000008,
+      "physics": 0.08463800000000003,
+      "hits": 0.12314333333333333,
+      "lifecycle": 0.030826666666666683
+    },
+    "allocatedBytes": 305920,
+    "managedHeapBytes": 9360616,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": 52,
+      "Chunks": 76,
+      "NativeBytes": 4104193,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.126695
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "SECS",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.6043573333333336,
+    "minMs": 0.5732649999999996,
+    "maxMs": 0.6046809999999997,
+    "stages": {
+      "collect": 0.19047666666666666,
+      "ai": 0.04314433333333337,
+      "thermal-inventory": 0.009770333333333344,
+      "steering": 0.029070000000000006,
+      "weapons": 0.02125400000000001,
+      "carriers": 0.0009136666666666684,
+      "physics": 0.1037116666666667,
+      "hits": 0.17152666666666658,
+      "lifecycle": 0.033135333333333336
+    },
+    "allocatedBytes": 225128,
+    "managedHeapBytes": 9764096,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": 55,
+      "Chunks": 79,
+      "NativeBytes": 4402177,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.132205
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "LeoECSLite",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 1.1882616666666663,
+    "minMs": 1.0995266666666668,
+    "maxMs": 1.3115053333333322,
+    "stages": {
+      "collect": 0.2930046666666668,
+      "ai": 0.09069866666666673,
+      "thermal-inventory": 0.02436899999999999,
+      "steering": 0.06776866666666667,
+      "weapons": 0.03914033333333334,
+      "carriers": 0.0006813333333333341,
+      "physics": 0.3077746666666668,
+      "hits": 0.24698633333333347,
+      "lifecycle": 0.11781700000000006
+    },
+    "allocatedBytes": 7271192,
+    "managedHeapBytes": 13231480,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.18391
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "LeoECSLite",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.5248836666666667,
+    "minMs": 0.4232353333333334,
+    "maxMs": 0.5512206666666665,
+    "stages": {
+      "collect": 0.126627,
+      "ai": 0.03544866666666668,
+      "thermal-inventory": 0.010595333333333335,
+      "steering": 0.02449566666666667,
+      "weapons": 0.026416666666666686,
+      "carriers": 0.001064333333333335,
+      "physics": 0.09781266666666669,
+      "hits": 0.14413633333333342,
+      "lifecycle": 0.05597466666666668
+    },
+    "allocatedBytes": 322384,
+    "managedHeapBytes": 13733864,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.10244000000000002
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "LeoECSLite",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.8481803333333335,
+    "minMs": 0.6344576666666669,
+    "maxMs": 0.9126056666666669,
+    "stages": {
+      "collect": 0.19630333333333339,
+      "ai": 0.07156266666666664,
+      "thermal-inventory": 0.02416033333333335,
+      "steering": 0.053454999999999975,
+      "weapons": 0.042595000000000015,
+      "carriers": 0.0015229999999999994,
+      "physics": 0.1738793333333333,
+      "hits": 0.2015253333333334,
+      "lifecycle": 0.08315633333333332
+    },
+    "allocatedBytes": 281744,
+    "managedHeapBytes": 14448152,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.25793
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "LeoECSLite",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.9230473333333339,
+    "minMs": 0.8341483333333339,
+    "maxMs": 0.9720910000000004,
+    "stages": {
+      "collect": 0.2621930000000002,
+      "ai": 0.06369066666666669,
+      "thermal-inventory": 0.019878666666666652,
+      "steering": 0.04279266666666668,
+      "weapons": 0.029363333333333342,
+      "carriers": 0.0011219999999999997,
+      "physics": 0.18193900000000005,
+      "hits": 0.23082999999999998,
+      "lifecycle": 0.09121633333333333
+    },
+    "allocatedBytes": 210952,
+    "managedHeapBytes": 14835184,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.16268000000000002
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.9879633333333334,
+    "minMs": 0.9361073333333332,
+    "maxMs": 1.0313189999999997,
+    "stages": {
+      "collect": 0.24981666666666683,
+      "ai": 0.07557299999999999,
+      "thermal-inventory": 0.019639666666666663,
+      "steering": 0.0516256666666667,
+      "weapons": 0.028854000000000005,
+      "carriers": 0.00036966666666666664,
+      "physics": 0.2280583333333334,
+      "hits": 0.22753899999999996,
+      "lifecycle": 0.10581666666666666
+    },
+    "allocatedBytes": 6219368,
+    "managedHeapBytes": 12036192,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.13126
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.3892530000000001,
+    "minMs": 0.3791496666666668,
+    "maxMs": 0.45316833333333334,
+    "stages": {
+      "collect": 0.0943523333333334,
+      "ai": 0.02583533333333332,
+      "thermal-inventory": 0.007351999999999997,
+      "steering": 0.01760566666666666,
+      "weapons": 0.01879133333333334,
+      "carriers": 0.0006103333333333348,
+      "physics": 0.05774933333333333,
+      "hits": 0.12481966666666668,
+      "lifecycle": 0.04213733333333331
+    },
+    "allocatedBytes": 392328,
+    "managedHeapBytes": 12601528,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.058100000000000006
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.5766649999999999,
+    "minMs": 0.5665063333333333,
+    "maxMs": 0.6931736666666664,
+    "stages": {
+      "collect": 0.13592466666666667,
+      "ai": 0.046282666666666694,
+      "thermal-inventory": 0.014379333333333315,
+      "steering": 0.03411033333333335,
+      "weapons": 0.027555000000000007,
+      "carriers": 0.0009396666666666672,
+      "physics": 0.0998593333333333,
+      "hits": 0.1544653333333333,
+      "lifecycle": 0.06480966666666665
+    },
+    "allocatedBytes": 296288,
+    "managedHeapBytes": 13340488,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.20305500000000004
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.7675379999999999,
+    "minMs": 0.7430009999999999,
+    "maxMs": 0.8016966666666668,
+    "stages": {
+      "collect": 0.206796,
+      "ai": 0.05361566666666664,
+      "thermal-inventory": 0.015753333333333317,
+      "steering": 0.038109666666666674,
+      "weapons": 0.02525333333333334,
+      "carriers": 0.0008693333333333336,
+      "physics": 0.12507266666666664,
+      "hits": 0.21887499999999988,
+      "lifecycle": 0.08317100000000004
+    },
+    "allocatedBytes": 214176,
+    "managedHeapBytes": 13727520,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.158335
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "Morpeh",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.8249723333333335,
+    "minMs": 0.8171793333333331,
+    "maxMs": 0.8657710000000003,
+    "stages": {
+      "collect": 0.22725299999999998,
+      "ai": 0.06719633333333332,
+      "thermal-inventory": 0.016334999999999995,
+      "steering": 0.04384033333333337,
+      "weapons": 0.023549666666666667,
+      "carriers": 0.00036033333333333403,
+      "physics": 0.21258566666666667,
+      "hits": 0.16947766666666672,
+      "lifecycle": 0.06492433333333336
+    },
+    "allocatedBytes": 8460592,
+    "managedHeapBytes": 8044816,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.13638
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "Morpeh",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.33261700000000016,
+    "minMs": 0.3265013333333335,
+    "maxMs": 0.36658099999999993,
+    "stages": {
+      "collect": 0.09161766666666661,
+      "ai": 0.02203833333333334,
+      "thermal-inventory": 0.005835333333333326,
+      "steering": 0.014509666666666688,
+      "weapons": 0.016024666666666656,
+      "carriers": 0.0005436666666666684,
+      "physics": 0.0563793333333333,
+      "hits": 0.09934533333333333,
+      "lifecycle": 0.02779533333333334
+    },
+    "allocatedBytes": 209768,
+    "managedHeapBytes": 8435584,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.053269999999999984
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "Morpeh",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.5095126666666668,
+    "minMs": 0.5042696666666667,
+    "maxMs": 0.5197169999999997,
+    "stages": {
+      "collect": 0.12814266666666663,
+      "ai": 0.042009000000000005,
+      "thermal-inventory": 0.012318333333333327,
+      "steering": 0.03183099999999999,
+      "weapons": 0.025420666666666668,
+      "carriers": 0.0009080000000000018,
+      "physics": 0.10114233333333339,
+      "hits": 0.12334833333333328,
+      "lifecycle": 0.04435133333333333
+    },
+    "allocatedBytes": 291672,
+    "managedHeapBytes": 9166320,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.17767999999999998
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "Morpeh",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.693261,
+    "minMs": 0.6929186666666662,
+    "maxMs": 0.6933736666666666,
+    "stages": {
+      "collect": 0.19889900000000016,
+      "ai": 0.04970533333333333,
+      "thermal-inventory": 0.014632333333333337,
+      "steering": 0.03582066666666668,
+      "weapons": 0.023902666666666694,
+      "carriers": 0.000919000000000001,
+      "physics": 0.13438866666666668,
+      "hits": 0.1782703333333334,
+      "lifecycle": 0.056289000000000006
+    },
+    "allocatedBytes": 212064,
+    "managedHeapBytes": 9554944,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.146225
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.8818963333333341,
+    "minMs": 0.8329746666666664,
+    "maxMs": 1.008695666666666,
+    "stages": {
+      "collect": 0.20425033333333328,
+      "ai": 0.07796166666666665,
+      "thermal-inventory": 0.021365333333333344,
+      "steering": 0.05757800000000005,
+      "weapons": 0.030303333333333324,
+      "carriers": 0.0007659999999999998,
+      "physics": 0.2437489999999999,
+      "hits": 0.175457,
+      "lifecycle": 0.07044566666666667
+    },
+    "allocatedBytes": 3440832,
+    "managedHeapBytes": 3964792,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.11824500000000002
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.3659873333333335,
+    "minMs": 0.3556350000000003,
+    "maxMs": 0.4065186666666667,
+    "stages": {
+      "collect": 0.09967466666666663,
+      "ai": 0.02585666666666667,
+      "thermal-inventory": 0.008206000000000003,
+      "steering": 0.01964800000000001,
+      "weapons": 0.019823333333333353,
+      "carriers": 0.0008956666666666659,
+      "physics": 0.06598066666666667,
+      "hits": 0.09632866666666663,
+      "lifecycle": 0.02955199999999999
+    },
+    "allocatedBytes": 189168,
+    "managedHeapBytes": 4326088,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.05583499999999999
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.5753209999999999,
+    "minMs": 0.5709453333333334,
+    "maxMs": 0.5761906666666665,
+    "stages": {
+      "collect": 0.14925300000000008,
+      "ai": 0.046634666666666644,
+      "thermal-inventory": 0.01631999999999999,
+      "steering": 0.040428,
+      "weapons": 0.030550000000000015,
+      "carriers": 0.0014066666666666683,
+      "physics": 0.11735833333333334,
+      "hits": 0.12400500000000003,
+      "lifecycle": 0.04798933333333333
+    },
+    "allocatedBytes": 304296,
+    "managedHeapBytes": 5070336,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.168445
+  },
+  {
+    "stage": "stage5-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.7422020000000001,
+    "minMs": 0.7243713333333334,
+    "maxMs": 0.8419196666666672,
+    "stages": {
+      "collect": 0.21287499999999998,
+      "ai": 0.05506000000000001,
+      "thermal-inventory": 0.01818366666666666,
+      "steering": 0.04378533333333334,
+      "weapons": 0.027263333333333327,
+      "carriers": 0.001383666666666666,
+      "physics": 0.1518916666666667,
+      "hits": 0.17270966666666673,
+      "lifecycle": 0.05928733333333336
+    },
+    "allocatedBytes": 211040,
+    "managedHeapBytes": 5459768,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.14251000000000003
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "SECS",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.7251089999999997,
+    "minMs": 0.7250143333333333,
+    "maxMs": 0.7544376666666666,
+    "stages": {
+      "collect": 0.21300199999999994,
+      "ai": 0.05798799999999999,
+      "thermal-inventory": 0.010063000000000015,
+      "steering": 0.034909666666666665,
+      "weapons": 0.021607333333333326,
+      "carriers": 0.0002383333333333329,
+      "physics": 0.18346200000000004,
+      "hits": 0.16830766666666652,
+      "lifecycle": 0.03971366666666671
+    },
+    "allocatedBytes": 2687960,
+    "managedHeapBytes": 8215560,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": 41,
+      "Chunks": 64,
+      "NativeBytes": 2989057,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.19781500000000002
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "SECS",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.3005390000000002,
+    "minMs": 0.2759266666666665,
+    "maxMs": 0.3376396666666668,
+    "stages": {
+      "collect": 0.09070566666666663,
+      "ai": 0.020084000000000015,
+      "thermal-inventory": 0.004552666666666666,
+      "steering": 0.013175000000000008,
+      "weapons": 0.015986999999999984,
+      "carriers": 0.0005020000000000018,
+      "physics": 0.04734866666666669,
+      "hits": 0.09027166666666668,
+      "lifecycle": 0.01789166666666667
+    },
+    "allocatedBytes": 227648,
+    "managedHeapBytes": 8627800,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": 48,
+      "Chunks": 71,
+      "NativeBytes": 3692545,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.058135000000000006
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "SECS",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.4507603333333335,
+    "minMs": 0.4344330000000001,
+    "maxMs": 0.45468599999999953,
+    "stages": {
+      "collect": 0.1275173333333333,
+      "ai": 0.03580166666666672,
+      "thermal-inventory": 0.008661333333333352,
+      "steering": 0.02578600000000001,
+      "weapons": 0.022863666666666664,
+      "carriers": 0.0008016666666666683,
+      "physics": 0.08571966666666665,
+      "hits": 0.11534866666666665,
+      "lifecycle": 0.02762099999999998
+    },
+    "allocatedBytes": 305920,
+    "managedHeapBytes": 9366760,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": 52,
+      "Chunks": 76,
+      "NativeBytes": 4104193,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.13425000000000004
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "SECS",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.615072,
+    "minMs": 0.600052333333333,
+    "maxMs": 0.6201896666666664,
+    "stages": {
+      "collect": 0.19901699999999994,
+      "ai": 0.043600333333333324,
+      "thermal-inventory": 0.009659000000000011,
+      "steering": 0.028684666666666664,
+      "weapons": 0.021098666666666665,
+      "carriers": 0.0008260000000000016,
+      "physics": 0.10882333333333336,
+      "hits": 0.17028133333333334,
+      "lifecycle": 0.033064
+    },
+    "allocatedBytes": 225128,
+    "managedHeapBytes": 9770240,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": 55,
+      "Chunks": 79,
+      "NativeBytes": 4402177,
+      "AccessorBytes": 0
+    },
+    "exportMedianMs": 0.11057499999999998
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "LeoECSLite",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.932024666666667,
+    "minMs": 0.919367333333333,
+    "maxMs": 0.9581923333333329,
+    "stages": {
+      "collect": 0.25818800000000014,
+      "ai": 0.06691000000000004,
+      "thermal-inventory": 0.018107999999999982,
+      "steering": 0.047550333333333326,
+      "weapons": 0.026766666666666675,
+      "carriers": 0.0003690000000000008,
+      "physics": 0.2317803333333333,
+      "hits": 0.19166666666666676,
+      "lifecycle": 0.09064599999999999
+    },
+    "allocatedBytes": 7271192,
+    "managedHeapBytes": 13231480,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.13114999999999996
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "LeoECSLite",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.3901893333333331,
+    "minMs": 0.36305266666666647,
+    "maxMs": 0.39377200000000007,
+    "stages": {
+      "collect": 0.10764366666666669,
+      "ai": 0.023912666666666676,
+      "thermal-inventory": 0.007015333333333331,
+      "steering": 0.017211666666666684,
+      "weapons": 0.01893766666666668,
+      "carriers": 0.0005670000000000004,
+      "physics": 0.06505099999999998,
+      "hits": 0.10776699999999989,
+      "lifecycle": 0.03563499999999998
+    },
+    "allocatedBytes": 322384,
+    "managedHeapBytes": 13733864,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.05713999999999998
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "LeoECSLite",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.5701323333333339,
+    "minMs": 0.5677056666666667,
+    "maxMs": 0.5993793333333335,
+    "stages": {
+      "collect": 0.14929233333333328,
+      "ai": 0.0441193333333333,
+      "thermal-inventory": 0.01477333333333335,
+      "steering": 0.03371166666666666,
+      "weapons": 0.027429000000000016,
+      "carriers": 0.0008943333333333332,
+      "physics": 0.1107583333333333,
+      "hits": 0.1347596666666666,
+      "lifecycle": 0.05571466666666662
+    },
+    "allocatedBytes": 281744,
+    "managedHeapBytes": 14448152,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.189075
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "LeoECSLite",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.7801553333333324,
+    "minMs": 0.7612089999999999,
+    "maxMs": 0.7993199999999998,
+    "stages": {
+      "collect": 0.23061999999999988,
+      "ai": 0.052049000000000005,
+      "thermal-inventory": 0.01650099999999999,
+      "steering": 0.038097000000000006,
+      "weapons": 0.02538899999999997,
+      "carriers": 0.0008476666666666688,
+      "physics": 0.1491036666666667,
+      "hits": 0.19093700000000008,
+      "lifecycle": 0.07666100000000003
+    },
+    "allocatedBytes": 210952,
+    "managedHeapBytes": 14835184,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.14580500000000002
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.8816733333333332,
+    "minMs": 0.8707610000000003,
+    "maxMs": 0.9501150000000007,
+    "stages": {
+      "collect": 0.22625200000000006,
+      "ai": 0.06625366666666667,
+      "thermal-inventory": 0.017120000000000007,
+      "steering": 0.04379266666666669,
+      "weapons": 0.024962000000000022,
+      "carriers": 0.000280333333333333,
+      "physics": 0.2054236666666667,
+      "hits": 0.20751233333333333,
+      "lifecycle": 0.09049666666666667
+    },
+    "allocatedBytes": 6219368,
+    "managedHeapBytes": 12036192,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.12683499999999998
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.34168199999999993,
+    "minMs": 0.33298566666666657,
+    "maxMs": 0.3419729999999998,
+    "stages": {
+      "collect": 0.08746766666666665,
+      "ai": 0.02182199999999998,
+      "thermal-inventory": 0.006222999999999995,
+      "steering": 0.014609333333333318,
+      "weapons": 0.01579799999999999,
+      "carriers": 0.00044900000000000197,
+      "physics": 0.04776766666666665,
+      "hits": 0.11006600000000004,
+      "lifecycle": 0.036461666666666656
+    },
+    "allocatedBytes": 392328,
+    "managedHeapBytes": 12601528,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.050574999999999995
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.5465353333333333,
+    "minMs": 0.5147686666666663,
+    "maxMs": 0.5623003333333336,
+    "stages": {
+      "collect": 0.13253366666666663,
+      "ai": 0.04190533333333332,
+      "thermal-inventory": 0.013260666666666669,
+      "steering": 0.03175666666666666,
+      "weapons": 0.02476933333333334,
+      "carriers": 0.0007093333333333353,
+      "physics": 0.09600633333333337,
+      "hits": 0.1467203333333334,
+      "lifecycle": 0.054888666666666676
+    },
+    "allocatedBytes": 296288,
+    "managedHeapBytes": 13340488,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.18695
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "LeoECS Classic",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.707108,
+    "minMs": 0.6928509999999996,
+    "maxMs": 0.7157213333333329,
+    "stages": {
+      "collect": 0.1981653333333334,
+      "ai": 0.04739433333333336,
+      "thermal-inventory": 0.01426033333333332,
+      "steering": 0.03381666666666666,
+      "weapons": 0.022317000000000004,
+      "carriers": 0.0006396666666666693,
+      "physics": 0.11406533333333335,
+      "hits": 0.2025383333333333,
+      "lifecycle": 0.07377733333333338
+    },
+    "allocatedBytes": 214176,
+    "managedHeapBytes": 13727520,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.14723999999999998
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "Morpeh",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.8289616666666666,
+    "minMs": 0.7910536666666672,
+    "maxMs": 0.8316383333333337,
+    "stages": {
+      "collect": 0.22792099999999985,
+      "ai": 0.06280866666666667,
+      "thermal-inventory": 0.015487333333333325,
+      "steering": 0.04188566666666668,
+      "weapons": 0.023114,
+      "carriers": 0.0003153333333333336,
+      "physics": 0.22009866666666658,
+      "hits": 0.17066233333333328,
+      "lifecycle": 0.06493733333333335
+    },
+    "allocatedBytes": 8460592,
+    "managedHeapBytes": 8087832,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.11467500000000001
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "Morpeh",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.3257473333333335,
+    "minMs": 0.31119633333333346,
+    "maxMs": 0.3401233333333334,
+    "stages": {
+      "collect": 0.08984166666666676,
+      "ai": 0.021340666666666685,
+      "thermal-inventory": 0.005755666666666665,
+      "steering": 0.014062333333333343,
+      "weapons": 0.01598166666666665,
+      "carriers": 0.0005263333333333355,
+      "physics": 0.055947333333333314,
+      "hits": 0.09476733333333337,
+      "lifecycle": 0.027502666666666654
+    },
+    "allocatedBytes": 209768,
+    "managedHeapBytes": 8478552,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.052800000000000014
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "Morpeh",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.5138913333333329,
+    "minMs": 0.4828783333333337,
+    "maxMs": 0.5243233333333334,
+    "stages": {
+      "collect": 0.1306916666666666,
+      "ai": 0.041682,
+      "thermal-inventory": 0.012453666666666674,
+      "steering": 0.03088533333333333,
+      "weapons": 0.025260333333333346,
+      "carriers": 0.0008863333333333352,
+      "physics": 0.10488299999999996,
+      "hits": 0.12271300000000002,
+      "lifecycle": 0.044415333333333286
+    },
+    "allocatedBytes": 291672,
+    "managedHeapBytes": 9209288,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.16541499999999998
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "Morpeh",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.6859806666666661,
+    "minMs": 0.6644453333333334,
+    "maxMs": 0.7036990000000001,
+    "stages": {
+      "collect": 0.20025366666666683,
+      "ai": 0.04889233333333332,
+      "thermal-inventory": 0.014308666666666673,
+      "steering": 0.03466533333333331,
+      "weapons": 0.023372999999999994,
+      "carriers": 0.000832000000000001,
+      "physics": 0.133789,
+      "hits": 0.17259233333333338,
+      "lifecycle": 0.055841333333333326
+    },
+    "allocatedBytes": 212064,
+    "managedHeapBytes": 9597816,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.13361
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 300,
+    "repeats": 3,
+    "medianMs": 0.7921059999999998,
+    "minMs": 0.7837976666666661,
+    "maxMs": 0.8046679999999994,
+    "stages": {
+      "collect": 0.18933533333333324,
+      "ai": 0.06833466666666671,
+      "thermal-inventory": 0.01844133333333334,
+      "steering": 0.050869,
+      "weapons": 0.025428,
+      "carriers": 0.00040333333333333323,
+      "physics": 0.22187633333333337,
+      "hits": 0.15603333333333327,
+      "lifecycle": 0.06048833333333331
+    },
+    "allocatedBytes": 3440832,
+    "managedHeapBytes": 1480968,
+    "store": {
+      "Entities": 2461,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.112685
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 600,
+    "repeats": 3,
+    "medianMs": 0.3592380000000002,
+    "minMs": 0.337364,
+    "maxMs": 0.36940600000000023,
+    "stages": {
+      "collect": 0.09836033333333331,
+      "ai": 0.024991333333333334,
+      "thermal-inventory": 0.00788533333333334,
+      "steering": 0.019264333333333356,
+      "weapons": 0.01961466666666669,
+      "carriers": 0.0008343333333333324,
+      "physics": 0.06368833333333333,
+      "hits": 0.09541033333333332,
+      "lifecycle": 0.029166666666666674
+    },
+    "allocatedBytes": 189168,
+    "managedHeapBytes": 1846024,
+    "store": {
+      "Entities": 1167,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.05619999999999999
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 900,
+    "repeats": 3,
+    "medianMs": 0.5381623333333336,
+    "minMs": 0.5170049999999997,
+    "maxMs": 0.6157946666666672,
+    "stages": {
+      "collect": 0.142433,
+      "ai": 0.04422433333333334,
+      "thermal-inventory": 0.014847000000000008,
+      "steering": 0.03856566666666668,
+      "weapons": 0.02752833333333332,
+      "carriers": 0.0011346666666666658,
+      "physics": 0.1105766666666666,
+      "hits": 0.11505700000000005,
+      "lifecycle": 0.04377433333333334
+    },
+    "allocatedBytes": 304296,
+    "managedHeapBytes": 2590392,
+    "store": {
+      "Entities": 3434,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.15674000000000002
+  },
+  {
+    "stage": "stage8-game-all",
+    "port": "StaticEcs 1.2.01",
+    "endTick": 1200,
+    "repeats": 3,
+    "medianMs": 0.7083083333333331,
+    "minMs": 0.6917213333333335,
+    "maxMs": 0.7763329999999999,
+    "stages": {
+      "collect": 0.21348800000000007,
+      "ai": 0.05117933333333335,
+      "thermal-inventory": 0.018146000000000006,
+      "steering": 0.0404563333333333,
+      "weapons": 0.024788000000000025,
+      "carriers": 0.0010623333333333316,
+      "physics": 0.1431066666666667,
+      "hits": 0.16016066666666645,
+      "lifecycle": 0.056105666666666706
+    },
+    "allocatedBytes": 211040,
+    "managedHeapBytes": 2977184,
+    "store": {
+      "Entities": 2870,
+      "Archetypes": null,
+      "Chunks": null,
+      "NativeBytes": null,
+      "AccessorBytes": null
+    },
+    "exportMedianMs": 0.12929000000000004
+  }
+]

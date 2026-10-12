@@ -16,10 +16,10 @@ jobs:
   capture:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 40
     env:
-      LIBGL_ALWAYS_SOFTWARE: "1"
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/Benchmarks.Local/tmp/playwright-browsers
     steps:
       - uses: actions/checkout@v7
         with:
@@ -30,25 +30,36 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Install framebuffer capture dependencies
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install capture validation dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb xauth libgl1 libglx-mesa0 libgl1-mesa-dri libx11-6 libxrandr2 libxinerama1 libxcursor1 libxi6
           python -m pip install -r tools/space-battle/cover-requirements.txt
-      - name: Test capture validation
-        run: python -m unittest discover -s tools/space-battle -p test_cover.py
-      - name: Build the real native frontend
-        working-directory: SpaceBattle.Web
-        run: dotnet build ../SpaceBattle.Game/SpaceBattle.Game.csproj -c Release --artifacts-path ../Benchmarks.Local/tmp/cover-build
-      - name: Simulate to the fixed battle tick and capture the framebuffer
+      - name: Install browser capture dependencies
+        working-directory: tools/web
         run: |
-          xvfb-run -a -s "-screen 0 1920x1200x24 +extension GLX +render -noreset" \
-            python tools/space-battle/cover.py capture \
-            --assembly Benchmarks.Local/tmp/cover-build/bin/SpaceBattle.Game/release/SpaceBattle.Game.dll \
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Test capture validation
+        run: |
+          python -m unittest discover -s tools/space-battle -p test_cover.py
+          node --test tools/web/test-cover-capture.mjs
+      - name: Install the production AOT toolchain
+        working-directory: SpaceBattle.Web
+        run: dotnet workload install wasm-tools
+      - name: Build the real production web frontend
+        shell: pwsh
+        run: ./tools/build-space-battle-web.ps1 -OutputDirectory Benchmarks.Local/tmp/cover-web -BasePath /
+      - name: Simulate to the fixed battle tick and capture Chromium Canvas
+        run: |
+          python tools/space-battle/cover.py capture \
+            --site Benchmarks.Local/tmp/cover-web/wwwroot \
             --source-commit "$GITHUB_SHA"
           python tools/space-battle/cover.py validate \
             --directory Benchmarks.Local/tmp/space-battle-cover --source-commit "$GITHUB_SHA"
-      - name: Retain framebuffer and provenance even if publication fails
+      - name: Retain browser capture and provenance even if publication fails
         if: always()
         uses: actions/upload-artifact@v7
         with:

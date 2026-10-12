@@ -19,7 +19,7 @@ public struct Brain
 {
     public EntityKey Target, Home, SquadLeader, CoverAlly;
     public BrainMode Mode;
-    public int NextDecisionTick, TargetLockUntilTick, CoverUntilTick;
+    public int NextDecisionTick, TargetLockUntilTick, CoverUntilTick, SquadSize;
     public float OrbitSign, EstimatedKillSeconds;
 }
 public struct Weapon { public WeaponKind Kind; public int Cooldown, NextFireTick, Burst; public float Range, Damage, Speed, HeatPerShot; }

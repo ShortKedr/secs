@@ -8,12 +8,21 @@ English | [Русский](README.ru.md)
 
 Interactive Silk.NET/OpenGL 3.3 frontend for `Battle<SecsStore>`. The default
 configuration starts 96 escorts per team plus carriers (198 total), all controlled
-by AI. Use `--ships 2048` for the 4096-escort stress configuration.
+by AI. The shared [dispersed initial deployment](../docs/space-battle/DEPLOYMENT.md)
+places light packets ahead of rear screens and carriers with clear maneuver space.
+Use `--ships 2048 --legacy-deployment` for the deliberately dense 4096-escort stress configuration.
 
 Current source uses the shared [circle physics experiment](../docs/space-battle/PHYSICS.md)
 instead of Aether: disk hulls, inertial rotation, contact friction and analytic
 relative-motion disk/rectangle hits. This changes gameplay/checksums; historical
 benchmark results still describe their original model.
+
+The shared [layered damage rules](../docs/space-battle/DAMAGE.md) specialize plasma
+against shields and kinetic weapons against hulls. Revision `layered-weapon-damage-v1`
+changes gameplay; its initial 1.5 coefficients are not established balance.
+
+Current [layered-squads-v3 AI](../docs/space-battle/TACTICS_V3.md) recruits compatible
+small ships by joint usefulness and uses individual target-relative approach lanes.
 
 The [light-swarm roster](../docs/space-battle/FLEETS.md) starts 54 Interceptors
 and 18 Fighters per team, with rare heavy escorts and the same three carriers.
@@ -73,6 +82,26 @@ and frames its carrier until undocking. Manual pan/zoom, Home, selecting elsewhe
 and restart cancel following. This is presentation only, not an AI/gameplay rule.
 `--follow-ship 22` enables reproducible observer captures; `--validate-observer`
 runs pure camera/lifecycle tests before creating a window.
+
+## Scene Style
+
+The desktop scene follows the web look (`web-scene-v1`): opaque neutral
+`#606060` debris disks use `max(1, radius * scale)`, not pale fixed-size strokes.
+Hull height is 1.5 times the web display size, preserving each atlas crop's aspect
+ratio; small ships/carriers have the same 5/13-pixel display-size minimums.
+Viewport-fixed stars, charcoal background and compact team arcs replace native-only
+velocity trails, shield/heat rings and hull bars. Selected ships retain a white
+circle; following adds white/amber brackets. Physics shapes, damage and gameplay
+colors/data are unchanged. The native HUD and its reserved camera area remain native.
+OpenGL texture-edge sampling and Canvas antialiasing are not pixel-identical.
+
+`--validate-scene-style --scene-style-capture Benchmarks.Local/tmp/desktop-web-visuals/native-gallery.png`
+checks real framebuffer debris color/radius and allocation-free scene composition,
+then writes a render-only comparison fixture (default window is 1440 x 900).
+Run `node tools/web/check-desktop-scene.mjs --url http://127.0.0.1:8054/`
+against an already-served web build. It feeds that same fixture through the real
+Canvas scene, requires exact debris center RGB and hull silhouette edges within
+3 pixels. Fixture JSON is diagnostic only, never a simulation/rendering backend.
 
 ## Live Statistics
 

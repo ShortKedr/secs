@@ -63,8 +63,7 @@ internal static class GunTintRenderValidation
         {
             Vector4 tint = Tint(row);
             Vector2 hullCenter = Center(row, 0);
-            float largest = Math.Max(hull.Width, hull.Height);
-            float hullWidth = Radius * 2 * hull.Width / largest, hullHeight = Radius * 2 * hull.Height / largest;
+            float hullHeight = Radius * 3, hullWidth = hullHeight * hull.Width / hull.Height;
             int hullSamples = 0, hullBad = 0;
             for (int y = -60; y < 60; y++)
             for (int x = -60; x < 60; x++)

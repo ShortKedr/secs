@@ -18,15 +18,17 @@ public sealed partial class Battle<TStore>
     }
     private void TryFire(EntityKey e, Identity id, ref Weapon w, Brain b, int slot)
     {
-        if (Tick < w.NextFireTick || b.Mode != BrainMode.Attack || !AliveShip(b.Target) || Store.Has<Docked>(e) || Store.Has<Overheated>(e) ||
-            Store.Get<Heat>(e).Value >= Store.Get<Heat>(e).Limit) return;
-        var distance = Vector2.DistanceSquared(Store.Get<Transform>(e).Position, Store.Get<Transform>(b.Target).Position);
+        if (Tick < w.NextFireTick || b.Mode != BrainMode.Attack || !AliveShip(b.Target) || Store.Has<Docked>(e) || Store.Has<Overheated>(e)) return;
+        var heat = Store.Get<Heat>(e);
+        if (heat.Value >= heat.Limit) return;
+        var transform = Store.Get<Transform>(e);
+        var targetPosition = Store.Get<Transform>(b.Target).Position;
+        var distance = Vector2.DistanceSquared(transform.Position, targetPosition);
         if (distance > w.Range * w.Range) return;
         if (w.Kind == WeaponKind.HeavyCannon)
         {
-            var transform = Store.Get<Transform>(e);
             var direction = FireControl.Predict(transform.Position, Store.Get<Motion>(e).Velocity,
-                Store.Get<Transform>(b.Target).Position, Store.Get<Motion>(b.Target).Velocity,
+                targetPosition, Store.Get<Motion>(b.Target).Velocity,
                 w.Speed, Store.Get<Collider>(e).Radius + 1.8f).Direction;
             if (MathF.Abs(WrapAngle(MathF.Atan2(direction.Y, direction.X) - transform.Angle)) > ArmamentRules.MainAimTolerance) return;
         }
@@ -38,27 +40,34 @@ public sealed partial class Battle<TStore>
         shots.Sort(static (a, b) => a.Serial != b.Serial ? a.Serial.CompareTo(b.Serial) : a.Slot.CompareTo(b.Slot));
         foreach (var shot in shots)
         {
-            var t = Store.Get<Transform>(shot.Owner); var velocity = Store.Get<Motion>(shot.Owner).Velocity;
+            var t = Store.Get<Transform>(shot.Owner);
             var weapon = shot.Weapon;
             var mounted = !shot.Gun.IsNone;
-            ref var heat = ref Store.Get<Heat>(mounted ? shot.Gun : shot.Owner);
-            var target = Store.Get<Transform>(shot.Target).Position;
-            var muzzleOffset = Store.Get<Collider>(shot.Owner).Radius + (weapon.Kind == WeaponKind.HeavyCannon ? 1.8f : 0.8f);
-            var aim = FireControl.Predict(t.Position, velocity, target, Store.Get<Motion>(shot.Target).Velocity,
-                weapon.Speed, muzzleOffset).Direction;
+            var heatEntity = mounted ? shot.Gun : shot.Owner;
+            var ownerRadius = Store.Get<Collider>(shot.Owner).Radius;
+            var muzzleOffset = ownerRadius + (weapon.Kind == WeaponKind.HeavyCannon ? 1.8f : 0.8f);
+            var velocity = mounted ? shot.Velocity : Store.Get<Motion>(shot.Owner).Velocity;
+            var aimAngle = shot.Angle;
+            if (!mounted)
+            {
+                var target = Store.Get<Transform>(shot.Target).Position;
+                var aim = FireControl.Predict(t.Position, velocity, target, Store.Get<Motion>(shot.Target).Velocity,
+                    weapon.Speed, muzzleOffset).Direction;
+                aimAngle = MathF.Atan2(aim.Y, aim.X);
+            }
             var spread = FireControl.Spread(Config.Seed, shot.Serial, Tick, shot.Slot, out var imprecise);
             Counters.AimDecisions++;
             if (imprecise) Counters.ImpreciseAimDecisions++;
-            var angle = (mounted ? shot.Angle : MathF.Atan2(aim.Y, aim.X)) + spread;
+            var angle = aimAngle + spread;
             var forward = new Vector2(MathF.Cos(angle), MathF.Sin(angle));
             var origin = mounted ? shot.Origin : t.Position;
             if (mounted)
             {
-                velocity = shot.Velocity;
-                muzzleOffset = MuzzleDistance(origin - t.Position, forward, Store.Get<Collider>(shot.Owner).Radius + 0.8f);
+                muzzleOffset = MuzzleDistance(origin - t.Position, forward, ownerRadius + 0.8f);
             }
             for (var burst = 0; burst < weapon.Burst; burst++)
             {
+                var heat = Store.Get<Heat>(heatEntity);
                 if (heat.Value >= heat.Limit) { if (!mounted) State(shot.Owner, StateKind.Overheat, true); break; }
                 if (projectiles.Count >= Config.MaxProjectiles) break;
                 var position = origin + forward * muzzleOffset;
@@ -73,7 +82,7 @@ public sealed partial class Battle<TStore>
                 projectiles.Add(new(e, number)); Counters.Shots++; Counters.StructuralAdds += 3;
                 if (mounted) { Counters.TurretShots++; Store.Get<MountedTurret>(shot.Gun).LastFireTick = Tick; }
                 if (weapon.Kind == WeaponKind.HeavyCannon) Counters.HeavyShots++;
-                heat.Value += weapon.HeatPerShot;
+                Store.Get<Heat>(heatEntity).Value += weapon.HeatPerShot;
             }
         }
         shots.Clear(); Store.Commit();
@@ -126,16 +135,17 @@ public sealed partial class Battle<TStore>
             ref var t = ref Store.Get<Transform>(row.Entity); ref var motion = ref Store.Get<Motion>(row.Entity);
             t.Position = state.Position; t.Angle = state.Angle; motion.Velocity = state.Velocity; motion.AngularVelocity = state.AngularVelocity;
         }
-        var projectile = new ProjectileMotionSystem { Battle = this }; Store.ForEach<Transform, Motion, Projectile, ProjectileMotionSystem>(ref projectile);
-        var fragment = new DebrisMotionSystem { Dt = dt }; Store.ForEach<Transform, Motion, Debris, DebrisMotionSystem>(ref fragment);
-        var particle = new ParticleMotionSystem { Dt = dt }; Store.ForEach<Transform, Motion, Particle, ParticleMotionSystem>(ref particle);
+        var projectile = new ProjectileMotionSystem { Battle = this, Dt = dt }; Store.ForEachComponents<Transform, Motion, Projectile, ProjectileMotionSystem>(ref projectile);
+        var fragment = new DebrisMotionSystem { Dt = dt }; Store.ForEachComponents<Transform, Motion, Debris, DebrisMotionSystem>(ref fragment);
+        var particle = new ParticleMotionSystem { Dt = dt }; Store.ForEachComponents<Transform, Motion, Particle, ParticleMotionSystem>(ref particle);
     }
-    private struct ProjectileMotionSystem : IProcessor<Transform, Motion, Projectile>
+    private struct ProjectileMotionSystem : IComponentProcessor<Transform, Motion, Projectile>
     {
         public Battle<TStore> Battle;
-        public void Execute(EntityKey e, ref Transform t, ref Motion m, ref Projectile p)
+        public float Dt;
+        public void Execute(ref Transform t, ref Motion m, ref Projectile p)
         {
-            var dt = 1f / Battle.Config.TickRate; t.Previous = t.Position;
+            var dt = Dt; t.Previous = t.Position;
             if (p.Kind == WeaponKind.Missile && Battle.AliveShip(p.Target))
             {
                 var direction = Direction(Battle.Store.Get<Transform>(p.Target).Position - t.Position);
@@ -144,16 +154,16 @@ public sealed partial class Battle<TStore>
             t.Position += m.Velocity * dt; t.Angle = MathF.Atan2(m.Velocity.Y, m.Velocity.X);
         }
     }
-    private struct DebrisMotionSystem : IProcessor<Transform, Motion, Debris>
+    private struct DebrisMotionSystem : IComponentProcessor<Transform, Motion, Debris>
     {
         public float Dt;
-        public void Execute(EntityKey e, ref Transform t, ref Motion m, ref Debris d)
+        public void Execute(ref Transform t, ref Motion m, ref Debris d)
         { t.Previous = t.Position; t.Position += m.Velocity * Dt; t.Angle += m.AngularVelocity * Dt; }
     }
-    private struct ParticleMotionSystem : IProcessor<Transform, Motion, Particle>
+    private struct ParticleMotionSystem : IComponentProcessor<Transform, Motion, Particle>
     {
         public float Dt;
-        public void Execute(EntityKey e, ref Transform t, ref Motion m, ref Particle p)
+        public void Execute(ref Transform t, ref Motion m, ref Particle p)
         { t.Previous = t.Position; t.Position += m.Velocity * Dt; }
     }
     private void ResolveHits()
@@ -175,7 +185,7 @@ public sealed partial class Battle<TStore>
                 : physics.Sweep(t.Previous, t.Position, p.Radius, ownerSerial, out targetSerial, out impact);
             if (!hit) { if (Outside(t.Position)) retired.Add(row.Entity); continue; }
             if (!serialToShip.TryGetValue(targetSerial, out var target) || !AliveShip(target)) continue;
-            Damage(target, p.Damage, p.Kind == WeaponKind.Plasma, false, p.Owner); Counters.Hits++;
+            DamageWeapon(target, p.Damage, p.Kind, p.Owner); Counters.Hits++;
             if (Store.Alive(p.Owner) && Store.Has<Identity>(p.Owner) &&
                 Store.Get<Identity>(p.Owner).Team == Store.Get<Identity>(target).Team) Counters.FriendlyFireHits++;
             var velocity = Store.Get<Motion>(row.Entity).Velocity;
@@ -202,12 +212,20 @@ public sealed partial class Battle<TStore>
     public void Damage(EntityKey e, float amount, bool plasma, bool fragment)
         => Damage(e, amount, plasma, fragment, EntityKey.None);
     public void Damage(EntityKey e, float amount, bool plasma, bool fragment, EntityKey attacker)
+        => ApplyDamage(e, amount, plasma ? Config.Damage.Plasma : DamageRules.Neutral, attacker);
+    public void DamageWeapon(EntityKey e, float amount, WeaponKind weapon)
+        => DamageWeapon(e, amount, weapon, EntityKey.None);
+    public void DamageWeapon(EntityKey e, float amount, WeaponKind weapon, EntityKey attacker)
+        => ApplyDamage(e, amount, DamageRules.ForWeapon(weapon, Config.Damage), attacker);
+    private void ApplyDamage(EntityKey e, float amount, in DamageProfile profile, EntityKey attacker)
     {
         if (!AliveShip(e)) return;
         ref var shield = ref Store.Get<Shield>(e); ref var hull = ref Store.Get<Hull>(e);
-        var absorb = MathF.Min(shield.Current, amount); shield.Current -= absorb; shield.LastHitTick = Tick;
-        if (plasma && absorb > 0) { Store.Get<Heat>(e).Value += absorb * 1.8f; Counters.PlasmaShieldHits++; }
-        hull.Current = MathF.Max(0, hull.Current - (amount - absorb) * (1 - hull.Armor));
+        var damage = DamageRules.Resolve(amount, shield.Current, hull.Armor, profile);
+        shield.Current -= damage.Shield; shield.LastHitTick = Tick;
+        if (profile.ShieldHeatPerDamage > 0 && damage.Shield > 0)
+        { Store.Get<Heat>(e).Value += damage.Shield * profile.ShieldHeatPerDamage; Counters.PlasmaShieldHits++; }
+        hull.Current = MathF.Max(0, hull.Current - damage.Hull);
         ref var combat = ref Store.Get<CombatState>(e);
         combat.LastDamageTick = Tick;
         combat.LastAttacker = AliveShip(attacker) && Store.Get<Identity>(attacker).Team != Store.Get<Identity>(e).Team

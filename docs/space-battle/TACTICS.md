@@ -4,6 +4,9 @@ English | [Русский](TACTICS.ru.md)
 
 # Tactical AI
 
+Current source uses [layered-squads-v3](TACTICS_V3.md). The v2 description below
+is retained as the earlier model, not the current formation/scoring algorithm.
+
 Current gameplay adds [mounted armament `mounted-armament-v7`](ARMAMENT.md).
 Target cost now also includes mounted cannon/plasma DPS with their own heat
 budgets. Heavy hull weapons steer toward predicted intercept before firing.

@@ -60,6 +60,7 @@ public sealed partial class Battle<TStore>
         Add((uint)Config.Physics.MaximumContactPairs);
         Float(Config.Physics.PositionSlop); Float(Config.Physics.CorrectionFraction); Float(Config.Physics.MaximumCorrection);
         if (Config.FleetComposition != FleetComposition.Uniform) Add((uint)Config.FleetComposition);
+        if (Config.Deployment != FleetDeployment.LegacyRandom) Add((uint)Config.Deployment);
         foreach (var row in ships)
         {
             Add((uint)row.Identity.Serial); Add((uint)row.Identity.Class); Add((uint)row.Identity.Team);
@@ -69,7 +70,7 @@ public sealed partial class Battle<TStore>
             var shield = Store.Get<Shield>(e); Float(shield.Current); Float(shield.Maximum); Float(shield.RegenPerSecond); Add((uint)shield.LastHitTick); Add((uint)shield.RegenDelayTicks);
             var heat = Store.Get<Heat>(e); Float(heat.Value); Float(heat.Limit); Float(heat.CoolingPerSecond);
             var brain = Store.Get<Brain>(e); Ref(brain.Target); Ref(brain.Home); Add((uint)brain.Mode); Add((uint)brain.NextDecisionTick); Float(brain.OrbitSign);
-            Ref(brain.SquadLeader); Ref(brain.CoverAlly); Add((uint)brain.TargetLockUntilTick); Add((uint)brain.CoverUntilTick); Float(brain.EstimatedKillSeconds);
+            Ref(brain.SquadLeader); Ref(brain.CoverAlly); Add((uint)brain.TargetLockUntilTick); Add((uint)brain.CoverUntilTick); Float(brain.EstimatedKillSeconds); Add((uint)brain.SquadSize);
             WeaponHash(Store.Get<Weapon>(e));
             Add(Store.Has<SecondaryWeapon>(e) ? 1u : 0); if (Store.Has<SecondaryWeapon>(e)) WeaponHash(Store.Get<SecondaryWeapon>(e).Value);
             var collider = Store.Get<Collider>(e); Float(collider.Radius); Float(collider.Mass); Add((uint)collider.ShapeCount);

@@ -4,8 +4,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RuntimeFrameworkVersion>8.0.31</RuntimeFrameworkVersion>
+    <UseMonoRuntime>true</UseMonoRuntime>
+    <PublishReadyToRun>false</PublishReadyToRun>
     <RunAOTCompilation>true</RunAOTCompilation>
     <WasmBuildNative>true</WasmBuildNative>
+    <!-- A SIMD module cannot select a fallback after a browser rejects it at load time. -->
+    <WasmEnableSIMD>false</WasmEnableSIMD>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <InvariantGlobalization>true</InvariantGlobalization>
     <EmccMaximumHeapSize>268435456</EmccMaximumHeapSize>
@@ -27,4 +31,8 @@
     <Content Include="../SpaceBattle.Game/Assets/warp-atlas.json" Link="wwwroot/assets/warp-atlas.json" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../SpaceBattle.Game/Assets/PROVENANCE.md" Link="wwwroot/licenses/ARTWORK.md" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="RequireMonoWebRuntime" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(UseMonoRuntime)' != 'true' or '$(PublishReadyToRun)' != 'false'"
+           Text="Space Battle Web supports Mono only. ReadyToRun is not a supported browser build." />
+  </Target>
 </Project>

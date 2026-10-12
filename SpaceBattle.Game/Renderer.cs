@@ -234,7 +234,7 @@ internal sealed unsafe class Renderer : IDisposable
         gl.Enable(EnableCap.Blend); gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
     }
     private int width, height;
-    public void Begin(int w, int h) { width = w; height = h; vertices.Clear(); gl.Viewport(0, 0, (uint)w, (uint)h); gl.ClearColor(.012f, .02f, .035f, 1); gl.Clear(ClearBufferMask.ColorBufferBit); }
+    public void Begin(int w, int h) { width = w; height = h; vertices.Clear(); gl.Viewport(0, 0, (uint)w, (uint)h); var background = BattleSceneRenderer.Background; gl.ClearColor(background.X, background.Y, background.Z, 1); gl.Clear(ClearBufferMask.ColorBufferBit); }
     private void Add(Vector2 p, Vector4 c, Vector2 uv) => vertices.Add(new(new(p.X / width * 2 - 1, 1 - p.Y / height * 2), uv, c));
     public void Triangle(Vector2 a, Vector2 b, Vector2 c, Vector4 color) { var uv = new Vector2(-1); Add(a, color, uv); Add(b, color, uv); Add(c, color, uv); }
     public void Line(Vector2 a, Vector2 b, float thickness, Vector4 color, bool preserveSmallSegments = false)
@@ -246,8 +246,28 @@ internal sealed unsafe class Renderer : IDisposable
     public void Rect(float x, float y, float w, float h, Vector4 color) { Triangle(new(x,y),new(x+w,y),new(x+w,y+h),color); Triangle(new(x,y),new(x+w,y+h),new(x,y+h),color); }
     public void Circle(Vector2 p, float radius, Vector4 color, bool filled = false)
     {
-        const int n = 20;
+        int n = (int)Math.Clamp(MathF.Ceiling(radius * 2), 20, 128);
         for (int i = 0; i < n; i++) { float a = i * MathF.Tau/n, b = (i+1)*MathF.Tau/n; var v = p + new Vector2(MathF.Cos(a),MathF.Sin(a))*radius; var w = p + new Vector2(MathF.Cos(b),MathF.Sin(b))*radius; if(filled) Triangle(p,v,w,color); else Line(v,w,1,color); }
+    }
+    public void Arc(Vector2 p, float radius, float start, float end, Vector4 color, float thickness = 1)
+    {
+        int segments = (int)Math.Clamp(MathF.Ceiling(radius * (end - start) / 3), 8, 128);
+        for (int i = 0; i < segments; i++)
+        {
+            float a = start + (end - start) * i / segments, b = start + (end - start) * (i + 1) / segments;
+            Line(p + new Vector2(MathF.Cos(a), MathF.Sin(a)) * radius,
+                p + new Vector2(MathF.Cos(b), MathF.Sin(b)) * radius, thickness, color);
+        }
+    }
+    public void Brackets(Vector2 p, float radius, Vector4 color, float thickness)
+    {
+        float arm = Math.Min(14, radius * .4f);
+        for (int x = -1; x <= 1; x += 2) for (int y = -1; y <= 1; y += 2)
+        {
+            var corner = p + new Vector2(x, y) * radius;
+            Line(corner, corner - new Vector2(x * arm, 0), thickness, color);
+            Line(corner, corner - new Vector2(0, y * arm), thickness, color);
+        }
     }
     public void Ship(Vector2 p, float radius, float angle, int kind, Vector4 color)
     {
@@ -255,7 +275,7 @@ internal sealed unsafe class Renderer : IDisposable
         if (!HasAtlas) { Triangle(p+forward*radius*1.6f,p-forward*radius+side*radius,p-forward*radius-side*radius,color); Line(p-forward*radius*.7f,p+forward*radius,1,new(.85f,.93f,1,1)); return; }
         var sprite=sprites[Math.Clamp(kind,0,11)];
         float u=(sprite.X+.5f)/atlasWidth,v=(sprite.Y+.5f)/atlasHeight,u2=(sprite.X+sprite.Width-.5f)/atlasWidth,v2=(sprite.Y+sprite.Height-.5f)/atlasHeight;
-        float largest=Math.Max(sprite.Width,sprite.Height), halfWidth=radius*sprite.Width/largest, halfHeight=radius*sprite.Height/largest;
+        float halfHeight = radius * 1.5f, halfWidth = halfHeight * sprite.Width / sprite.Height;
         var a=p-forward*halfHeight-side*halfWidth; var b=p+forward*halfHeight-side*halfWidth; var c=p+forward*halfHeight+side*halfWidth; var d=p-forward*halfHeight+side*halfWidth;
         Add(a,color,new(u,v2)); Add(b,color,new(u,v)); Add(c,color,new(u2,v)); Add(a,color,new(u,v2)); Add(c,color,new(u2,v)); Add(d,color,new(u2,v2));
     }
@@ -279,6 +299,7 @@ internal sealed unsafe class Renderer : IDisposable
         var forward = speed > 0 ? screenVelocity / speed : new Vector2(MathF.Cos(angle), -MathF.Sin(angle));
         float length = Math.Max(kind == 4 ? 18 : kind == 3 ? 10 : 6,
             Math.Max(speed * (kind == 4 ? .07f : .025f), radius * (kind == 4 ? 4 : 2)));
+        if (p.X < -length || p.Y < -length || p.X > width + length || p.Y > height + length) return;
         if (!HasEffectsAtlas) { Line(p-forward*length,p,Math.Max(1,radius*2),Vector4.One); return; }
         var sprite = projectileSprites[kind];
         EffectSpriteQuad(p,forward,length,length*sprite.Rect.Height/sprite.Rect.Width,sprite,1);

@@ -3,9 +3,10 @@ using SpaceBattle;
 
 internal static partial class Validation
 {
+    public static void LegacyTacticsChecks() { TacticalChecks(); TacticalSpatialChecks(); }
     private static void TacticalChecks()
     {
-        Require(TacticalRules.Revision == "tactical-lock-v2", "tactical revision");
+        Require(TacticalRules.Revision == "layered-squads-v3", "tactical revision");
         Require(TacticalRules.MinimumTargetLockTicks == 120 && TacticalRules.MaxSquadSize == 4 &&
             TacticalRules.FormationRange == 48 && TacticalRules.SquadBreakRange == 96 &&
             MathF.Abs(TacticalRules.SwitchImprovement - 0.35f) < 0.00001f, "tactical constants");
@@ -43,7 +44,8 @@ internal static partial class Validation
         };
         battle.Store.Get<Motion>(e).Velocity = Vector2.Zero;
         battle.Store.Get<Motion>(e).Thrust = 0;
-        battle.Store.Get<Weapon>(e).NextFireTick = int.MaxValue;
+        battle.Store.Get<Weapon>(e).NextFireTick = active ? 0 : int.MaxValue;
+        if (active) battle.Store.Get<Weapon>(e).HeatPerShot = 0;
         battle.Store.Get<Inventory>(e).NextUseTick = int.MaxValue;
         battle.Store.Get<Shield>(e).RegenPerSecond = 0;
         if (battle.Store.Has<SecondaryWeapon>(e)) battle.Store.Get<SecondaryWeapon>(e).Value.NextFireTick = int.MaxValue;
@@ -161,6 +163,12 @@ internal static partial class Validation
         TacticalDurability(battle, second, 1000);
         TacticalDecide(battle, allies);
         var groups = allies.GroupBy(e => battle.Store.Get<Brain>(e).SquadLeader).ToArray();
+        if (!groups.Any(g => !g.Key.IsNone && g.Count() >= 2))
+        {
+            foreach (var e in allies)
+                Console.WriteLine($"Group fixture: {battle.Store.Get<Identity>(e).Serial} mode={battle.Store.Get<Brain>(e).Mode} speed={battle.Store.Get<Motion>(e).MaxSpeed} range={battle.Store.Get<Weapon>(e).Range} next={battle.Store.Get<Weapon>(e).NextFireTick} heat={battle.Store.Get<Heat>(e).Value} target={battle.Store.Get<Brain>(e).Target}");
+            Console.WriteLine($"Work: scores={battle.Tactics.ScoreEvaluations} spatial={battle.Tactics.SpatialWork} compatibility={battle.Tactics.CompatibilityChecks}");
+        }
         Require(groups.Any(g => !g.Key.IsNone && g.Count() >= 2), "nearby small ships form a squad");
         foreach (var group in groups.Where(g => !g.Key.IsNone))
         {

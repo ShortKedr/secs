@@ -25,6 +25,7 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
     public PhysicsQueryStatistics PhysicsQueries => physics.QueryStatistics;
     public PhysicsTimingStatistics PhysicsTimings => physics.Timings;
     private readonly PhysicsService physics;
+    private readonly DampingFactorCache dampingFactors = new();
     private readonly List<ShipRow> ships = new();
     private readonly List<MovingRow> projectiles = new(), debris = new(), particles = new();
     private readonly List<MovingRow> turrets = new();
@@ -44,20 +45,25 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
 
     public Battle(TStore store, BattleConfig config)
     {
-        config.Validate(); Config = config; Store = store; physics = new(config.Physics);
+        config.Validate();
+        var deployment = config.Deployment == FleetDeployment.Tactical ? FleetDeploymentRules.Create(config) : null;
+        Config = config; Store = store; physics = new(config.Physics);
         var rng = new RandomStream(config.Seed);
         for (var team = 0; team < 2; team++)
         {
             var homes = new EntityKey[config.CarriersPerTeam];
             for (var i = 0; i < homes.Length; i++)
                 homes[i] = SpawnShip(team, ShipClass.LightCarrier + i,
-                    new Vector2(team == 0 ? -90 : 90, (i - (homes.Length - 1) * 0.5f) * 34), EntityKey.None);
+                    deployment is null ? new Vector2(team == 0 ? -90 : 90, (i - (homes.Length - 1) * 0.5f) * 34)
+                        : Reflect(deployment.Carriers[i], team), EntityKey.None);
             for (var i = 0; i < config.ShipsPerTeam; i++)
                 SpawnShip(team, FleetCompositionRules.Escort(config.FleetComposition, i),
-                    new Vector2((team == 0 ? -1 : 1) * rng.Range(40, 72), rng.Range(-65, 65)), homes[i % homes.Length]);
+                    deployment is null ? new Vector2((team == 0 ? -1 : 1) * rng.Range(40, 72), rng.Range(-65, 65))
+                        : Reflect(deployment.Escorts[i], team), homes[i % homes.Length]);
         }
         Store.Commit(); Collect();
         InitializeWarpReinforcements();
+        static Vector2 Reflect(Vector2 position, int team) => new(team == 0 ? -position.X : position.X, position.Y);
     }
 
     public EntityKey SpawnShip(int team, ShipClass kind, Vector2 position, EntityKey home)
@@ -207,9 +213,9 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         {
             var dt = 1f / Battle.Config.TickRate;
             h.Value = MathF.Max(0, h.Value - h.CoolingPerSecond * dt);
-            if (Battle.Tick - s.LastHitTick >= s.RegenDelayTicks && !Battle.Store.Has<Overheated>(e))
-                s.Current = MathF.Min(s.Maximum, s.Current + s.RegenPerSecond * dt);
             var overheated = Battle.Store.Has<Overheated>(e);
+            if (Battle.Tick - s.LastHitTick >= s.RegenDelayTicks && !overheated)
+                s.Current = MathF.Min(s.Maximum, s.Current + s.RegenPerSecond * dt);
             if (!overheated && h.Value >= h.Limit) Battle.State(e, StateKind.Overheat, true);
             else if (overheated && h.Value < h.Limit * 0.45f) Battle.State(e, StateKind.Overheat, false);
             if (Battle.Store.Has<ShieldBroken>(e) && s.Current > s.Maximum * 0.2f) Battle.State(e, StateKind.ShieldBreak, false);
@@ -244,7 +250,7 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
         }
     }
 
-    private struct SteeringSystem : IProcessor<Transform, Motion, Brain>
+    internal struct SteeringSystem : IProcessor<Transform, Motion, Brain>
     {
         public Battle<TStore> Battle;
         public void Execute(EntityKey e, ref Transform t, ref Motion m, ref Brain b)
@@ -252,29 +258,45 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
             if (Battle.Store.Has<Docked>(e)) { m.Velocity = m.Acceleration = Vector2.Zero; return; }
             var dt = 1f / Battle.Config.TickRate;
             var desired = Vector2.Zero;
+            // These values are lazy and row-local. Steering only writes Motion/Heat and queues states;
+            // no structural mutation or Identity/Weapon/target Transform/Hull write occurs in this query.
+            var targetAlive = false;
+            var targetPosition = Vector2.Zero;
+            var identityKnown = false; var identity = default(Identity);
+            var primaryKnown = false; var primary = default(Weapon);
             if (b.Mode == BrainMode.Screen && Battle.AliveShip(b.CoverAlly))
                 desired = ClampMagnitude(Battle.CoverVelocity(b.CoverAlly) +
                     (Battle.ScreenDestination(e, b) - t.Position) * 2, m.MaxSpeed);
             else if (b.Mode == BrainMode.Retreat && Battle.AliveShip(b.Home))
                 desired = Direction(Battle.Store.Get<Transform>(b.Home).Position - t.Position) * m.MaxSpeed;
-            else if (Battle.AliveShip(b.Target))
+            else
             {
-                var delta = Battle.Store.Get<Transform>(b.Target).Position - t.Position;
-                var carrier = ShipCatalog.IsCarrier(Battle.Store.Get<Identity>(e).Class);
-                var range = Battle.Store.Get<Weapon>(e).Range * (carrier ? 0.65f : 0.48f);
-                var direction = Direction(delta);
-                var tangent = new Vector2(-direction.Y, direction.X) * b.OrbitSign;
-                desired = direction * Math.Clamp((delta.Length() - range) * 0.7f, -m.MaxSpeed * 0.55f, m.MaxSpeed)
-                    + tangent * m.MaxSpeed * (carrier ? 0.15f : b.SquadLeader.IsNone ? 0.65f : 0.35f);
-                desired += Battle.FormationSteering(e, b, t.Position, m.MaxSpeed);
+                targetAlive = Battle.AliveShip(b.Target);
+                if (targetAlive)
+                {
+                    targetPosition = Battle.Store.Get<Transform>(b.Target).Position;
+                    var delta = targetPosition - t.Position;
+                    identity = Battle.Store.Get<Identity>(e); identityKnown = true;
+                    var carrier = ShipCatalog.IsCarrier(identity.Class);
+                    primary = Battle.Store.Get<Weapon>(e); primaryKnown = true;
+                    var grouped = !b.SquadLeader.IsNone && Battle.squadIndexes.TryGetValue(b.SquadLeader, out _);
+                    var range = grouped ? Battle.GroupWorkingRange(e, b.Target, primary.Range) * 0.72f : primary.Range * (carrier ? 0.65f : 0.48f);
+                    var direction = Direction(delta);
+                    var tangent = new Vector2(-direction.Y, direction.X) * b.OrbitSign;
+                    desired = direction * Math.Clamp((delta.Length() - range) * 0.7f, -m.MaxSpeed * 0.55f, m.MaxSpeed)
+                        + tangent * m.MaxSpeed * (carrier ? 0.15f : grouped ? 0.12f : b.SquadLeader.IsNone ? 0.65f : 0.35f);
+                    desired += Battle.FormationSteering(e, b, t.Position, m.MaxSpeed);
+                }
             }
-            var facing = b.Mode == BrainMode.Attack && Battle.AliveShip(b.Target)
-                ? Battle.Store.Get<Transform>(b.Target).Position - t.Position : desired;
-            var primary = Battle.Store.Get<Weapon>(e);
-            if (b.Mode == BrainMode.Attack && Battle.AliveShip(b.Target) && primary.Kind == WeaponKind.HeavyCannon)
-                facing = FireControl.Predict(t.Position, m.Velocity, Battle.Store.Get<Transform>(b.Target).Position,
+            // Attack cannot take the Screen/Retreat branches, so its target check already ran.
+            var attackingTarget = b.Mode == BrainMode.Attack && targetAlive;
+            var facing = attackingTarget ? targetPosition - t.Position : desired;
+            if (!primaryKnown) primary = Battle.Store.Get<Weapon>(e);
+            if (attackingTarget && primary.Kind == WeaponKind.HeavyCannon)
+                facing = FireControl.Predict(t.Position, m.Velocity, targetPosition,
                     Battle.CoverVelocity(b.Target), primary.Speed, Battle.Store.Get<Collider>(e).Radius + 1.8f).Direction;
-            var heavy = ShipCatalog.IsCarrier(Battle.Store.Get<Identity>(e).Class);
+            if (!identityKnown) identity = Battle.Store.Get<Identity>(e);
+            var heavy = ShipCatalog.IsCarrier(identity.Class);
             var desiredTurn = facing.LengthSquared() > 0.001f
                 ? Math.Clamp(WrapAngle(MathF.Atan2(facing.Y, facing.X) - t.Angle) * 5, heavy ? -0.8f : -2.5f, heavy ? 0.8f : 2.5f) : 0;
             m.AngularVelocity += Math.Clamp(desiredTurn - m.AngularVelocity, -(heavy ? 1.5f : 10) * dt, (heavy ? 1.5f : 10) * dt);
@@ -283,9 +305,9 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
                 desired = Direction(inward) * m.MaxSpeed;
             m.Acceleration = ClampMagnitude((desired - m.Velocity) * 2, m.Thrust);
             var boost = Battle.Store.Has<Boosting>(e) ? 1.5f : 1;
-            m.Velocity = ClampMagnitude((m.Velocity + m.Acceleration * boost * dt) * MathF.Exp(-m.Damping * dt), m.MaxSpeed * boost);
-            if (Battle.Tick % 360 == Battle.Store.Get<Identity>(e).Serial % 360 && !Battle.Store.Has<Overheated>(e))
-                Battle.State(e, StateKind.Boost, true);
+            m.Velocity = ClampMagnitude((m.Velocity + m.Acceleration * boost * dt) * Battle.dampingFactors.Get(m.Damping, dt), m.MaxSpeed * boost);
+            if (Battle.Tick % 360 == identity.Serial % 360 && !Battle.Store.Has<Overheated>(e))
+                Battle.states.Add(new(e, identity.Serial, StateKind.Boost, true, default));
             ref var heat = ref Battle.Store.Get<Heat>(e); heat.Value += m.Acceleration.Length() * 0.055f * dt * boost;
         }
     }

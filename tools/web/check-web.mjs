@@ -136,6 +136,31 @@ try {
   assert.equal(initial.fleetRevision, "light-swarm-v1");
   assert.equal(initial.fleetComposition, "light-swarm");
   assert.equal(initial.physicsRevision, "circle-kernel-v1");
+  assert.equal(initial.damageRevision, "layered-weapon-damage-v1");
+  assert.equal(initial.tacticalRevision, "layered-squads-v3");
+  const damageChecks = await page.evaluate(async () => {
+    const runtime = getDotnetRuntime(0);
+    const bridge = (await runtime.getAssemblyExports("SpaceBattle.Web.dll")).SpaceBattle.Web.BattleBridge;
+    return {
+      revision: bridge.DamageRevision(),
+      cases: [
+        [100, 300, 0, 2], [100, 75, .2, 2], [100, 0, .2, 2],
+        [100, 300, 0, 0], [100, 75, .2, 0], [100, 0, .2, 0],
+        [100, 0, .2, 1], [100, 0, .2, 4], [100, 75, .2, 3],
+        [0, 0, .2, 2], [100, 150, .2, 2],
+      ].map(input => ({ input, output: [0, 1, 2, 3].map(field => bridge.DiagnosticWeaponDamage(...input, field)) })),
+    };
+  });
+  assert.equal(damageChecks.revision, "layered-weapon-damage-v1");
+  const expectedDamage = [
+    [150, 0, 270, 0], [75, 40, 135, 50], [0, 80, 0, 100],
+    [100, 0, 0, 0], [75, 30, 0, 25], [0, 120, 0, 100],
+    [0, 120, 0, 100], [0, 120, 0, 100], [75, 20, 0, 25],
+    [0, 0, 0, 0], [150, 0, 270, 0],
+  ];
+  damageChecks.cases.forEach((row, index) => row.output.forEach((value, field) =>
+    assert.ok(Math.abs(value - expectedDamage[index][field]) < .0001, `AOT damage case ${index} field ${field}`)));
+  results.push({ check: "shared-layered-weapon-damage", passed: true, ...damageChecks });
   const initialClasses = await page.evaluate(() => [0, 1].map(team => {
     const counts = Array(11).fill(0);
     for (const row of window.spaceBattle.snapshot.ships) if (row[1] === team) counts[row[2]]++;
@@ -581,7 +606,7 @@ try {
 
   // A failed asset request must show an error and recover through Retry.
   const recovery = await context.newPage();
-  await recovery.route("**/assets/ships-atlas.json", (route) =>
+  await recovery.route("**/assets/web-atlases.json*", (route) =>
     route.fulfill({ status: 503, body: "Unavailable" }),
   );
   await recovery.goto(`${url}?test=1`, {
@@ -592,10 +617,10 @@ try {
     () => !document.getElementById("retry").hidden,
   );
   assert.equal(await recovery.evaluate(() => window.spaceBattle.ready), false);
-  await recovery.unroute("**/assets/ships-atlas.json");
+  await recovery.unroute("**/assets/web-atlases.json*");
   monitor(recovery);
   await recovery.click("#retry");
-  await recovery.waitForFunction(() => window.spaceBattle.ready);
+  await recovery.waitForFunction(() => window.spaceBattle?.ready);
   assert.equal(
     await recovery.evaluate(() => window.spaceBattle.snapshot.tick),
     0,

@@ -6,10 +6,34 @@ English | [Русский](README.ru.md)
 [Benchmark report](../docs/space-battle/REPORT.md) |
 [Repository](../README.md)
 
-[Experimental .NET 11 CoreCLR + crossgen2/R2R path](../SpaceBattle.Web.CoreClr/README.md).
-The production host and Pages workflow still use Mono AOT.
+The supported browser host is stable .NET 8 Mono only, with AOT in production and
+the Pages workflow. Local Mono interpreter diagnostics remain supported.
+
+[iOS regression investigation and bounded checks](../docs/space-battle/IOS_WEB.md):
+build-time PNG atlases, visible render failures and cache identity. Actual iPhone
+recovery is not yet verified; desktop WebKit smoke is a separate CI gate.
+
+[Measured stable Mono AOT compiler study](../tools/web/MONO_COMPILER_STUDY.md):
+O3/LTO were compared on identical replays; the original defaults were retained
+because a general repeatable improvement was not confirmed.
+
+[Portable simulation locality study](../tools/HardwareStudy/LOCALITY_OPTIMIZATION.md):
+component-only movement, lazy steering/AI invariants and independent native/WASM
+replays. Production Mono AOT uses `WasmEnableSIMD=false` for a scalar module;
+no experimental runtime or higher SIMD browser requirement is introduced.
 
 ## Runtime and Scenario
+
+The [dispersed initial deployment](../docs/space-battle/DEPLOYMENT.md) separates
+light packets, rear escorts and carriers instead of the old dense random strip.
+It preserves the roster and combat rules but intentionally changes initial trajectories.
+
+Current source uses [layered weapon damage](../docs/space-battle/DAMAGE.md)
+(`layered-weapon-damage-v1`): plasma specializes against shields, kinetic guns
+against hulls. The initial 1.5 coefficients are not a balance claim.
+
+[Layered squad tactics v3](../docs/space-battle/TACTICS_V3.md) adds usefulness-based
+small groups, staggered shield/hull scoring, target-relative lanes and bounded reviews.
 
 The dashed-square button or F2 toggles collider outlines (off by default): green
 ship circles, pink projectile circles/oriented rectangles, grey debris circles.
@@ -40,7 +64,7 @@ and warp waves use the same light emphasis without raising the population cap.
 
 Hulls, mounting bases and gun heads use the same native team palette:
 cyan RGB `(0.2, 0.85, 0.95)` and red `(1, 0.37, 0.4)`. Two tinted variants of
-each ship/gun atlas are prepared once at loading; no per-frame pixel processing
+each ship/gun atlas are baked as PNG during the build; no runtime pixel readback
 or color filter is added. Alpha, pivots, recoil, projectiles and warp artwork
 are preserved. Orange overheat indicators remain distinct.
 
@@ -123,6 +147,7 @@ Its default `-OutputDirectory` is `Benchmarks.Local/tmp/web-publish`; its defaul
 `-BasePath` is `/secs/`, the published GitHub Pages path:
 
 ```powershell
+npm ci --prefix tools/web --cache Benchmarks.Local/tmp/npm-cache
 ./tools/build-space-battle-web.ps1
 ```
 
@@ -130,9 +155,9 @@ For a local static server, publish with `-BasePath /` so assets resolve from the
 server root. With Python installed, serve the published `wwwroot` directory:
 
 ```powershell
-./tools/build-space-battle-web.ps1 -OutputDirectory Benchmarks.Local/tmp/web-publish -BasePath /
-Set-Location Benchmarks.Local/tmp/web-publish/wwwroot
-python -m http.server 8000
+$publish = "Benchmarks.Local/tmp/web-local-" + [guid]::NewGuid().ToString("N")
+./tools/build-space-battle-web.ps1 -OutputDirectory $publish -ArtifactsDirectory ($publish + "-build") -BasePath /
+python -m http.server 8000 --directory "$publish/wwwroot"
 ```
 
 Open [the local demo](http://localhost:8000/) or
@@ -148,16 +173,19 @@ The demo links back to the bilingual benchmark report. The Russian demo URL is
 [`?lang=ru`](https://shortkedr.github.io/secs/?lang=ru).
 The target link alone does not establish that a deployment has completed.
 
-Actions runs real Chromium checks before deployment and retains desktop/mobile
+Finalized output directories are immutable; choose a fresh output/build directory
+for another publication. Node.js and `tools/web` dependencies prepare the PNGs.
+
+Actions runs real Chromium and bounded desktop WebKit checks before deployment and retains desktop/mobile
 screenshots as the `space-battle-browser-checks` artifact. It checks all profiles,
 same-browser reset parity, combat counters, camera/selection controls, touch,
 responsive layout and error recovery. Run the same checks locally:
 
 ```powershell
-./tools/build-space-battle-web.ps1
 $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/Benchmarks.Local/tmp/playwright-browsers"
 npm ci --prefix tools/web --cache Benchmarks.Local/tmp/npm-cache
-node tools/web/node_modules/playwright/cli.js install chromium
+./tools/build-space-battle-web.ps1
+node tools/web/node_modules/playwright/cli.js install chromium webkit
 node tools/web/check-web.mjs --base /secs/
 ```
 

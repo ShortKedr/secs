@@ -35,6 +35,7 @@ public sealed record BattleConfig
     public int ShipsPerTeam { get; init; } = 96;
     public int CarriersPerTeam { get; init; } = 3;
     public FleetComposition FleetComposition { get; init; } = FleetComposition.Uniform;
+    public FleetDeployment Deployment { get; init; } = FleetDeployment.LegacyRandom;
     public float ArenaHalfSize { get; init; } = 210;
     public float ChurnMultiplier { get; init; } = 1;
     public int TickRate { get; init; } = 60;
@@ -51,14 +52,21 @@ public sealed record BattleConfig
     public int MaxDebris { get; init; } = 16000;
     public int MaxParticles { get; init; } = 32000;
     public PhysicsSettings Physics { get; init; } = new();
+    public DamageSettings Damage { get; init; } = new();
+    public TacticsSettings Tactics { get; init; } = new();
     public void Validate()
     {
         ArgumentNullException.ThrowIfNull(Physics);
         Physics.Validate();
+        ArgumentNullException.ThrowIfNull(Damage);
+        Damage.Validate();
+        ArgumentNullException.ThrowIfNull(Tactics);
+        Tactics.Validate();
         if (TickRate != 60 || ShipsPerTeam < 8 || ShipsPerTeam > 10000 || CarriersPerTeam is < 2 or > 3 ||
-            ArenaHalfSize < 80 || ChurnMultiplier is < 0.1f or > 8 || ParticleMultiplier is < 0 or > 8 ||
+            !float.IsFinite(ArenaHalfSize) || ArenaHalfSize < 80 || ChurnMultiplier is < 0.1f or > 8 || ParticleMultiplier is < 0 or > 8 ||
             MaxProjectiles < 1 || MaxDebris < 1 || MaxParticles < 1 ||
             (FleetComposition != SpaceBattle.FleetComposition.Uniform && FleetComposition != SpaceBattle.FleetComposition.LightSwarm) ||
+            (Deployment != FleetDeployment.LegacyRandom && Deployment != FleetDeployment.Tactical) ||
             !float.IsFinite(ReinforcementThresholdFraction) || ReinforcementThresholdFraction is <= 0 or > 0.5f ||
             !float.IsFinite(ReinforcementWaveFraction) || ReinforcementWaveFraction is <= 0 or > 1 ||
             ReinforcementCheckIntervalTicks is < 1 or > 36000 || ReinforcementWarmupTicks is < 1 or > 36000 ||

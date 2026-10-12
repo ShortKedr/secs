@@ -1,0 +1,86 @@
+[
+  {
+    "stage": "before",
+    "port": "coreclr-r2r-binary",
+    "endTick": 60,
+    "repeats": 3,
+    "medianMs": 112.04833333333333,
+    "minMs": 109.48833333333332,
+    "maxMs": 123.05499999999996,
+    "stages": {
+      "collect": 5.8666666666666645,
+      "ai": 19.67833333333333,
+      "thermal-inventory": 5.614999999999999,
+      "steering": 15.533333333333331,
+      "weapons": 8.751666666666667,
+      "carriers": 0.04500000000000002,
+      "physics": 35.20166666666668,
+      "hits": 13.065000000000001,
+      "lifecycle": 8.541666666666666
+    },
+    "exportMedianMs": 38.14499999997206
+  },
+  {
+    "stage": "before",
+    "port": "coreclr-r2r-binary",
+    "endTick": 120,
+    "repeats": 3,
+    "medianMs": 159.48333333333332,
+    "minMs": 158.79833333333335,
+    "maxMs": 172.42333333333332,
+    "stages": {
+      "collect": 17.836666666666666,
+      "ai": 19.091666666666672,
+      "thermal-inventory": 5.031666666666668,
+      "steering": 14.278333333333336,
+      "weapons": 7.106666666666668,
+      "carriers": 0.04333333333333335,
+      "physics": 45.049999999999976,
+      "hits": 32.126666666666665,
+      "lifecycle": 20.37333333333334
+    },
+    "exportMedianMs": 50.97000000001863
+  },
+  {
+    "stage": "stage5",
+    "port": "coreclr-r2r-binary",
+    "endTick": 60,
+    "repeats": 3,
+    "medianMs": 88.06166666666668,
+    "minMs": 87.27166666666666,
+    "maxMs": 89.47833333333331,
+    "stages": {
+      "collect": 4.973333333333333,
+      "ai": 14.573333333333336,
+      "thermal-inventory": 4.7666666666666675,
+      "steering": 14.500000000000004,
+      "weapons": 6.901666666666665,
+      "carriers": 0.021666666666666667,
+      "physics": 21.73833333333333,
+      "hits": 12.443333333333328,
+      "lifecycle": 8.173333333333336
+    },
+    "exportMedianMs": 35.164999999990684
+  },
+  {
+    "stage": "stage5",
+    "port": "coreclr-r2r-binary",
+    "endTick": 120,
+    "repeats": 3,
+    "medianMs": 130.89166666666668,
+    "minMs": 129.4516666666667,
+    "maxMs": 132.3383333333333,
+    "stages": {
+      "collect": 15.153333333333334,
+      "ai": 14.14166666666667,
+      "thermal-inventory": 4.48,
+      "steering": 12.900000000000002,
+      "weapons": 5.5649999999999995,
+      "carriers": 0.02833333333333334,
+      "physics": 27.51833333333333,
+      "hits": 30.395000000000007,
+      "lifecycle": 20.380000000000003
+    },
+    "exportMedianMs": 49.6
+  }
+]

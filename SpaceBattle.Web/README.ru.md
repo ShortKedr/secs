@@ -6,10 +6,34 @@
 [Отчёт о бенчмарках](../docs/space-battle/REPORT.ru.md) |
 [Репозиторий](../README.ru.md)
 
-[Экспериментальный путь .NET 11 CoreCLR + crossgen2/R2R](../SpaceBattle.Web.CoreClr/README.ru.md).
-Основной хост и Pages workflow пока используют Mono AOT.
+Поддерживаемый браузерный хост — только стабильный .NET 8 Mono, с AOT
+в production и Pages workflow. Локальная диагностика Mono interpreter поддерживается.
+
+[Исследование iOS-регрессии и ограниченные проверки](../docs/space-battle/IOS_WEB.ru.md):
+PNG-атласы при сборке, видимые ошибки рендера и cache identity. Восстановление
+на настоящем iPhone пока не проверено; desktop WebKit smoke является отдельной проверкой CI.
+
+[Измеренное сравнение stable Mono AOT](../tools/web/MONO_COMPILER_STUDY.ru.md):
+O3/LTO проверены на одинаковых боях; исходные defaults сохранены,
+поскольку устойчивый общий выигрыш не подтверждён.
+
+[Переносимая оптимизация симуляции](../tools/HardwareStudy/LOCALITY_OPTIMIZATION.ru.md):
+component-only movement, ленивые steering/AI-инварианты и независимые native/WASM
+replay. Штатный Mono AOT использует скалярный модуль `WasmEnableSIMD=false`,
+без экспериментального runtime или новых требований SIMD к браузеру.
 
 ## Среда Выполнения и Сценарий
+
+[Разнесённая стартовая расстановка](../docs/space-battle/DEPLOYMENT.ru.md) разделяет
+лёгкие четвёрки, задний эскорт и носители вместо прежней плотной случайной полосы.
+Состав флотов и правила боя сохраняются; начальные траектории намеренно меняются.
+
+Текущие исходники используют [урон по слоям](../docs/space-battle/DAMAGE.ru.md)
+(`layered-weapon-damage-v1`): плазма специализируется против щита, кинетические
+пушки против корпуса. Стартовые коэффициенты 1.5 не являются доказанным балансом.
+
+[Тактика групп v3](../docs/space-battle/TACTICS_V3.ru.md): подбор по полезности,
+поэтапная оценка щита/корпуса, индивидуальные линии подхода и ограниченные пересмотры.
 
 Кнопка с пунктирным квадратом или F2 включает контуры коллайдеров (по умолчанию
 выключены): зелёные круги кораблей, розовые круги/повёрнутые прямоугольники
@@ -41,7 +65,7 @@ AI, урон, RNG или checksum. Цель/смерть читаются по �
 
 Корпуса, основания и стволы используют одну native-палитру команд:
 голубой RGB `(0.2, 0.85, 0.95)` и красный `(1, 0.37, 0.4)`. Для атласов
-кораблей и пушек один раз при загрузке готовятся два окрашенных варианта;
+кораблей и пушек при сборке готовятся два окрашенных PNG-варианта;
 обработки пикселей или цветового фильтра каждый кадр нет. Альфа, привязки,
 отдача, снаряды и текстуры варпа сохранены. Перегрев остаётся оранжевым.
 
@@ -127,6 +151,7 @@ V5 прошла headless-проверки и 10 контрольных точе�
 а `-BasePath` равен `/secs/`: это путь публикации на GitHub Pages.
 
 ```powershell
+npm ci --prefix tools/web --cache Benchmarks.Local/tmp/npm-cache
 ./tools/build-space-battle-web.ps1
 ```
 
@@ -135,9 +160,9 @@ V5 прошла headless-проверки и 10 контрольных точе�
 в опубликованном каталоге `wwwroot`:
 
 ```powershell
-./tools/build-space-battle-web.ps1 -OutputDirectory Benchmarks.Local/tmp/web-publish -BasePath /
-Set-Location Benchmarks.Local/tmp/web-publish/wwwroot
-python -m http.server 8000
+$publish = "Benchmarks.Local/tmp/web-local-" + [guid]::NewGuid().ToString("N")
+./tools/build-space-battle-web.ps1 -OutputDirectory $publish -ArtifactsDirectory ($publish + "-build") -BasePath /
+python -m http.server 8000 --directory "$publish/wwwroot"
 ```
 
 Откройте [локальное демо](http://localhost:8000/) или
@@ -153,16 +178,19 @@ python -m http.server 8000
 [`?lang=ru`](https://shortkedr.github.io/secs/?lang=ru).
 Наличие целевой ссылки само по себе не подтверждает завершение развёртывания.
 
-Перед деплоем Actions выполняет реальные проверки в Chromium и сохраняет
+Готовые каталоги не переиспользуются: для новой сборки выбирайте свежие output/build.
+Подготовка PNG требует Node.js и зависимостей `tools/web`.
+
+Перед деплоем Actions выполняет проверки Chromium и ограниченный desktop WebKit smoke, сохраняет
 desktop/mobile-скриншоты в артефакте `space-battle-browser-checks`. Проверяются
 все профили, повторяемость сброса внутри браузера, счётчики боя, камера/выделение,
 touch, адаптивная раскладка и восстановление после ошибки. Локальный запуск:
 
 ```powershell
-./tools/build-space-battle-web.ps1
 $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/Benchmarks.Local/tmp/playwright-browsers"
 npm ci --prefix tools/web --cache Benchmarks.Local/tmp/npm-cache
-node tools/web/node_modules/playwright/cli.js install chromium
+./tools/build-space-battle-web.ps1
+node tools/web/node_modules/playwright/cli.js install chromium webkit
 node tools/web/check-web.mjs --base /secs/
 ```
 

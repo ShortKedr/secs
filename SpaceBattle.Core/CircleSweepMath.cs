@@ -52,6 +52,19 @@ internal static class CircleSweepMath
         if (!float.IsFinite(angle)) throw new ArgumentOutOfRangeException(nameof(angle));
         if (!float.IsFinite(targetRadius) || targetRadius < 0) throw new ArgumentOutOfRangeException(nameof(targetRadius));
         var cos = Math.Cos(angle); var sin = Math.Sin(angle);
+        return TryRectangleRelative(x, y, dx, dy, halfExtents, cos, sin, targetRadius, out fraction);
+    }
+
+    // Prepare with Math.Cos(angle)/Math.Sin(angle) in double precision once per fixed orientation.
+    public static bool TryRectangleRelative(double x, double y, double dx, double dy,
+        Vector2 halfExtents, double cos, double sin, float targetRadius, out double fraction)
+    {
+        ValidateRelative(x, y, dx, dy);
+        Validate(halfExtents, nameof(halfExtents));
+        if (halfExtents.X < 0 || halfExtents.Y < 0) throw new ArgumentOutOfRangeException(nameof(halfExtents));
+        if (!double.IsFinite(cos)) throw new ArgumentOutOfRangeException(nameof(cos));
+        if (!double.IsFinite(sin)) throw new ArgumentOutOfRangeException(nameof(sin));
+        if (!float.IsFinite(targetRadius) || targetRadius < 0) throw new ArgumentOutOfRangeException(nameof(targetRadius));
         var localX = x * cos + y * sin; var localY = -x * sin + y * cos;
         var localDx = dx * cos + dy * sin; var localDy = -dx * sin + dy * cos;
         x = localX; y = localY; dx = localDx; dy = localDy;

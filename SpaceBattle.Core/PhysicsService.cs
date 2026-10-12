@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace SpaceBattle;
 
@@ -18,13 +19,18 @@ public sealed class PhysicsService : IDisposable
         public bool Enabled = true;
         public readonly Vector2[] Path = new Vector2[9];
         public int PathSegments;
+        public double MinX, MinY, MaxX, MaxY, FatMinX, FatMinY, FatMaxX, FatMaxY;
     }
     private struct Constraint
     {
         public int First, Second;
         public Vector2 Normal, FirstArm, SecondArm;
         public float Bias, NormalImpulse, TangentImpulse;
+        public Vector2 Tangent;
+        public float NormalMass;
+        public double TangentMass;
     }
+    private readonly record struct CandidatePair(int First, int Second);
     private sealed class SerialComparer(PhysicsService owner) : IComparer<int>
     {
         public int Compare(int a, int b) => owner.ships[a]!.Serial.CompareTo(owner.ships[b]!.Serial);
@@ -33,7 +39,7 @@ public sealed class PhysicsService : IDisposable
     private readonly Stack<int> freeIds = new();
     private readonly List<int> active = new(), candidates = new();
     private readonly List<Constraint> constraints = new();
-    private readonly SpatialBoundsIndex grid = new();
+    private readonly SpatialBoundsIndex grid;
     private readonly List<CollisionEvent> contacts = new();
     private readonly IReadOnlyList<CollisionEvent> contactView;
     private readonly SerialComparer comparer;
@@ -45,11 +51,18 @@ public sealed class PhysicsService : IDisposable
     private int sweepSegments = 1;
     private long sweeps, emptySweeps, hitCandidates, narrowTests;
     private double contactCandidatesMs, solverMs, hitCandidatesMs, hitNarrowMs;
+    private PhysicsWorkStatistics diagnostics;
+    private CandidatePair[] potentialPairs = Array.Empty<CandidatePair>();
+    private int potentialCount;
+    private bool candidateCacheValid, candidateFallback;
 
     public PhysicsSettings Settings { get; }
     public PhysicsService(PhysicsSettings? settings = null)
     {
         Settings = settings ?? new(); Settings.Validate();
+        grid = new(cellSize: Settings.ContactCellSize, denseIds: true);
+        grid.CollectDiagnostics = Settings.CollectDiagnostics;
+        grid.CollectTimings = Settings.CollectTimings;
         comparer = new(this); compareSerial = comparer.Compare; contactView = contacts.AsReadOnly();
     }
     public IReadOnlyList<CollisionEvent> Contacts => contactView;
@@ -57,6 +70,7 @@ public sealed class PhysicsService : IDisposable
     public int Fixtures => Bodies;
     public PhysicsQueryStatistics QueryStatistics => new(sweeps, emptySweeps, 0, 0, hitCandidates, narrowTests);
     public PhysicsTimingStatistics Timings => new(contactCandidatesMs, solverMs, hitCandidatesMs, hitNarrowMs);
+    public PhysicsDiagnosticStatistics Diagnostics => new(diagnostics, grid.Diagnostics);
 
     public int AddShip(int serial, Transform transform, Collider collider)
     {
@@ -77,6 +91,10 @@ public sealed class PhysicsService : IDisposable
         constraints.EnsureCapacity(pairCapacity); contacts.EnsureCapacity(pairCapacity);
         previousPairs.EnsureCapacity(pairCapacity); currentPairs.EnsureCapacity(pairCapacity);
         constraintPairs.EnsureCapacity(pairCapacity);
+        var candidateCapacity = (int)Math.Min((long)ships.Count * (ships.Count - 1) / 2, Settings.MaximumCandidatePairs);
+        if (candidateCapacity > potentialPairs.Length)
+            Array.Resize(ref potentialPairs, (int)Math.Min(Settings.MaximumCandidatePairs,
+                Math.Max(candidateCapacity, Math.Max(16L, (long)potentialPairs.Length * 2))));
         return id;
     }
     public void RemoveShip(int body)
@@ -112,6 +130,7 @@ public sealed class PhysicsService : IDisposable
         if (!float.IsFinite(dt) || dt < 0) throw new ArgumentOutOfRangeException(nameof(dt));
         contacts.Clear(); sweeps = emptySweeps = hitCandidates = narrowTests = 0;
         contactCandidatesMs = solverMs = hitCandidatesMs = hitNarrowMs = 0;
+        diagnostics = default; grid.ResetDiagnostics();
         EnsureActive();
         float travel = 0;
         foreach (var id in active)
@@ -124,6 +143,7 @@ public sealed class PhysicsService : IDisposable
         (previousPairs, currentPairs) = (currentPairs, previousPairs); currentPairs.Clear();
         var substeps = (int)Math.Clamp(Math.Ceiling(travel * 2.0), 1, Settings.MaximumSubsteps);
         sweepSegments = substeps;
+        if (Settings.CollectDiagnostics) diagnostics.Substeps = substeps;
         var h = dt / substeps;
         for (var phase = 0; phase < substeps; phase++)
         {
@@ -137,16 +157,22 @@ public sealed class PhysicsService : IDisposable
                 body.Position = position; body.Angle = angle;
             }
             constraints.Clear(); constraintPairs.Clear();
+            candidateCacheValid = candidateFallback = false;
             BuildContacts();
             SolveVelocities(0);
             for (var iteration = 0; iteration < Settings.PositionIterations; iteration++)
             {
                 var start = Stamp();
+                if (Settings.CollectDiagnostics) diagnostics.PositionIterations++;
                 var moved = CorrectPositions(); AddSolverTime(start);
                 if (!moved) break;
                 var firstNew = constraints.Count;
                 BuildContacts();
-                if (constraints.Count != firstNew) SolveVelocities(0);
+                if (constraints.Count != firstNew)
+                {
+                    if (Settings.CollectDiagnostics) diagnostics.RepeatedVelocityPasses++;
+                    SolveVelocities(0);
+                }
             }
             foreach (var id in active)
             {
@@ -155,83 +181,193 @@ public sealed class PhysicsService : IDisposable
         }
         contacts.Sort(static (a, b) => a.FirstSerial != b.FirstSerial
             ? a.FirstSerial.CompareTo(b.FirstSerial) : a.SecondSerial.CompareTo(b.SecondSerial));
+        if (Settings.CollectDiagnostics) diagnostics.Sorts++;
         gridDirty = true;
     }
     private void BuildContacts()
     {
+        if (!Settings.CacheContactCandidates) { BuildContactsUncached(); return; }
+        var start = Stamp();
+        if (Settings.CollectDiagnostics) diagnostics.ContactBuilds++;
+        var rebuild = !candidateCacheValid || !ContactBoundsStillCovered();
+        if (!candidateFallback && rebuild) BuildPotentialPairs();
+        if (candidateFallback)
+        {
+            // Budget overflow retains the complete exact broad phase, never truncates pairs.
+            if (Settings.CollectDiagnostics) { diagnostics.CandidateFallbacks++; diagnostics.ContactBuilds--; }
+            if (Settings.CollectTimings) contactCandidatesMs += Elapsed(start);
+            BuildContactsUncached(); return;
+        }
+        else if (!rebuild && Settings.CollectDiagnostics) diagnostics.ReusedContactBuilds++;
+
+        var narrowStart = Stamp();
+        var next = 0;
+        for (var i = 0; i < potentialCount; i++)
+        {
+            var pair = potentialPairs[i];
+            if (Settings.CollectDiagnostics) diagnostics.CandidatePairsVisited++;
+            var a = ships[pair.First]!; var b = ships[pair.Second]!;
+            // Match the original tight AABB filter as well as its float narrow geometry.
+            if (a.MinX > b.MaxX || a.MaxX < b.MinX || a.MinY > b.MaxY || a.MaxY < b.MinY ||
+                !TryAddContact(pair.First, pair.Second)) potentialPairs[next++] = pair;
+        }
+        potentialCount = next;
+        if (Settings.CollectTimings)
+        {
+            diagnostics.ContactNarrowMs += Elapsed(narrowStart);
+            contactCandidatesMs += Elapsed(start);
+        }
+    }
+    private void CurrentContactBounds(ShipBody body) => SpatialBoundsIndex.SweptBounds(body.Position, body.Position,
+        body.Radius + Settings.PositionSlop, out body.MinX, out body.MinY, out body.MaxX, out body.MaxY);
+
+    private bool ContactBoundsStillCovered()
+    {
+        foreach (var id in active)
+        {
+            var body = ships[id]!; if (!body.Enabled) continue;
+            CurrentContactBounds(body);
+            if (body.MinX < body.FatMinX || body.MinY < body.FatMinY ||
+                body.MaxX > body.FatMaxX || body.MaxY > body.FatMaxY) return false;
+        }
+        return true;
+    }
+    private void BuildPotentialPairs()
+    {
+        grid.Clear(); potentialCount = 0;
+        if (Settings.CollectDiagnostics) diagnostics.CandidateCacheBuilds++;
+        foreach (var id in active)
+        {
+            var body = ships[id]!; if (!body.Enabled) continue;
+            CurrentContactBounds(body);
+            body.FatMinX = Math.BitDecrement(body.MinX - Settings.ContactCandidateMargin);
+            body.FatMinY = Math.BitDecrement(body.MinY - Settings.ContactCandidateMargin);
+            body.FatMaxX = Math.BitIncrement(body.MaxX + Settings.ContactCandidateMargin);
+            body.FatMaxY = Math.BitIncrement(body.MaxY + Settings.ContactCandidateMargin);
+            grid.AddBounds(id, body.FatMinX, body.FatMinY, body.FatMaxX, body.FatMaxY);
+        }
+        grid.Seal();
+        foreach (var firstId in active)
+        {
+            var a = ships[firstId]!; if (!a.Enabled) continue;
+            var queryStart = Stamp();
+            grid.QueryBounds(a.FatMinX, a.FatMinY, a.FatMaxX, a.FatMaxY, candidates, sort: false);
+            candidates.Sort(compareSerial);
+            if (Settings.CollectDiagnostics) { diagnostics.Sorts++; diagnostics.ContactCandidates += candidates.Count; }
+            if (Settings.CollectTimings) diagnostics.ContactQueryMs += Elapsed(queryStart);
+            foreach (var secondId in candidates)
+            {
+                var b = ships[secondId]!;
+                if (b.Serial <= a.Serial || constraintPairs.Contains(Pair(a.Serial, b.Serial))) continue;
+                if (potentialCount == potentialPairs.Length)
+                {
+                    candidateFallback = true; candidateCacheValid = false; return;
+                }
+                potentialPairs[potentialCount++] = new(firstId, secondId);
+            }
+        }
+        candidateCacheValid = true;
+    }
+    private void BuildContactsUncached()
+    {
         var start = Stamp(); grid.Clear();
+        if (Settings.CollectDiagnostics) diagnostics.ContactBuilds++;
         foreach (var id in active)
         {
             var body = ships[id]!;
             if (body.Enabled) grid.Add(id, body.Position, body.Position, body.Radius + Settings.PositionSlop);
         }
+        grid.Seal();
         foreach (var firstId in active)
         {
             var a = ships[firstId]!; if (!a.Enabled) continue;
-            grid.Query(a.Position, a.Position, a.Radius + Settings.PositionSlop, candidates);
+            var queryStart = Stamp();
+            grid.Query(a.Position, a.Position, a.Radius + Settings.PositionSlop, candidates, sort: false);
             candidates.Sort(compareSerial);
+            if (Settings.CollectTimings) diagnostics.ContactQueryMs += Elapsed(queryStart);
+            var narrowStart = Stamp();
+            if (Settings.CollectDiagnostics) { diagnostics.ContactCandidates += candidates.Count; diagnostics.Sorts++; }
             foreach (var secondId in candidates)
             {
                 var b = ships[secondId]!;
                 if (b.Serial <= a.Serial) continue;
-                var sum = (double)a.Radius + b.Radius;
-                var delta = b.Position - a.Position;
-                if ((double)delta.X * delta.X + (double)delta.Y * delta.Y > (sum + Settings.PositionSlop) * (sum + Settings.PositionSlop)) continue;
-                var key = Pair(a.Serial, b.Serial);
-                if (!constraintPairs.Contains(key) && constraints.Count >= Settings.MaximumContactPairs)
-                    throw new InvalidOperationException("Physics contact budget exceeded; increase MaximumContactPairs or reduce density.");
-                if (!constraintPairs.Add(key)) continue;
-                var distance = Math.Sqrt((double)delta.X * delta.X + (double)delta.Y * delta.Y);
-                var normal = distance > 0 ? new Vector2((float)(delta.X / distance), (float)(delta.Y / distance)) : Vector2.UnitX;
-                var point = a.Position + normal * (float)((distance + a.Radius - b.Radius) * 0.5);
-                var armA = point - a.Position; var armB = point - b.Position;
-                var relative = PointVelocity(b.Velocity, b.AngularVelocity, armB) - PointVelocity(a.Velocity, a.AngularVelocity, armA);
-                var speed = Vector2.Dot(relative, normal);
-                constraints.Add(new() { First = firstId, Second = secondId, Normal = normal, FirstArm = armA, SecondArm = armB,
-                    Bias = speed < -Settings.RestitutionThreshold ? -Settings.Restitution * speed : 0 });
-                if (!currentPairs.Contains(key) && currentPairs.Count >= Settings.MaximumContactPairs)
-                    throw new InvalidOperationException("Physics per-tick contact budget exceeded.");
-                if (currentPairs.Add(key) && !previousPairs.Contains(key))
-                {
-                    if (contacts.Count >= Settings.MaximumContactPairs)
-                        throw new InvalidOperationException("Physics begin-contact budget exceeded.");
-                    contacts.Add(new(a.Serial, b.Serial, relative.Length(), point));
-                }
+                TryAddContact(firstId, secondId);
             }
+            if (Settings.CollectTimings) diagnostics.ContactNarrowMs += Elapsed(narrowStart);
         }
         if (Settings.CollectTimings) contactCandidatesMs += Elapsed(start);
+    }
+    private bool TryAddContact(int firstId, int secondId)
+    {
+        var a = ships[firstId]!; var b = ships[secondId]!;
+        if (Settings.CollectDiagnostics) diagnostics.ContactTests++;
+        var sum = (double)a.Radius + b.Radius;
+        var delta = b.Position - a.Position;
+        if ((double)delta.X * delta.X + (double)delta.Y * delta.Y > (sum + Settings.PositionSlop) * (sum + Settings.PositionSlop)) return false;
+        var key = Pair(a.Serial, b.Serial);
+        if (Settings.CollectDiagnostics) diagnostics.ContactPairs++;
+        if (constraints.Count >= Settings.MaximumContactPairs && !constraintPairs.Contains(key))
+            throw new InvalidOperationException("Physics contact budget exceeded; increase MaximumContactPairs or reduce density.");
+        if (!constraintPairs.Add(key)) return true;
+        if (Settings.CollectDiagnostics) diagnostics.NewConstraints++;
+        var distance = Math.Sqrt((double)delta.X * delta.X + (double)delta.Y * delta.Y);
+        var normal = distance > 0 ? new Vector2((float)(delta.X / distance), (float)(delta.Y / distance)) : Vector2.UnitX;
+        var point = a.Position + normal * (float)((distance + a.Radius - b.Radius) * 0.5);
+        var armA = point - a.Position; var armB = point - b.Position;
+        var relative = PointVelocity(b.Velocity, b.AngularVelocity, armB) - PointVelocity(a.Velocity, a.AngularVelocity, armA);
+        var speed = Vector2.Dot(relative, normal);
+        var tangent = default(Vector2); double denominator = 0;
+        if (Settings.Friction > 0)
+        {
+            tangent = new Vector2(-normal.Y, normal.X);
+            var ra = Cross(armA, tangent); var rb = Cross(armB, tangent);
+            denominator = (double)a.InverseMass + b.InverseMass + (double)ra * ra * a.InverseInertia + (double)rb * rb * b.InverseInertia;
+        }
+        constraints.Add(new() { First = firstId, Second = secondId, Normal = normal, FirstArm = armA, SecondArm = armB,
+            Bias = speed < -Settings.RestitutionThreshold ? -Settings.Restitution * speed : 0,
+            Tangent = tangent, NormalMass = a.InverseMass + b.InverseMass, TangentMass = denominator });
+        if (!currentPairs.Contains(key) && currentPairs.Count >= Settings.MaximumContactPairs)
+            throw new InvalidOperationException("Physics per-tick contact budget exceeded.");
+        if (currentPairs.Add(key) && !previousPairs.Contains(key))
+        {
+            if (contacts.Count >= Settings.MaximumContactPairs) throw new InvalidOperationException("Physics begin-contact budget exceeded.");
+            contacts.Add(new(a.Serial, b.Serial, relative.Length(), point));
+        }
+        return true;
     }
     private void SolveVelocities(int first)
     {
         var start = Stamp();
+        if (Settings.CollectDiagnostics) { diagnostics.VelocityPasses++; diagnostics.VelocityConstraintVisits += (long)(constraints.Count - first) * Settings.VelocityIterations; }
+        // This method and ApplyImpulse only mutate values; no list growth or structural calls occur.
+        var values = CollectionsMarshal.AsSpan(constraints);
+        var count = values.Length;
         for (var iteration = 0; iteration < Settings.VelocityIterations; iteration++)
-            for (var i = first; i < constraints.Count; i++)
+            for (var i = first; i < count; i++)
             {
-                var c = constraints[i]; var a = ships[c.First]!; var b = ships[c.Second]!;
+                ref var c = ref values[i]; var a = ships[c.First]!; var b = ships[c.Second]!;
                 var relative = PointVelocity(b.Velocity, b.AngularVelocity, c.SecondArm) - PointVelocity(a.Velocity, a.AngularVelocity, c.FirstArm);
-                var impulse = (c.Bias - Vector2.Dot(relative, c.Normal)) / (a.InverseMass + b.InverseMass);
+                var impulse = (c.Bias - Vector2.Dot(relative, c.Normal)) / c.NormalMass;
                 var accumulated = Math.Max(0, c.NormalImpulse + impulse);
                 ApplyImpulse(a, b, c.Normal * (accumulated - c.NormalImpulse), c.FirstArm, c.SecondArm, false);
                 c.NormalImpulse = accumulated;
                 if (Settings.Friction > 0)
                 {
-                    var tangent = new Vector2(-c.Normal.Y, c.Normal.X);
+                    var tangent = c.Tangent;
                     relative = PointVelocity(b.Velocity, b.AngularVelocity, c.SecondArm) - PointVelocity(a.Velocity, a.AngularVelocity, c.FirstArm);
-                    var ra = Cross(c.FirstArm, tangent); var rb = Cross(c.SecondArm, tangent);
-                    var denominator = (double)a.InverseMass + b.InverseMass + (double)ra * ra * a.InverseInertia + (double)rb * rb * b.InverseInertia;
                     var limit = Settings.Friction * c.NormalImpulse;
-                    var friction = (float)Math.Clamp(c.TangentImpulse - Vector2.Dot(relative, tangent) / denominator, -limit, limit);
+                    var friction = (float)Math.Clamp(c.TangentImpulse - Vector2.Dot(relative, tangent) / c.TangentMass, -limit, limit);
                     ApplyImpulse(a, b, tangent * (friction - c.TangentImpulse), c.FirstArm, c.SecondArm, true);
                     c.TangentImpulse = friction;
                 }
-                constraints[i] = c;
             }
         AddSolverTime(start);
     }
     private bool CorrectPositions()
     {
         var moved = false;
-        foreach (var c in constraints)
+        if (Settings.CollectDiagnostics) diagnostics.PositionConstraintVisits += constraints.Count;
+        foreach (ref readonly var c in CollectionsMarshal.AsSpan(constraints))
         {
             var a = ships[c.First]!; var b = ships[c.Second]!; var delta = b.Position - a.Position;
             var distance = Math.Sqrt((double)delta.X * delta.X + (double)delta.Y * delta.Y);
@@ -273,26 +409,41 @@ public sealed class PhysicsService : IDisposable
         start = Stamp();
         targetSerial = -1; impact = to; double best = double.PositiveInfinity;
         var eligible = 0;
+        var segments = sweepSegments;
+        double shotDx = 0, shotDy = 0, cosine = 0, sine = 0;
+        var prepared = false;
         foreach (var id in candidates)
         {
             var body = ships[id]!;
             if (!body.Enabled || body.Serial == ignoredSerial) continue;
             hitCandidates++; eligible++;
-            var segments = sweepSegments;
+            if (Settings.CollectDiagnostics) diagnostics.CcdCandidates++;
+            if (!prepared)
+            {
+                shotDx = ((double)to.X - from.X) / segments;
+                shotDy = ((double)to.Y - from.Y) / segments;
+                if (rectangle) { cosine = Math.Cos(angle); sine = Math.Sin(angle); }
+                prepared = true;
+            }
             for (var phase = 0; phase < segments; phase++)
             {
+                // This interval cannot precede its start; equality still participates in serial ties.
+                if (phase != 0 && (double)phase / segments > best)
+                {
+                    if (Settings.CollectDiagnostics) diagnostics.PrunedCcdIntervals += segments - phase;
+                    break;
+                }
                 var targetFrom = body.PathSegments == 0 ? body.Position : body.Path[phase];
                 var targetTo = body.PathSegments == 0 ? body.Position : body.Path[phase + 1];
-                var shotDx = ((double)to.X - from.X) / segments;
-                var shotDy = ((double)to.Y - from.Y) / segments;
                 var shotX = from.X + shotDx * phase; var shotY = from.Y + shotDy * phase;
                 var rx = shotX - targetFrom.X; var ry = shotY - targetFrom.Y;
                 var dx = shotDx - ((double)targetTo.X - targetFrom.X);
                 var dy = shotDy - ((double)targetTo.Y - targetFrom.Y);
                 narrowTests++;
+                if (Settings.CollectDiagnostics) diagnostics.CcdNarrowTests++;
                 double local;
                 var hit = rectangle
-                    ? CircleSweepMath.TryRectangleRelative(-rx, -ry, -dx, -dy, extents, angle, body.Radius, out local)
+                    ? CircleSweepMath.TryRectangleRelative(-rx, -ry, -dx, -dy, extents, cosine, sine, body.Radius, out local)
                     : CircleSweepMath.TryCircleRelative(rx, ry, dx, dy, (double)body.Radius + radius, out local);
                 if (!hit) continue;
                 var fraction = (phase + local) / segments;
@@ -305,7 +456,6 @@ public sealed class PhysicsService : IDisposable
                 var nx = centerX - targetX; var ny = centerY - targetY;
                 if (rectangle)
                 {
-                    var cosine = Math.Cos(angle); var sine = Math.Sin(angle);
                     var localX = targetX - centerX; var localY = targetY - centerY;
                     var x = Math.Clamp(localX * cosine + localY * sine, -extents.X, extents.X);
                     var y = Math.Clamp(-localX * sine + localY * cosine, -extents.Y, extents.Y);
@@ -350,6 +500,7 @@ public sealed class PhysicsService : IDisposable
             }
             grid.AddBounds(id, minX - body.Radius, minY - body.Radius, maxX + body.Radius, maxY + body.Radius);
         }
+        grid.Seal();
         gridDirty = false;
     }
     private void EnsureActive()
@@ -387,5 +538,6 @@ public sealed class PhysicsService : IDisposable
         if (disposed) return;
         ships.Clear(); freeIds.Clear(); active.Clear(); candidates.Clear(); constraints.Clear(); contacts.Clear(); liveSerials.Clear();
         previousPairs.Clear(); currentPairs.Clear(); constraintPairs.Clear(); grid.Clear(); Bodies = 0; disposed = true;
+        potentialPairs = Array.Empty<CandidatePair>(); potentialCount = 0;
     }
 }

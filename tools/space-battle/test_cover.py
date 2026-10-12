@@ -29,11 +29,12 @@ class CoverTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.settings = SETTINGS.copy()
-        self.assembly_directory = self.root / "assemblies"
+        self.assembly_directory = self.root / "site"
         self.assembly_directory.mkdir()
-        for name in cover.BINARY_FIELDS.values():
-            (self.assembly_directory / name).write_bytes(("fixture:" + name).encode())
-        self.assembly = self.assembly_directory / "SpaceBattle.Game.dll"
+        for name in cover.BUILD_FILES:
+            file = self.assembly_directory / name
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_bytes(("fixture:" + name).encode())
         self.png = self.root / "frame.png"
         self.make_scene(self.png)
         self.capture = self.capture_metadata(self.png)
@@ -50,7 +51,7 @@ class CoverTests(unittest.TestCase):
         image.save(path, format="PNG")
 
     def capture_metadata(self, png):
-        # Native artifact fields, including raw timings that must not be published.
+        # Browser artifact fields, including raw timings that must not be published.
         counts = dict(Ships=30, RenderedShips=28, AliveCyan=20, AliveRed=16,
                       Projectiles=7, Debris=2, Particles=3, AliveEntities=53,
                       AliveShips=36, DockedShips=6, Turrets=3, AliveTurrets=5,
@@ -59,13 +60,16 @@ class CoverTests(unittest.TestCase):
             "Tick": self.settings["Tick"], "Width": self.settings["Width"],
             "Height": self.settings["Height"], "Zoom": self.settings["Zoom"],
             "ConfiguredShipsPerTeam": self.settings["ShipsPerTeam"],
+            "Seed": self.settings["Seed"], "Renderer": cover.RENDERER,
+            "RuntimeMode": "aot-binary", "BrowserVersion": "fixture-chromium",
+            "CaptureSurface": "CanvasOnly", "Profile": "nominal", "OfflineCapture": True,
             **counts, **cover.validate_frame(png, self.settings),
             "BrightPixels": 8192, "UniqueColors": 33,
             "Nonblank": True, "Atlas": True, "ControlsVerified": True,
             "CountsValid": True, "StatisticsValid": True,
             "BattleChecksum": "0123456789ABCDEF", "GameplayRevision": "fixture-revision",
-            **{key: cover.digest(self.assembly_directory / name)
-               for key, name in cover.BINARY_FIELDS.items()},
+            "PhysicsRevision": "fixture-physics", "FleetRevision": "fixture-fleet",
+            "BuildFiles": {name: cover.digest(self.assembly_directory / name) for name in cover.BUILD_FILES},
             "LastTickMs": 1.25, "P99": 2.5,
             "Statistics": {"OfflineCapture": True, "SampleCount": 180, "Capacity": 600,
                            "LastMs": 1.25, "MeanMs": 1.5, "P95Ms": 2, "P99Ms": 2.5,
@@ -78,30 +82,27 @@ class CoverTests(unittest.TestCase):
         Path(str(path) + ".json").write_text(json.dumps(metadata), encoding="utf-8")
 
     def invoke_capture(self, output, metadata=None, returncode=0, dirty=False):
-        def native(command, **kwargs):
-            self.assertEqual(command[:2], ["dotnet", str(self.assembly)])
+        def browser(command, **kwargs):
+            self.assertEqual(command[:2], ["node", str(cover.ROOT / "tools/web/capture-cover.mjs")])
             self.assertEqual(kwargs, dict(cwd=cover.ROOT, capture_output=True,
-                                         text=True, timeout=180))
-            for option, key in (("--seed", "Seed"), ("--capture-tick", "Tick"),
-                                ("--ships-per-team", "ShipsPerTeam"), ("--width", "Width"),
-                                ("--height", "Height"), ("--zoom", "Zoom")):
-                self.assertEqual(command[command.index(option) + 1], str(self.settings[key]))
-            for option in ("--hidden", "--exit-after-capture", "--validate-render",
-                           "--validate-controls"):
-                self.assertIn(option, command)
-            destination = Path(command[command.index("--capture") + 1])
+                                         text=True, timeout=300))
+            self.assertEqual(command[command.index("--site") + 1], str(self.assembly_directory))
+            self.assertEqual(cover.read_json(command[command.index("--settings") + 1]), self.settings)
+            self.assertEqual(command[command.index("--base") + 1], "/")
+            destination = Path(command[command.index("--output") + 1])
             self.assertEqual(destination, output / "frame.png")
             self.assertFalse((output / "cover.png").exists())
             self.assertFalse((output / "cover.png.json").exists())
             self.make_scene(destination)
             self.write_capture(destination, metadata if metadata is not None else self.capture)
-            return subprocess.CompletedProcess(command, returncode, "native stdout\n", "native stderr\n")
+            return subprocess.CompletedProcess(command, returncode, "browser stdout\n", "browser stderr\n")
 
         with patch.object(cover, "source_state", return_value=dirty) as provenance, \
-                patch.object(cover.subprocess, "run", side_effect=native) as run, \
-                patch("sys.stdout", new_callable=io.StringIO):
-            cover.capture_cover(self.assembly, output, self.settings, COMMIT)
-            provenance.assert_called_once_with(COMMIT)
+                patch.object(cover.subprocess, "run", side_effect=browser) as run, \
+                patch("sys.stdout", new_callable=io.StringIO), patch("sys.stderr", new_callable=io.StringIO):
+            cover.capture_cover(self.assembly_directory, output, self.settings, COMMIT)
+            self.assertEqual(provenance.call_count, 2)
+            self.assertEqual(provenance.call_args.args, (COMMIT,))
             run.assert_called_once()
 
     def published_fixture(self):
@@ -111,7 +112,7 @@ class CoverTests(unittest.TestCase):
 
     def test_settings_accept_boundaries(self):
         for key, values in {"Seed": (0, 2147483647), "Tick": (1, 108000),
-                            "ShipsPerTeam": (8, 10000), "Width": (960, 4096),
+                            "ShipsPerTeam": (96,), "Width": (960, 4096),
                             "Height": (540, 4096), "Zoom": (.25, 24)}.items():
             for value in values:
                 with self.subTest(key=key, value=value):
@@ -120,7 +121,7 @@ class CoverTests(unittest.TestCase):
 
     def test_settings_reject_types_ranges_and_nonfinite_zoom(self):
         ranges = {"Seed": (-1, 2147483648), "Tick": (0, 108001),
-                  "ShipsPerTeam": (7, 10001), "Width": (959, 4097),
+                  "ShipsPerTeam": (95, 97), "Width": (959, 4097),
                   "Height": (539, 4097), "Zoom": (.249, 24.001)}
         for key, outside in ranges.items():
             invalid = [*outside, True, False, None, "2", [], float("nan"),
@@ -192,7 +193,8 @@ class CoverTests(unittest.TestCase):
 
     def test_capture_rejects_settings_flags_checksum_revision_and_pixels(self):
         invalid = {"Tick": 181, "Width": 961, "Height": 541, "Zoom": 3,
-                   "ConfiguredShipsPerTeam": 97, "BattleChecksum": "invalid",
+                   "ConfiguredShipsPerTeam": 97, "Seed": 7332, "BattleChecksum": "invalid",
+                   "RuntimeMode": "interpreter-binary", "CaptureSurface": "Page", "Profile": "high",
                    "GameplayRevision": "", "SceneBrightPixels": 1, "SceneUniqueColors": 1}
         invalid.update({key: False for key in ("Nonblank", "Atlas", "ControlsVerified",
                                                "CountsValid", "StatisticsValid")})
@@ -202,18 +204,18 @@ class CoverTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     cover.validate_capture(self.png, self.settings, self.assembly_directory)
         metadata = copy.deepcopy(self.capture)
-        metadata["Statistics"]["OfflineCapture"] = False
+        metadata["OfflineCapture"] = False
         self.write_capture(self.png, metadata)
-        with self.assertRaisesRegex(ValueError, "offline simulation"):
+        with self.assertRaisesRegex(ValueError, "OfflineCapture"):
             cover.validate_capture(self.png, self.settings, self.assembly_directory)
 
     def test_capture_rejects_each_changed_binary(self):
-        for key, name in cover.BINARY_FIELDS.items():
+        for name in cover.BUILD_FILES:
             path = self.assembly_directory / name
             original = path.read_bytes()
             with self.subTest(binary=name):
                 path.write_bytes(original + b"tampered")
-                with self.assertRaisesRegex(ValueError, "binary mismatch"):
+                with self.assertRaisesRegex(ValueError, "build mismatch"):
                     cover.validate_capture(self.png, self.settings, self.assembly_directory)
                 path.write_bytes(original)
 
@@ -282,19 +284,20 @@ class CoverTests(unittest.TestCase):
         with patch.object(Path, "write_text", guarded_write), \
                 patch.object(cover.shutil, "copyfile", guarded_copy):
             self.invoke_capture(output)
-        self.assertEqual((output / "capture.log").read_text(), "native stdout\nnative stderr\n")
+        self.assertEqual((output / "capture.log").read_text(), "browser stdout\nbrowser stderr\n")
         self.assertEqual((output / "cover.png").read_bytes(), (output / "frame.png").read_bytes())
         manifest = cover.validate_cover(output, self.settings, COMMIT)
         expected = {"SchemaVersion", "Purpose", "SourceCommit", "SourceDirty", "Renderer",
                     "Settings", "PngSha256", "GameplayRevision", "BattleChecksum", "Atlas",
                     "ControlsVerified", "CountsValid", "StatisticsValid", "SceneBrightPixels",
-                    "SceneUniqueColors", *cover.BINARY_FIELDS, *cover.COUNTS}
+                    "SceneUniqueColors", "RuntimeMode", "BrowserVersion", "CaptureSurface", "Profile", "BuildFiles",
+                    "PhysicsRevision", "FleetRevision", "Nonblank", "OfflineCapture", *cover.COUNTS}
         self.assertEqual(set(manifest), expected)
         for key in ("Statistics", "LastTickMs", "P99", "UnvalidatedCounter", "BrightPixels", "UniqueColors"):
             self.assertNotIn(key, manifest)
         self.assertEqual(set(manifest["Settings"]), set(SETTINGS))
 
-    def test_capture_never_publishes_failed_native_or_invalid_capture(self):
+    def test_capture_never_publishes_failed_browser_or_invalid_capture(self):
         cases = [("process", self.capture, 1),
                  ("atlas", {**self.capture, "Atlas": False}, 0),
                  ("counter", {**self.capture, "AliveEntities": 1}, 0),
@@ -311,6 +314,10 @@ class CoverTests(unittest.TestCase):
         workflow = (cover.ROOT / ".github/workflows/space-battle-cover.yml").read_text()
         self.assertRegex(workflow, r"push:\s+branches: \[main\]")
         self.assertIn("-p test_cover.py", workflow)
+        self.assertIn("wasm-tools", workflow)
+        self.assertIn("build-space-battle-web.ps1", workflow)
+        self.assertIn("playwright install --with-deps chromium", workflow)
+        self.assertNotIn("xvfb-run", workflow)
         self.assertIn("needs: capture", workflow)
         self.assertIn("git add -- docs/space-battle/cover.png docs/space-battle/cover.png.json", workflow)
         self.assertIn("git push origin HEAD:refs/heads/main", workflow)
@@ -318,6 +325,20 @@ class CoverTests(unittest.TestCase):
         guard = workflow.index('if [ "$(git rev-parse FETCH_HEAD)" != "$GITHUB_SHA" ]; then')
         self.assertLess(workflow.index("Validate the downloaded image"), guard)
         self.assertLess(guard, workflow.index("cp Benchmarks.Local/tmp/space-battle-cover/cover.png "))
+
+    def test_cover_rejects_missing_files_and_unsafe_build_paths(self):
+        for files in ({}, {**self.capture["BuildFiles"], "../secret.txt": "A" * 64},
+                      {**self.capture["BuildFiles"], "index.html": "bad"}):
+            with self.subTest(files=files), self.assertRaises(ValueError):
+                cover.validate_build_files(files)
+
+    def test_capture_rejects_source_change_during_render(self):
+        output = self.root / "changed-source"
+        with patch.object(cover, "source_state", side_effect=[False, True]), \
+                patch.object(cover.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "", "")), \
+                self.assertRaisesRegex(ValueError, "Source state changed"):
+            cover.capture_cover(self.assembly_directory, output, self.settings, COMMIT)
+        self.assertFalse((output / "cover.png").exists())
 
 
 if __name__ == "__main__":

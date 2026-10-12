@@ -1,23 +1,38 @@
 using System.Numerics;
+using System.Diagnostics;
 
 namespace SpaceBattle;
 
 internal sealed class SpatialBoundsIndex
 {
-    private const double CellSize = 48;
+    private readonly double cellSize;
+    private readonly bool denseIds;
     private const int MaximumCellsPerBounds = 64;
-    private readonly Dictionary<(int X, int Y), int> cells = new();
+    private readonly FlatGridLayout grid;
     private Entry[] entries = Array.Empty<Entry>();
-    private int[] membershipEntries = Array.Empty<int>();
-    private int[] membershipNext = Array.Empty<int>();
     private int[] largeBounds = Array.Empty<int>();
-    private readonly Dictionary<int, uint> stamps = new();
+    private readonly Dictionary<int, int>? stampIndexes;
+    private uint[] stamps = Array.Empty<uint>();
+    private int stampCount;
     private int entryCount;
-    private int membershipCount;
     private int largeCount;
     private uint generation;
+    private PhysicsGridStatistics diagnostics;
+    internal bool CollectDiagnostics { get; set; }
+    internal bool CollectTimings { get; set; }
+    internal PhysicsGridStatistics Diagnostics => diagnostics;
+    internal void ResetDiagnostics() => diagnostics = default;
 
-    internal int CellCount => cells.Count;
+    public SpatialBoundsIndex(int minimumCellX = -64, int minimumCellY = -64, int width = 128, int height = 128,
+        double cellSize = 48, bool denseIds = false)
+    {
+        if (!double.IsFinite(cellSize) || cellSize <= 0) throw new ArgumentOutOfRangeException(nameof(cellSize));
+        this.cellSize = cellSize; this.denseIds = denseIds;
+        stampIndexes = denseIds ? null : new();
+        grid = new(minimumCellX, minimumCellY, width, height);
+    }
+
+    internal int CellCount => grid.CellCount;
 
     // Reserve outside Step/Sweep. Capacity counts Add/AddBounds calls between Clear calls.
     // Query's caller-owned output must also have capacity for the maximum unique ID count.
@@ -28,18 +43,29 @@ internal sealed class SpatialBoundsIndex
         if (objectCapacity <= entries.Length) return;
         objectCapacity = (int)Math.Min(int.MaxValue / MaximumCellsPerBounds,
             Math.Max(objectCapacity, Math.Max(16L, (long)entries.Length * 2)));
-        var memberships = objectCapacity * MaximumCellsPerBounds;
         Array.Resize(ref entries, objectCapacity);
         Array.Resize(ref largeBounds, objectCapacity);
-        Array.Resize(ref membershipEntries, memberships);
-        Array.Resize(ref membershipNext, memberships);
-        cells.EnsureCapacity(memberships);
-        stamps.EnsureCapacity(objectCapacity);
+        Array.Resize(ref stamps, objectCapacity);
+        grid.Reserve(objectCapacity * MaximumCellsPerBounds);
+        stampIndexes?.EnsureCapacity(objectCapacity);
     }
 
     public void Clear()
     {
-        cells.Clear(); stamps.Clear(); entryCount = membershipCount = largeCount = 0;
+        var start = CollectTimings ? Stopwatch.GetTimestamp() : 0;
+        if (CollectDiagnostics) { diagnostics.Clears++; diagnostics.CellsCleared += grid.CellCount; }
+        grid.Clear();
+        stampIndexes?.Clear();
+        entryCount = largeCount = stampCount = 0;
+        if (CollectTimings) diagnostics.ClearMs += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
+    }
+
+    public void Seal()
+    {
+        var start = CollectTimings ? Stopwatch.GetTimestamp() : 0;
+        grid.Seal();
+        if (CollectDiagnostics) diagnostics.Rebuilds++;
+        if (CollectTimings) diagnostics.SealMs += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
     }
 
     public void Add(int id, Vector2 from, Vector2 to, float radius)
@@ -50,89 +76,96 @@ internal sealed class SpatialBoundsIndex
 
     public void AddBounds(int id, double minX, double minY, double maxX, double maxY)
     {
+        var start = CollectTimings ? Stopwatch.GetTimestamp() : 0;
         ValidateBounds(minX, minY, maxX, maxY);
-        if (entryCount == entries.Length) Reserve(Math.Max(16, checked(entryCount * 2)));
+        if (entryCount == entries.Length) Reserve(checked(entryCount + 1));
         var entry = entryCount++;
-        entries[entry] = new(id, minX, minY, maxX, maxY);
-        stamps.TryAdd(id, 0);
+        var stamp = id;
+        if (denseIds)
+        {
+            if ((uint)id >= (uint)stamps.Length) throw new ArgumentOutOfRangeException(nameof(id));
+        }
+        else if (!stampIndexes!.TryGetValue(id, out stamp))
+        {
+            stamp = stampCount++;
+            stampIndexes.Add(id, stamp);
+            stamps[stamp] = 0;
+        }
+        entries[entry] = new(id, stamp, minX, minY, maxX, maxY);
+        if (CollectDiagnostics) diagnostics.BoundsInserted++;
         CellBounds(minX, minY, maxX, maxY, out var left, out var bottom, out var right, out var top);
-        if (!Bounded(left, bottom, right, top, MaximumCellsPerBounds))
+        // Do not clip insertion: the complete entry goes to the exact-bounds fallback.
+        if (!Bounded(left, bottom, right, top, MaximumCellsPerBounds) || !grid.Contains(left, bottom, right, top))
         {
             largeBounds[largeCount++] = entry;
+            if (CollectTimings) diagnostics.InsertMs += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
             return;
         }
-        for (long x = left; x <= right; x++)
-            for (long y = bottom; y <= top; y++)
+        var localLeft = (int)((long)left - grid.MinimumX); var localRight = (int)((long)right - grid.MinimumX);
+        var localBottom = (int)((long)bottom - grid.MinimumY); var localTop = (int)((long)top - grid.MinimumY);
+        for (var y = localBottom; y <= localTop; y++)
+        {
+            var row = y * grid.Width;
+            for (var cell = row + localLeft; cell <= row + localRight; cell++)
             {
-                var key = ((int)x, (int)y);
-                membershipEntries[membershipCount] = entry;
-                membershipNext[membershipCount] = cells.TryGetValue(key, out var head) ? head : -1;
-                cells[key] = membershipCount++;
+                grid.Add(cell, entry);
+                if (CollectDiagnostics) diagnostics.MembershipsInserted++;
             }
+        }
+        if (CollectTimings) diagnostics.InsertMs += Stopwatch.GetElapsedTime(start).TotalMilliseconds;
     }
 
-    public void Query(Vector2 from, Vector2 to, float radius, List<int> output)
+    public void Query(Vector2 from, Vector2 to, float radius, List<int> output, bool sort = true)
     {
         SweptBounds(from, to, radius, out var minX, out var minY, out var maxX, out var maxY);
-        QueryBounds(minX, minY, maxX, maxY, output);
+        QueryBounds(minX, minY, maxX, maxY, output, sort);
     }
 
-    public void QueryBounds(double minX, double minY, double maxX, double maxY, List<int> output)
+    public void QueryBounds(double minX, double minY, double maxX, double maxY, List<int> output, bool sort = true)
     {
         ArgumentNullException.ThrowIfNull(output);
         ValidateBounds(minX, minY, maxX, maxY);
         output.Clear();
         if (++generation == 0)
         {
-            // Rebuild current ID stamps only on wrap; capacity is retained.
-            stamps.Clear();
-            for (var i = 0; i < entryCount; i++) stamps.TryAdd(entries[i].Id, 0);
+            Array.Clear(stamps, 0, denseIds ? stamps.Length : stampCount);
             generation = 1;
         }
         CellBounds(minX, minY, maxX, maxY, out var left, out var bottom, out var right, out var top);
-        if (Bounded(left, bottom, right, top, Math.Min(MaximumCellsPerBounds, cells.Count)))
-        {
-            for (long x = left; x <= right; x++)
-                for (long y = bottom; y <= top; y++)
-                    if (cells.TryGetValue(((int)x, (int)y), out var head))
-                        Collect(head, minX, minY, maxX, maxY, output);
-        }
-        else
-            foreach (var (cell, head) in cells)
-                if (cell.X >= left && cell.X <= right && cell.Y >= bottom && cell.Y <= top)
-                    Collect(head, minX, minY, maxX, maxY, output);
+        foreach (var cell in grid.Query(left, bottom, right, top))
+            foreach (var entry in grid.Entries(cell)) CollectEntry(entry, minX, minY, maxX, maxY, output);
         for (var i = 0; i < largeCount; i++) CollectEntry(largeBounds[i], minX, minY, maxX, maxY, output);
-        output.Sort();
-    }
-
-    private void Collect(int head, double minX, double minY, double maxX, double maxY, List<int> output)
-    {
-        for (var member = head; member != -1; member = membershipNext[member])
-            CollectEntry(membershipEntries[member], minX, minY, maxX, maxY, output);
+        if (sort)
+        {
+            output.Sort();
+            if (CollectDiagnostics) diagnostics.Sorts++;
+        }
     }
 
     private void CollectEntry(int index, double minX, double minY, double maxX, double maxY, List<int> output)
     {
         var entry = entries[index];
+        if (CollectDiagnostics) diagnostics.MembershipsVisited++;
         if (entry.MinX > maxX || entry.MaxX < minX || entry.MinY > maxY || entry.MaxY < minY) return;
-        if (stamps[entry.Id] == generation) return;
-        stamps[entry.Id] = generation;
+        if (stamps[entry.Stamp] == generation) return;
+        stamps[entry.Stamp] = generation;
         output.Add(entry.Id);
+        if (CollectDiagnostics) diagnostics.UniqueCandidates++;
     }
 
     private static bool Bounded(int left, int bottom, int right, int top, int limit) =>
         ((double)right - left + 1) * ((double)top - bottom + 1) <= limit;
 
-    private static void CellBounds(double minX, double minY, double maxX, double maxY,
+    private void CellBounds(double minX, double minY, double maxX, double maxY,
         out int left, out int bottom, out int right, out int top)
     {
         left = Coordinate(Math.BitDecrement(minX)); bottom = Coordinate(Math.BitDecrement(minY));
         right = Coordinate(Math.BitIncrement(maxX)); top = Coordinate(Math.BitIncrement(maxY));
     }
 
-    private static int Coordinate(double value) => (int)Math.Clamp(Math.Floor(value / CellSize), int.MinValue, int.MaxValue);
+    private int Coordinate(double value) => (int)Math.Clamp(Math.Floor(value / cellSize), int.MinValue, int.MaxValue);
 
-    private static void SweptBounds(Vector2 from, Vector2 to, float radius,
+    internal static void SweptBounds(Vector2 from, Vector2 to, float radius,
         out double minX, out double minY, out double maxX, out double maxY)
     {
         if (!float.IsFinite(from.X) || !float.IsFinite(from.Y)) throw new ArgumentOutOfRangeException(nameof(from));
@@ -150,5 +183,5 @@ internal sealed class SpatialBoundsIndex
             || minX > maxX || minY > maxY) throw new ArgumentOutOfRangeException(nameof(minX), "Bounds must be finite and ordered.");
     }
 
-    private readonly record struct Entry(int Id, double MinX, double MinY, double MaxX, double MaxY);
+    private readonly record struct Entry(int Id, int Stamp, double MinX, double MinY, double MaxX, double MaxY);
 }

@@ -1,0 +1,57 @@
+[English](HARDWARE_OPTIMIZATION.md) | Русский
+
+# Аппаратная Оптимизация Без Изменения Поведения
+
+Локальное исследование, 2026-10-12. Не заменяет замороженные измерения пяти ECS. Без изменений remote и публикаций. [Harness и воспроизведение](../../tools/HardwareStudy/README.ru.md).
+
+## Методика
+
+Актуальная nominal-игра: seed 7331, 96 эскортов/сторону, LightSwarm, бесконечный доварп с углов, без замены носителей; версии circle physics/armament/tactics прежние. Release native .NET 8.0.31 и Chromium 151 Mono AOT сравниваются отдельно. Native: отдельный прогрев 1200 тиков, три независимых свежих replay по 1200 тиков на этап/порт; браузер: отдельный прогрев 600 тиков, три replay, чередование версий. Четыре окна по 300 тиков. Показана медиана [min,max] средних независимых прогонов; тики не считаются повторами. Фоновая активность desktop и tiering остаются ограничениями; статистическая значимость не заявляется.
+
+После каждой фазы совпадают native checksum, все игровые/AI-счётчики, средние/конечные популяции на пяти портах. Браузер сравнивает checkpoint, экспортируемые игровые/AI-счётчики и пять популяций. Native/browser checksum между runtime не сравниваются. Uniform/7331 с пятью повторами и дополнительные seed 27/low, seed 42/high остаются отдельными регрессионными проверками, не заменяющими актуальную игру.
+
+## Этапы И Цена
+
+| Этап | Реализация | Цена или ограничение |
+| --- | --- | --- |
+| 1 | Убран ненужный mounted-shot Predict; чтения родителя и Sin/Cos кэшируются в фазе; Heat заново берётся после структурного создания | Две синхронизации турелей разделены; ленивые чтения сохраняют gates. Малый общий эффект может быть шумом. |
+| 2 | Плоские нормализованные x+y*width ячейки; sealed Start/Count общий буфер; append chains для interleaved лидеров | По умолчанию 256 KiB metadata/grid, cap 1 MiB/grid. 12 bytes/membership, до 64/bounds entry; ёмкость entries зависит от caller/entity limits. Точный fallback вне области O(N). |
+| 3/4 | Метки snapshot membership, inline Squad, generation-aware таблицы EntityKey.Id, ref-readonly/in snapshots, ленивые инварианты scoring | Nongeneric данные для Mono AOT. Dense AI payload cap 12 MiB/table плюс sparse fallback; 2N squads резервируются до заимствования refs. Snapshot/live чтения разделены. |
+| 5 | Dense native-ID/version mapping query->public; кэш повторных Heat/Transform чтений | Reverse payload cap 768 KiB, dictionary fallback. Сохранены публичные stale/disposal guards и dictionary регистрации/удаления native. Component ref не удерживается через mutation storage. |
+| 8 | Изучены bounds и узкий hot/cold split mapping; split отклонён | Integer-эксперимент, без unsafe/pinning. В оптимизированном native CellQuery остаётся range-check failure path; branch misses не измерялись. |
+
+Float reassociation, явный FMA и fast-math не добавлены. Сортировка кандидатов и строгие ties сохранены. Глобальный TargetCost по-прежнему ищет дальние достижимые цели и может быть O(S squared). Плотные контактные/query нагрузки тоже могут оставаться квадратичными: grid не устраняет худший случай.
+
+## Измерения По Этапам
+
+Начальное окно 1-300, Step ms. Этап 5 оставлен в production; более поздний split в него не включён. Подробные [native stages](hardware-optimization/native-stages.json), [Mono stages](hardware-optimization/mono-stages.json), [отклонённый split](hardware-optimization/mono-rejected-split.json) и [store probes](hardware-optimization/store-probes.json) сохраняют все группы сравнения.
+
+| Этап | Native SECS | Mono AOT |
+| --- | ---: | ---: |
+| До | 0.999 [0.961,1.199] | 7.765 [7.662,8.053] |
+| 1 | 0.902 [0.889,0.937] | 7.742 [7.696,7.778] |
+| 2 | 0.849 [0.821,0.925] | 6.750 [6.747,6.799] |
+| 3/4 | 0.878 [0.808,0.889] | 6.738 [6.716,8.248] |
+| 5 | 0.725 [0.723,0.909] | 5.028 [5.008,6.239] |
+
+Этап 5, окно 901-1200: native 0.761->0.604 ms; Mono 5.870->3.992 ms. Начальные Mono physics 2.335->0.884 ms и collect 2.457->1.734 ms. AI этап 2->3/4: 0.494->0.397 ms, но общий Step пересекается по диапазонам. Native Capture(false) в конце фазы 0.229->0.243 ms; Mono export 0.730->0.705 ms: доказанного ускорения export нет.
+
+Opt-in physics clocks измерены отдельной одинаково инструментированной серией из трёх прогонов, тики1-300. Mono contact candidates1.397->0.652ms, hit candidates0.423->0.260ms, solver0.024->0.023ms, hit narrow0.112->0.107ms. Native соответствующие медианы0.174->0.142,0.064->0.061,0.011->0.009,0.017->0.018ms, с пересечением диапазонов и выбросом native contact candidates0.374ms. Эти числа нельзя вычитать из обычного Step.
+
+## Память И Фронтенд
+
+Этап5: native аллокации Step первого окна2,198,936->2,687,960bytes, managed heap7,355,432->8,209,416bytes. Включён рост таблиц нового боя; это не заявление о нулевых аллокациях всего warmed Step. Native ECS storage на тике300 остаётся2,989,057bytes,2461entities,41archetypes,64chunks,0accessor bytes. Mono telemetry-managed heap приблизительно21.2->22.9MB; retained linear memory100,663,296->100,859,904bytes. Telemetry семплируется, это не точный census managed allocator.
+
+Native frontend: одинаковый host/render/assets, меняются сохранённые DLL симуляции; три свежих uncapped replay по 300 кадров, 120 warmup кадров, измеренные тики 121-420. Default tiered серия этапа 5: simulation 1.782->1.960 ms, total CPU frame 3.555->3.899 ms. Короткая startup-серия не подтверждает победу desktop. Отдельная FullOpts диагностика того же окна (TieredCompilation=0, не production change): simulation 0.882->0.760 ms, snapshot 0.144->0.144 ms, render submission 0.608->0.606 ms, total frame 2.189->2.066 ms. Экспериментальный hot/cold mapping дал default simulation 1.824 ms и total frame 3.629 ms с пересечением диапазонов базы. Split отклонён: дополнительная парная Mono серия дала этап 5->split 4.880->5.131 ms в окне 1-300 и 1.996->2.367 ms в окне 301-600, с большим разбросом. Production tiering settings не менялись.
+
+Canvas draw-only CPU submission одного paused snapshot тика300: до5.369ms [5.066,5.439], после5.192ms [5.148,5.208], три независимых страницы,60draw warmups/120samples. Production app.js не изменён; временный diagnostic closure exposure исключает Step/export/DOM. Ускорение рендера и GPU utilization не заявляются. Шесть native GL profiles прошли; checkpoint EEFA64DD84CED6DD/популяции совпадают.
+
+## Исторические Измерения CoreCLR И Отложенное
+
+Экспериментальный браузерный маршрут CoreCLR/R2R снят с поддержки, его хост и инструменты удалены. Абзац и JSON ниже сохранены без изменений как исторические измерения, а не поддерживаемый способ воспроизведения. Production-измерения браузера используют стабильный .NET 8 Mono AOT.
+
+Pinned .NET 11 RC1 crossgen2 partial R2R работает в реальном Chromium. Три независимых replay по 120 тиков после 120-тикового прогрева: тики 1-60 Step 112.048 ms [109.488,123.055]->88.062 ms [87.272,89.478]; 61-120: 159.483 ms [158.798,172.423]->130.892 ms [129.452,132.338]. Checkpoints/counters/populations совпадают. CPU sampling 120 тиков: interpreter leaf samples 84.927% до и 82.179% на этапе 5. Это mixed execution, не compiled-hot-path upgrade; длинные окна и interpreter-free R2R не проверены. [Отдельные R2R измерения](hardware-optimization/r2r-stage5.json).
+
+ComponentAccessor microprobe: direct reads1.410->0.365ms, но staged create/destroy9.322->10.669ms, дополнительные49,152accessor bytes при4096slots. В production не включён без whole-Battle сравнения. Final-archetype creation microprobe4.158ms против9.322ms staged; чтением кода установлены birth row insertions4->1/removals3->0, игровые component additions остаются3. Copy bytes/swap repairs не инструментированы. Эквивалентность typed creation/query order на пяти портах не доказана; игровое создание и счётчики не подменялись.
+
+Incremental Collect/Sort отложен: внешние additions/removals и Serial/Transform правки через возвращённые refs должны оставаться видимыми. Mutation counter этих записей не видит. Registry требует reconciliation или более сильного публичного контракта; текущий collect сохранён. Тесты покрывают внешние правки на пяти портах, slot/native-ID reuse/divergence, epoch wrap/fallback, stale/disposal guards, точные grid oracles, ties, snapshot/live, self exclusion, friendly/debris damage. SECS16tests и comparison6tests прошли. Native/browser изображения боя и реальные controls проверены; ассеты и замороженные отчёты этой работой не изменялись.

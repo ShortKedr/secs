@@ -21,11 +21,16 @@ public static class ArmamentRules
 // Nongeneric value types avoid Mono WASM AOT generic calling-convention pitfalls.
 internal readonly record struct ShotRequest(EntityKey Owner, EntityKey Target, int Serial, int Slot, Weapon Weapon,
     EntityKey Gun, Vector2 Origin = default, Vector2 Velocity = default, float Angle = 0);
+internal readonly record struct MountFrame(bool Alive, Transform Transform, float Cos, float Sin);
+internal readonly record struct MountActor(bool Active, Identity Id, Brain Brain, Transform Transform, Motion Motion, float Radius,
+    bool BallisticsReady = false);
 
 public sealed partial class Battle<TStore>
 {
     private readonly Dictionary<EntityKey, List<MovingRow>> attachedGuns = new();
     private readonly List<int> turretCandidates = new();
+    private readonly Dictionary<EntityKey, MountFrame> mountFrames = new();
+    private readonly Dictionary<EntityKey, MountActor> mountActors = new();
     private void SpawnTurrets(EntityKey parent, Identity id, Transform ship)
     {
         var count = ShipCatalog.TurretCount(id.Class);
@@ -57,30 +62,55 @@ public sealed partial class Battle<TStore>
 
     private void SyncTurrets()
     {
+        // Each synchronization samples its own phase. Never reuse the pre-physics frame afterwards.
+        mountFrames.Clear();
         foreach (var row in turrets)
         {
             ref var mount = ref Store.Get<MountedTurret>(row.Entity);
-            if (!AliveShip(mount.Parent)) continue;
-            var parent = Store.Get<Transform>(mount.Parent);
+            if (!mountFrames.TryGetValue(mount.Parent, out var frame))
+            {
+                frame = default;
+                if (AliveShip(mount.Parent))
+                {
+                    var parent = Store.Get<Transform>(mount.Parent);
+                    frame = new(true, parent, MathF.Cos(parent.Angle), MathF.Sin(parent.Angle));
+                }
+                mountFrames.Add(mount.Parent, frame);
+            }
+            if (!frame.Alive) continue;
             ref var transform = ref Store.Get<Transform>(row.Entity);
             transform.Previous = transform.Position;
-            transform.Position = parent.Position + Rotate(mount.LocalOffset, parent.Angle);
+            var offset = mount.LocalOffset;
+            transform.Position = frame.Transform.Position + new Vector2(offset.X * frame.Cos - offset.Y * frame.Sin,
+                offset.X * frame.Sin + offset.Y * frame.Cos);
         }
     }
 
     private void UpdateTurrets()
     {
         SyncTurrets();
+        mountActors.Clear();
         foreach (var row in turrets)
         {
             var gun = row.Entity;
             ref var mount = ref Store.Get<MountedTurret>(gun);
             ref var heat = ref Store.Get<Heat>(gun);
             heat.Value = MathF.Max(0, heat.Value - heat.CoolingPerSecond / Config.TickRate);
-            if (!AliveShip(mount.Parent) || Store.Has<Docked>(mount.Parent)) continue;
-            var id = Store.Get<Identity>(mount.Parent);
-            var brain = Store.Get<Brain>(mount.Parent);
-            if (brain.Mode != BrainMode.Attack || Store.Has<Overheated>(mount.Parent)) continue;
+            if (!mountActors.TryGetValue(mount.Parent, out var actor))
+            {
+                actor = default;
+                if (AliveShip(mount.Parent) && !Store.Has<Docked>(mount.Parent))
+                {
+                    var parentId = Store.Get<Identity>(mount.Parent);
+                    var parentBrain = Store.Get<Brain>(mount.Parent);
+                    if (parentBrain.Mode == BrainMode.Attack && !Store.Has<Overheated>(mount.Parent))
+                        actor = new(true, parentId, parentBrain, default, default, 0);
+                }
+                mountActors.Add(mount.Parent, actor);
+            }
+            if (!actor.Active) continue;
+            var id = actor.Id;
+            var brain = actor.Brain;
             ref var weapon = ref Store.Get<Weapon>(gun);
             ref var transform = ref Store.Get<Transform>(gun);
             if (!TurretTargetAvailable(mount.Target, id.Team, transform.Position, weapon.Range))
@@ -103,13 +133,19 @@ public sealed partial class Battle<TStore>
                 }
             }
             if (mount.Target.IsNone) continue;
-            var parent = Store.Get<Transform>(mount.Parent);
-            var motion = Store.Get<Motion>(mount.Parent);
+            if (!actor.BallisticsReady)
+            {
+                actor = actor with { Transform = Store.Get<Transform>(mount.Parent), Motion = Store.Get<Motion>(mount.Parent),
+                    Radius = Store.Get<Collider>(mount.Parent).Radius, BallisticsReady = true };
+                mountActors[mount.Parent] = actor;
+            }
+            var parent = actor.Transform;
+            var motion = actor.Motion;
             var offset = transform.Position - parent.Position;
             var velocity = motion.Velocity + new Vector2(-offset.Y, offset.X) * motion.AngularVelocity;
             var target = Store.Get<Transform>(mount.Target).Position;
             var targetVelocity = Store.Get<Motion>(mount.Target).Velocity;
-            var radius = Store.Get<Collider>(mount.Parent).Radius + 0.8f;
+            var radius = actor.Radius + 0.8f;
             var direction = FireControl.Predict(transform.Position, velocity, target, targetVelocity, weapon.Speed, radius).Direction;
             var muzzle = MuzzleDistance(offset, direction, radius);
             direction = FireControl.Predict(transform.Position, velocity, target, targetVelocity, weapon.Speed, muzzle).Direction;

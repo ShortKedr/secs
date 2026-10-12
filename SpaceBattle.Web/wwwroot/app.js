@@ -1,11 +1,17 @@
 import { resolveObservedShip, frameObservedShips, observationViewport } from "./observer-camera.js";
 import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } from "./collider-debug.js";
+import { verifyBuild, loadAtlasBundle, browserContract } from "./web-atlases.js";
 
 (() => {
   "use strict";
   const $ = (id) => document.getElementById(id);
   const query = new URLSearchParams(location.search);
   const testMode = query.get("test") === "1";
+  const diagnosticMode = ["simulation", "render", "minimal", "normal"].includes(query.get("diagnostics")) ? query.get("diagnostics") : null;
+  const imageLess = diagnosticMode === "simulation" || diagnosticMode === "minimal";
+  let assetState = null, buildIdentity = null, revisions = null;
+  let fatalError = null, frameRequest = 0, frameStopped = false, canvasResizes = 0;
+  let contextLost = false, frames = 0;
   const strings = {
     en: {
       title: "Space battle",
@@ -178,7 +184,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
   } catch {}
   lang = lang === "ru" ? "ru" : "en";
   let ready = false,
-    paused = testMode,
+    paused = testMode || Boolean(diagnosticMode),
     speed = 1,
     snapshot = null,
     atlas,
@@ -276,8 +282,10 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     fitScale = 1,
     uiTime = 0;
   const camera = { x: 0, y: 0, zoom: 1 };
-  const canvas = $("scene"),
-    ctx = canvas.getContext("2d", { alpha: false });
+  const canvas = $("scene");
+  let ctx = null, contextError = null;
+  try { ctx = canvas.getContext("2d", { alpha: false }); }
+  catch (error) { contextError = error; }
   const t = (key) => strings[lang][key] || key;
   const icons = () => window.lucide?.createIcons();
   function localize() {
@@ -299,6 +307,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     updateUI();
   }
   function accept(pointer) {
+    const colliderPointer = colliderDebug ? bridge.ColliderSnapshot() : 0;
     const buffer = runtime.localHeapViewF64().buffer;
     if (
       !Number.isInteger(pointer) ||
@@ -365,9 +374,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       particles: frameGroups[3],
       turrets: frameGroups[4],
       binary: {},
-      revision: bridge.Revision(),
-      fleetRevision: bridge.FleetRevision(),
-      physicsRevision: bridge.PhysicsRevision(),
+      ...revisions,
     };
     snapshot.tick = header[1];
     snapshot.arenaHalfSize = header[2];
@@ -420,7 +427,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       for (let i = 0; i < count; i++) rows[i] = rowViews[offset++];
     }
     if (following) resolveObservation();
-    colliderRows = colliderDebug ? readColliderBuffer(buffer, bridge.ColliderSnapshot()) : null;
+    colliderRows = colliderDebug ? readColliderBuffer(buffer, colliderPointer) : null;
   }
   function showColliders(enabled) {
     if (!ready || busy) return;
@@ -452,7 +459,10 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     $("seed").setCustomValidity("");
     try {
       stopFollowing();
-      accept(bridge.Reset($("profile").value, seed));
+      const pointer = bridge.Reset($("profile").value, seed);
+      revisions ||= { revision: bridge.Revision(), fleetRevision: bridge.FleetRevision(), deploymentRevision: bridge.DeploymentRevision(),
+        physicsRevision: bridge.PhysicsRevision(), damageRevision: bridge.DamageRevision(), tacticalRevision: bridge.TacticalRevision() };
+      accept(pointer);
       selected = null;
       observationSwitches = 0;
       accumulator = 0;
@@ -486,11 +496,15 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     localize();
   }
   function resize() {
-    width = canvas.clientWidth;
-    height = canvas.clientHeight;
+    const nextWidth = canvas.clientWidth, nextHeight = canvas.clientHeight;
+    if (nextWidth <= 0 || nextHeight <= 0) return;
+    width = nextWidth; height = nextHeight;
     dpr = Math.min(devicePixelRatio || 1, 2);
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
+    const pixelsX = Math.round(width * dpr), pixelsY = Math.round(height * dpr);
+    if (canvas.width !== pixelsX || canvas.height !== pixelsY) {
+      canvas.width = pixelsX; canvas.height = pixelsY;
+      canvasResizes++;
+    }
     calculateFit();
     draw();
   }
@@ -604,25 +618,17 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     `rgba(${Math.round(r[12] * 255)},${Math.round(r[13] * 255)},${Math.round(r[14] * 255)},${Math.max(0, Math.min(1, r[15]))})`;
   const teamPalette = [[0.2, 0.85, 0.95], [1, 0.37, 0.4]];
   const teamPaint = teamPalette.map(rgb => `rgb(${rgb.map(value => Math.round(value * 255)).join(",")})`);
-  function prepareTeamAtlases(image, alphaThreshold = -1) {
-    // Source PNGs stay untouched; pixel work happens only during asset loading.
-    return teamPalette.map((rgb) => {
-      const texture = document.createElement("canvas");
-      texture.width = image.naturalWidth; texture.height = image.naturalHeight;
-      const context = texture.getContext("2d", { willReadFrequently: true });
-      context.drawImage(image, 0, 0);
-      const pixels = context.getImageData(0, 0, texture.width, texture.height);
-      for (let i = 0; i < pixels.data.length; i += 4) {
-        pixels.data[i] *= rgb[0];
-        pixels.data[i + 1] *= rgb[1];
-        pixels.data[i + 2] *= rgb[2];
-        if (pixels.data[i + 3] <= alphaThreshold) pixels.data[i + 3] = 0;
-      }
-      context.putImageData(pixels, 0, 0);
-      return texture;
-    });
+  function draw(minimal = imageLess) {
+    if (fatalError) return false;
+    if (diagnosticMode === "simulation") return true;
+    try {
+      ensureHeapViews();
+      if (!ctx || contextLost || ctx.isContextLost?.()) throw new Error("Canvas 2D context unavailable or lost");
+      drawScene(minimal);
+      return true;
+    } catch (error) { fail(error, "render"); return false; }
   }
-  function draw() {
+  function drawScene(minimal) {
     track();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#080a0c";
@@ -650,7 +656,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       ctx.fill();
     }
     for (const r of snapshot.particles) {
-      if (r[2] !== 3 && r[2] !== 6 && r[2] !== 7) drawParticle(r, scale);
+      if (r[2] !== 3 && r[2] !== 6 && r[2] !== 7) drawParticle(r, scale, minimal);
     }
     ctx.globalAlpha = 1;
     for (const r of snapshot.projectiles) {
@@ -663,7 +669,8 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       const angle = r[5] || r[6] ? Math.atan2(-r[6], r[5]) : -r[7];
       const c = Math.cos(angle), s = Math.sin(angle);
       ctx.setTransform(dpr * c, dpr * s, -dpr * s, dpr * c, p.x * dpr, p.y * dpr);
-      drawEffectSprite(projectileSprites.get(r[2]), 0, 0, length);
+      if (minimal) { ctx.fillStyle = color(r); ctx.fillRect(0, -1, length, 2); }
+      else drawEffectSprite(projectileSprites.get(r[2]), 0, 0, length);
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     for (const r of snapshot.ships) {
@@ -680,7 +687,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(Math.PI / 2 - r[7]);
-      if (sprite) {
+      if (sprite && !minimal) {
         const h = size * 1.5,
           w = (h * sprite.width) / sprite.height;
         ctx.drawImage(
@@ -694,9 +701,12 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
           w,
           h,
         );
+      } else if (minimal) {
+        ctx.fillStyle = teamPaint[r[1] === 0 ? 0 : 1];
+        ctx.fillRect(-size * 0.3, -size * 0.6, size * 0.6, size * 1.2);
       }
       ctx.restore();
-      if ([5, 6, 8, 9, 10].includes(r[2]))
+      if (!minimal && [5, 6, 8, 9, 10].includes(r[2]))
         drawGun(p, Math.max(1.5, size * 0.12), r[7], 4, 0, r[11], r[1]);
       ctx.strokeStyle = r[1] === 0 ? "#5de4f1" : "#ff686f";
       ctx.lineWidth = 1.2;
@@ -716,11 +726,11 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     for (const r of snapshot.turrets) {
       const p = screen(r), radius = Math.max(1.4, r[8] * scale);
       if (p.x < -radius * 4 || p.y < -radius * 4 || p.x > width + radius * 4 || p.y > height + radius * 4) continue;
-      drawGun(p, radius, r[7], r[2], r[10], r[11], r[1]);
+      if (!minimal) drawGun(p, radius, r[7], r[2], r[10], r[11], r[1]);
     }
     // Contact and warp arrival flashes remain visible over the hull.
     for (const r of snapshot.particles) {
-      if (r[2] === 3 || r[2] === 6 || r[2] === 7) drawParticle(r, scale);
+      if (r[2] === 3 || r[2] === 6 || r[2] === 7) drawParticle(r, scale, minimal);
     }
     ctx.globalAlpha = 1;
     if (colliderDebug) drawColliders(ctx, colliderRows,
@@ -737,13 +747,14 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     }
     ctx.stroke();
   }
-  function drawParticle(r, scale) {
+  function drawParticle(r, scale, minimal = false) {
     const isWarp = r[2] >= 4;
     const p = screen(r), sprite = isWarp ? warpSprites.get(r[2] - 4) : particleSprites.get(r[2]);
     const source = isWarp ? warpAtlas : effectsAtlas;
     const size = Math.max(2, r[8] * scale * 2);
     if (p.x < -size || p.y < -size || p.x > width + size || p.y > height + size) return;
     ctx.globalAlpha = Math.max(0, Math.min(1, r[15]));
+    if (minimal) { ctx.fillStyle = color(r); ctx.fillRect(p.x - size / 2, p.y - size / 2, size, size); return; }
     if (r[7] === 0) drawEffectSprite(sprite, p.x, p.y, size, source);
     else {
       ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(-r[7]);
@@ -913,7 +924,11 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     $("battle").classList.toggle("statistics-open", value);
     updateUI();
   }
-  function fail(error) {
+  function fail(error, stage = "startup") {
+    if (fatalError) return;
+    fatalError = { stage, message: String(error?.message || error), tick: snapshot?.tick ?? null };
+    frameStopped = true;
+    cancelAnimationFrame(frameRequest);
     ready = false;
     paused = true;
     $("load-state").hidden = false;
@@ -930,6 +945,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     $("load-title").textContent = t("loading");
     $("load-detail").textContent = t("preparing");
     try {
+      buildIdentity ||= await verifyBuild(import.meta.url);
       if (!runtimeStarted) {
         await Blazor.start();
         runtimeStarted = true;
@@ -940,112 +956,35 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       runtimeMode = bridge.Mode();
       if (
         runtimeMode !== "aot-binary" &&
-        runtimeMode !== "coreclr-r2r-binary" &&
-        runtimeMode !== "coreclr-interpreter-binary" &&
         runtimeMode !== "interpreter-binary"
       ) {
         throw new Error("Unsupported simulation runtime mode: " + runtimeMode);
       }
-      const manifest = await fetch("assets/ships-atlas.json");
-      if (!manifest.ok)
-        throw new Error("Ship atlas manifest: " + manifest.status);
-      sprites = new Map(
-        (await manifest.json()).sprites.map((s) => [s.class, s]),
-      );
-      atlas = new Image();
-      atlas.src = "assets/ships-atlas.png";
-      await atlas.decode();
-      atlas = prepareTeamAtlases(atlas);
-      const gunManifest = await fetch("assets/guns-atlas.json");
-      if (!gunManifest.ok) throw new Error("Gun atlas manifest: " + gunManifest.status);
-      const gunData = await gunManifest.json();
-      const gunImage = new Image();
-      gunImage.src = "assets/guns-atlas.png";
-      await gunImage.decode();
-      if (gunData.width !== gunImage.naturalWidth || gunData.height !== gunImage.naturalHeight || gunData.alphaThreshold !== 32)
-        throw new Error("Gun atlas dimensions or alpha threshold mismatch");
-      gunSprites = new Map();
-      for (const s of gunData.sprites) {
-        if (!Number.isInteger(s.kind) || s.kind < -1 || s.kind > 4 || gunSprites.has(s.kind) ||
-            ![s.x, s.y, s.width, s.height].every(Number.isInteger) || s.x < 0 || s.y < 0 || s.width < 1 || s.height < 1 ||
-            s.x + s.width > gunData.width || s.y + s.height > gunData.height ||
-            !Number.isFinite(s.pivotX) || !Number.isFinite(s.pivotY) || s.pivotX < 0 || s.pivotY < 0 || s.pivotX > s.width || s.pivotY > s.height)
-          throw new Error("Invalid gun sprite rectangle, kind or pivot");
-        gunSprites.set(s.kind, s);
-      }
-      if (gunSprites.size !== 6) throw new Error("Gun atlas needs a mount and all five weapon kinds");
-      gunAtlas = prepareTeamAtlases(gunImage, gunData.alphaThreshold);
-      const effectsManifest = await fetch("assets/effects-atlas.json");
-      if (!effectsManifest.ok) throw new Error("Effects atlas manifest: " + effectsManifest.status);
-      const effectsData = await effectsManifest.json();
-      const effectsImage = new Image(); effectsImage.src = "assets/effects-atlas.png";
-      await effectsImage.decode();
-      if (effectsData.width !== effectsImage.naturalWidth || effectsData.height !== effectsImage.naturalHeight || effectsData.alphaThreshold !== 32)
-        throw new Error("Effects atlas dimensions or alpha threshold mismatch");
-      projectileSprites = new Map(); particleSprites = new Map();
-      for (const s of effectsData.sprites) {
-        const map = s.family === "projectile" ? projectileSprites : s.family === "particle" ? particleSprites : null;
-        if (!map || !Number.isInteger(s.kind) || s.kind < 0 || s.kind > (s.family === "projectile" ? 4 : 3) || map.has(s.kind) ||
-            ![s.x, s.y, s.width, s.height].every(Number.isInteger) || s.x < 0 || s.y < 0 || s.width < 1 || s.height < 1 ||
-            s.x + s.width > effectsData.width || s.y + s.height > effectsData.height ||
-            !Number.isFinite(s.pivotX) || !Number.isFinite(s.pivotY) || s.pivotX < 0 || s.pivotY < 0 || s.pivotX >= s.width || s.pivotY >= s.height)
-          throw new Error("Invalid effects sprite family, kind, rectangle or pivot");
-        if (s.family === "particle" && (s.width !== s.height || s.pivotX !== s.width / 2 || s.pivotY !== s.height / 2))
-          throw new Error("Particle sprites need square cells and centered pivots");
-        map.set(s.kind, s);
-      }
-      if (projectileSprites.size !== 5 || particleSprites.size !== 4)
-        throw new Error("Effects atlas needs all five projectile kinds and four particle kinds");
-      // Alpha cleanup is a one-time load operation; preserve the source PNG.
-      effectsAtlas = document.createElement("canvas");
-      effectsAtlas.width = effectsData.width; effectsAtlas.height = effectsData.height;
-      const effectsContext = effectsAtlas.getContext("2d", { willReadFrequently: true });
-      effectsContext.drawImage(effectsImage, 0, 0);
-      const effectPixels = effectsContext.getImageData(0, 0, effectsData.width, effectsData.height);
-      for (let i = 3; i < effectPixels.data.length; i += 4)
-        if (effectPixels.data[i] <= effectsData.alphaThreshold) effectPixels.data[i] = 0;
-      effectsContext.putImageData(effectPixels, 0, 0);
-      const warpManifest = await fetch("assets/warp-atlas.json");
-      if (!warpManifest.ok) throw new Error("Warp atlas manifest: " + warpManifest.status);
-      const warpData = await warpManifest.json();
-      const warpImage = new Image(); warpImage.src = "assets/warp-atlas.png";
-      await warpImage.decode();
-      if (warpData.width !== warpImage.naturalWidth || warpData.height !== warpImage.naturalHeight ||
-          warpData.alphaThreshold !== 32 || warpData.width !== warpData.height || warpData.width % 2 !== 0)
-        throw new Error("Warp atlas needs matching dimensions, a square 2x2 grid and alpha threshold 32");
-      warpSprites = new Map();
-      const warpCell = warpData.width / 2;
-      for (const s of warpData.sprites) {
-        if (!Number.isInteger(s.kind) || s.kind < 0 || s.kind > 3 || warpSprites.has(s.kind) ||
-            (Object.hasOwn(s, "family") && s.family !== "warp") ||
-            ![s.x, s.y, s.width, s.height].every(Number.isInteger) || s.width < 1 || s.width !== s.height ||
-            s.x < (s.kind % 2) * warpCell || s.y < Math.floor(s.kind / 2) * warpCell ||
-            s.x + s.width > (s.kind % 2 + 1) * warpCell || s.y + s.height > (Math.floor(s.kind / 2) + 1) * warpCell ||
-            s.pivotX !== s.width / 2 || s.pivotY !== s.height / 2)
-          throw new Error("Warp sprites need unique kinds, square crops inside their own quadrant and centered pivots");
-        warpSprites.set(s.kind, s);
-      }
-      if (warpSprites.size !== 4) throw new Error("Warp atlas needs all four kinds 0 through 3");
-      warpAtlas = document.createElement("canvas");
-      warpAtlas.width = warpData.width; warpAtlas.height = warpData.height;
-      const warpContext = warpAtlas.getContext("2d", { willReadFrequently: true });
-      warpContext.drawImage(warpImage, 0, 0);
-      const warpPixels = warpContext.getImageData(0, 0, warpData.width, warpData.height);
-      for (let i = 3; i < warpPixels.data.length; i += 4)
-        if (warpPixels.data[i] <= warpData.alphaThreshold) warpPixels.data[i] = 0;
-      warpContext.putImageData(warpPixels, 0, 0);
+      if (bridge.BrowserContract?.() !== browserContract) throw new Error("Mixed cached WASM/application contract. Reload the page.");
+      assetState ||= await loadAtlasBundle(buildIdentity, { decodeImages: !imageLess });
+      const data = assetState.bundle.atlases;
+      sprites = new Map(data.ships.sprites.map(sprite => [sprite.class, sprite]));
+      gunSprites = new Map(data.guns.sprites.map(sprite => [sprite.kind, sprite]));
+      projectileSprites = new Map(data.effects.sprites.filter(sprite => sprite.family === "projectile").map(sprite => [sprite.kind, sprite]));
+      particleSprites = new Map(data.effects.sprites.filter(sprite => sprite.family === "particle").map(sprite => [sprite.kind, sprite]));
+      warpSprites = new Map(data.warp.sprites.map(sprite => [sprite.kind, sprite]));
+      atlas = assetState.images.ships; gunAtlas = assetState.images.guns;
+      effectsAtlas = assetState.images.effects[0]; warpAtlas = assetState.images.warp[0];
       ready = true;
       $("colliders").disabled = false;
       reset();
       if (!ready) return;
       $("load-state").hidden = true;
-      setPaused(testMode);
+      setPaused(testMode || Boolean(diagnosticMode));
       resize();
     } catch (error) {
       fail(error);
     }
   }
   function frame(now) {
+    if (frameStopped) return;
+    try {
+    frames++;
     const started = performance.now();
     const interval = last ? now - last : 0;
     if (interval > 0) {
@@ -1081,7 +1020,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       rateStart = now;
     }
     const renderStart = performance.now();
-    draw();
+    if (!draw()) return;
     const renderSample = performance.now() - renderStart;
     renderCpuMs = renderCpuMs
       ? renderCpuMs * 0.9 + renderSample * 0.1
@@ -1091,7 +1030,8 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       uiTime = now;
     }
     lastFrameMs = performance.now() - started;
-    requestAnimationFrame(frame);
+    } catch (error) { fail(error, "frame"); }
+    if (!frameStopped && !diagnosticMode) frameRequest = requestAnimationFrame(frame);
   }
   const pointers = new Map();
   let drag = null,
@@ -1239,7 +1179,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       updateUI();
     }
   });
-  $("retry").onclick = () => (runtimeStarted ? start() : location.reload());
+  $("retry").onclick = () => location.reload();
   $("statistics").onclick = () => showStatistics($("simulation-stats").hidden);
   $("stats-close").onclick = () => showStatistics(false);
   document.addEventListener("visibilitychange", () => {
@@ -1248,7 +1188,49 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     ticksPerSecond = rateTicks = 0;
     rateStart = performance.now();
   });
+  function ensureHeapViews() {
+    if (runtime && header && runtime.localHeapViewF64().buffer !== heapBuffer) accept(framePointer);
+  }
+  async function diagnosticSample({ mode, ticks = 1, renders = 1 } = {}) {
+    if (!diagnosticMode || !ready || busy || fatalError) throw new Error("Paused diagnostic page required");
+    if (!["simulation", "render", "minimal", "normal"].includes(mode) ||
+        !Number.isInteger(ticks) || ticks < 0 || ticks > 120 ||
+        !Number.isInteger(renders) || renders < 0 || renders > 120)
+      throw new Error("Diagnostic requests are bounded to 120 ticks/draws");
+    if (diagnosticMode === "simulation" && mode !== "simulation") throw new Error("Simulation-only diagnostic page cannot draw");
+    setPaused(true);
+    busy = true;
+    try {
+      const stepMs = mode === "simulation" || mode === "normal" ? bridge.DiagnosticStep(ticks) : 0;
+      const exportStarted = performance.now();
+      // Every export reacquires views; no saved row views are used after memory growth.
+      accept(bridge.Snapshot());
+      const exportMs = performance.now() - exportStarted;
+      let renderMs = 0;
+      if (mode !== "simulation") {
+        const started = performance.now();
+        for (let i = 0; i < renders; i++) if (!draw(mode === "minimal" || imageLess)) throw new Error(fatalError.message);
+        renderMs = performance.now() - started;
+      }
+      const checksum = bridge.Checksum();
+      ensureHeapViews();
+      updateUI();
+      return { mode, stepMs, exportMs, renderMs, checksum, tick: snapshot.tick,
+        counts: { ...snapshot.counts }, counters: { ...snapshot.counters }, memory: {
+          wasmLinearBytes: runtime.localHeapViewF64().buffer.byteLength,
+          managedBytes: snapshot.performance.managedBytes,
+          jsHeapBytes: performance.memory?.usedJSHeapSize ?? null,
+          canvasBackingBytes: canvas.width * canvas.height * 4,
+          atlasDecodedBytes: assetState?.diagnostics.decodedBytes ?? 0 } };
+    } catch (error) { fail(error, "diagnostics"); throw error; }
+    finally { busy = false; }
+  }
   window.addEventListener("resize", resize);
+  canvas.addEventListener("contextlost", event => {
+    event.preventDefault(); contextLost = true;
+    fail(new Error("Canvas context lost. Reload after the browser recovers."), "context-lost");
+  });
+  canvas.addEventListener("contextrestored", () => { contextLost = false; });
   new ResizeObserver(resize).observe(canvas);
   window.advanceTime = async (ms) => {
     if (!ready) throw new Error("Simulation not ready");
@@ -1266,7 +1248,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       last = 0;
       ticksPerSecond = rateTicks = 0;
       rateStart = performance.now();
-      draw();
+      if (!draw()) throw new Error(fatalError.message);
       updateUI();
       return snapshot;
     } finally {
@@ -1306,8 +1288,10 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       fields.map((name, field) => [name, bridge.Reinforcement(team, field)]),
     ));
   }
-  window.render_game_to_text = () =>
-    JSON.stringify({
+  window.render_game_to_text = () => {
+    const checksum = ready ? bridge.Checksum() : undefined;
+    ensureHeapViews();
+    return JSON.stringify({
       ready,
       paused,
       profile: snapshot?.profile || $("profile").value,
@@ -1320,8 +1304,10 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
       counters: snapshot?.counters || {},
       pendingReinforcements: snapshot?.pendingReinforcements ?? 0,
       reinforcements: reinforcements(),
-      checksum: ready ? bridge.Checksum() : undefined,
+      checksum,
       runtimeMode,
+      diagnostics: { mode: diagnosticMode, error: fatalError, frames, canvasResizes, contextLost,
+        build: buildIdentity?.files?.["app.js"], assets: assetState?.diagnostics },
       visualAssets: { gunsAtlas: Boolean(gunAtlas), gunKinds: gunSprites ? [...gunSprites.keys()] : [],
         teamTint: { palette: teamPalette, hullTextures: atlas?.length ?? 0, gunTextures: gunAtlas?.length ?? 0 },
         effectsAtlas: Boolean(effectsAtlas), projectileKinds: projectileSprites ? [...projectileSprites.keys()] : [],
@@ -1329,7 +1315,10 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
         warpAtlas: Boolean(warpAtlas), warpKinds: warpSprites ? [...warpSprites.keys()] : [] },
       revision: snapshot?.revision,
       fleetRevision: snapshot?.fleetRevision,
+      deploymentRevision: snapshot?.deploymentRevision,
       physicsRevision: snapshot?.physicsRevision,
+      damageRevision: snapshot?.damageRevision,
+      tacticalRevision: snapshot?.tacticalRevision,
       fleetComposition: snapshot?.fleetComposition,
       tactics: tacticCounters(),
       statistics: statistics(),
@@ -1366,6 +1355,7 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
         x: r[3], y: r[4], angle: r[7], radius: r[8], recoil: r[10], heat: r[11], screen: screen(r),
       })),
     });
+  };
   window.spaceBattle = {
     get snapshot() {
       return snapshot;
@@ -1381,6 +1371,9 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
     reinforcements,
     aliveTeamCounts: () => snapshot?.aliveTeams.slice() ?? [0, 0],
     statistics,
+    resize,
+    assetDiagnostics: () => assetState ? { ...assetState.diagnostics } : null,
+    diagnosticSample,
     showColliders,
     colliders: () => ({ enabled: colliderDebug, ...colliderSummary(colliderRows), rows: colliderDetails(colliderRows) }),
     refresh: () => {
@@ -1409,7 +1402,9 @@ import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } f
   };
   icons();
   localize();
+  if (query.has("diagnostics") && !diagnosticMode) { fail(new Error("Unknown paused diagnostic mode"), "diagnostics"); return; }
+  if (!ctx) { fail(contextError || new Error("Canvas 2D context is unavailable"), "context"); return; }
   resize();
-  requestAnimationFrame(frame);
+  if (!diagnosticMode && !frameStopped) frameRequest = requestAnimationFrame(frame);
   start();
 })();

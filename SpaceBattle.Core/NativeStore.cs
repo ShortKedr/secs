@@ -92,6 +92,20 @@ public abstract class NativeStore<TNative> : IEcsStore where TNative : struct
     public abstract void ForEach<T, P>(ref P processor) where T : unmanaged where P : struct, IProcessor<T>;
     public abstract void ForEach<A, B, P>(ref P processor) where A : unmanaged where B : unmanaged where P : struct, IProcessor<A, B>;
     public abstract void ForEach<A, B, C, P>(ref P processor) where A : unmanaged where B : unmanaged where C : unmanaged where P : struct, IProcessor<A, B, C>;
+    public virtual void ForEachComponents<A, B, C, P>(ref P processor)
+        where A : unmanaged where B : unmanaged where C : unmanaged where P : struct, IComponentProcessor<A, B, C>
+    {
+        var bridge = new ComponentsBridge<A, B, C, P> { Processor = processor };
+        ForEach<A, B, C, ComponentsBridge<A, B, C, P>>(ref bridge);
+        processor = bridge.Processor;
+    }
+    private struct ComponentsBridge<A, B, C, P> : IProcessor<A, B, C>
+        where A : unmanaged where B : unmanaged where C : unmanaged where P : struct, IComponentProcessor<A, B, C>
+    {
+        public P Processor;
+        public void Execute(EntityKey ignored, ref A first, ref B second, ref C third)
+            => Processor.Execute(ref first, ref second, ref third);
+    }
     public virtual StoreDiagnostics Diagnostics()
     {
         CheckOpen();

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <StudyReferenceMode Condition="'$(BaselineDirectory)' == ''">after</StudyReferenceMode>
+    <StudyReferenceMode Condition="'$(BaselineDirectory)' != ''">before</StudyReferenceMode>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="StudyReferenceMode" Value="$(StudyReferenceMode)" />
+    <AssemblyMetadata Include="StudyBaselineDirectory" Value="$(BaselineDirectory)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(BaselineDirectory)' == ''">
+    <ProjectReference Include="../../SpaceBattle.Core/SpaceBattle.Core.csproj" />
+    <ProjectReference Include="../../SpaceBattle.SECS/SpaceBattle.SECS.csproj" />
+    <ProjectReference Include="../../SpaceBattle.Adapters/SpaceBattle.Adapters.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(BaselineDirectory)' != ''">
+    <Reference Include="SpaceBattle.Core"><HintPath>$(BaselineDirectory)/SpaceBattle.Core.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SpaceBattle.SECS"><HintPath>$(BaselineDirectory)/SpaceBattle.SECS.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SpaceBattle.Adapters"><HintPath>$(BaselineDirectory)/SpaceBattle.Adapters.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SECS"><HintPath>$(BaselineDirectory)/SECS.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="Scellecs.Morpeh"><HintPath>$(BaselineDirectory)/Scellecs.Morpeh.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="StaticLibrary"><HintPath>$(BaselineDirectory)/StaticLibrary.dll</HintPath><Private>true</Private></Reference>
+  </ItemGroup>
+  <Target Name="ValidateBaselineDirectory" BeforeTargets="ResolveReferences" Condition="'$(BaselineDirectory)' != ''">
+    <Error Condition="!$([System.IO.Path]::IsPathFullyQualified('$(BaselineDirectory)'))" Text="BaselineDirectory must be absolute." />
+    <Error Condition="!Exists('$(BaselineDirectory)/SpaceBattle.Core.dll') Or !Exists('$(BaselineDirectory)/SpaceBattle.SECS.dll') Or !Exists('$(BaselineDirectory)/SpaceBattle.Adapters.dll')" Text="BaselineDirectory must contain the frozen Core, SECS and Adapters DLLs." />
+  </Target>
+</Project>

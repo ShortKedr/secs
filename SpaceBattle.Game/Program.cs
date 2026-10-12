@@ -29,9 +29,11 @@ internal sealed class BattleApp : IDisposable
     private readonly string? capture;
     private readonly string? effectsCapture;
     private readonly string? gunTintsCapture;
+    private readonly string? sceneStyleCapture;
     private readonly int captureTick;
     private readonly float initialZoom;
     private readonly bool exitCapture, validate, validateControls, validateLiveStatistics, validateEffects, validateGunTints;
+    private readonly bool validateSceneStyle;
     private bool controlsVerified;
     private bool captured, paused;
     private int selected = -1;
@@ -90,6 +92,10 @@ internal sealed class BattleApp : IDisposable
         if(Value("--gun-tints-capture") is { } gunPath)gunTintsCapture=ProjectOutput(gunPath);
         if(gunTintsCapture is not null&&!validateGunTints)throw new ArgumentException("--gun-tints-capture requires --validate-gun-tints.");
         if(validateEffects&&validateGunTints)throw new ArgumentException("Run effect and gun tint galleries separately.");
+        validateSceneStyle=args.Contains("--validate-scene-style");
+        if(validateSceneStyle&&(validateEffects||validateGunTints))throw new ArgumentException("Run scene, effect and gun tint galleries separately.");
+        if(Value("--scene-style-capture") is { } scenePath)sceneStyleCapture=ProjectOutput(scenePath);
+        if(sceneStyleCapture is not null&&!validateSceneStyle)throw new ArgumentException("--scene-style-capture requires --validate-scene-style.");
         statisticsVisible=args.Contains("--statistics");
         collidersVisible=args.Contains("--colliders");
         hidden=args.Contains("--hidden");
@@ -109,7 +115,7 @@ internal sealed class BattleApp : IDisposable
             throw new ArgumentException("Profile options require --profile-frames N.");
         if(validateLiveStatistics&&(profileFrames>0||capture is not null))
             throw new ArgumentException("Live statistics validation must run without capture or replay profiling.");
-        if((validateEffects||validateGunTints)&&(profileFrames>0||validateLiveStatistics))
+        if((validateEffects||validateGunTints||validateSceneStyle)&&(profileFrames>0||validateLiveStatistics))
             throw new ArgumentException("Visual validation must run separately from profiling or live statistics validation.");
         var zoomArgument=Value("--zoom");
         initialZoom=1;
@@ -128,14 +134,15 @@ internal sealed class BattleApp : IDisposable
         }
         config=new BattleConfig { ShipsPerTeam=Number("--ships",Number("--ships-per-team",96)), Seed=(uint)Number("--seed",7331),
             EndlessReinforcements=!args.Contains("--finite"), ReplenishCarriers=false,
-            FleetComposition=FleetComposition.LightSwarm };config.Validate();
+            FleetComposition=FleetComposition.LightSwarm,
+            Deployment=args.Contains("--legacy-deployment")?FleetDeployment.LegacyRandom:FleetDeployment.Tactical };config.Validate();
         battle=new(new SecsStore(),config);
         var options=WindowOptions.Default;
         int width=Number("--width",1440), height=Number("--height",900);
         if(width<960||height<540)throw new ArgumentException("Window size must be at least 960 x 540.");
         options.Size=new Vector2D<int>(width,height);
         options.Title="Space Battle | SECS"; options.API=new GraphicsAPI(ContextAPI.OpenGL,ContextProfile.Core,ContextFlags.ForwardCompatible,new APIVersion(3,3));
-        options.IsVisible=!hidden&&(!(validateEffects||validateGunTints)||args.Contains("--visible"))&&(capture is null || args.Contains("--visible")); options.VSync=profileFrames==0&&capture is null;
+        options.IsVisible=!hidden&&(!(validateEffects||validateGunTints||validateSceneStyle)||args.Contains("--visible"))&&(capture is null || args.Contains("--visible")); options.VSync=profileFrames==0&&capture is null;
         if(profileFrames>0) {options.FramesPerSecond=0;options.UpdatesPerSecond=0;}
         window=Window.Create(options);window.Load+=Load;window.Update+=Update;window.Render+=Render;window.Closing+=DisposeGraphics;
     }
@@ -143,6 +150,11 @@ internal sealed class BattleApp : IDisposable
     private void Load()
     {
         gl=window.CreateOpenGL();renderer=new(gl);input=window.CreateInput();
+        if(validateSceneStyle)
+        {
+            SceneStyleValidation.Run(renderer,window.FramebufferSize.X,window.FramebufferSize.Y,sceneStyleCapture);
+            if(capture is null) {window.Close();return;}
+        }
         if(validateGunTints)
         {
             GunTintRenderValidation.Run(renderer,window.FramebufferSize.X,window.FramebufferSize.Y,gunTintsCapture);
@@ -397,42 +409,9 @@ internal sealed class BattleApp : IDisposable
     private (int RenderedShips,TeamPopulation Population) RenderScene()
     {
         int w=window.FramebufferSize.X,h=window.FramebufferSize.Y;var renderer=this.renderer!;renderer.Begin(w,h);
-        var rng=new Random(137);
-        for(int i=0;i<800;i++) { var p=Screen(new Vector2((float)rng.NextDouble()*1600-800,(float)rng.NextDouble()*1600-800));renderer.Rect(p.X,p.Y,i%9==0?2:1,1,new(.22f,.29f,.39f,.8f)); }
-        float a=config.ArenaHalfSize;
-        Vector2[] corners=[Screen(new(-a,-a)),Screen(new(a,-a)),Screen(new(a,a)),Screen(new(-a,a))];for(int i=0;i<4;i++)renderer.Line(corners[i],corners[(i+1)%4],1,new(.14f,.23f,.29f,.7f));
-        foreach(var e in frame.Debris) { var p=Screen(e.Position);renderer.Line(p,p+new Vector2(3,2),2,e.Color); }
-        foreach(var e in frame.Particles)
-            if(!WarpEffect.Foreground(e.Kind))
-                renderer.Particle(Screen(e.Position),Math.Max(2,e.Radius*Scale*2),e.Angle,e.Kind,e.Color.W);
-        foreach(var e in frame.Projectiles)
-        {
-            renderer.Projectile(Screen(e.Position),new Vector2(e.Velocity.X,-e.Velocity.Y)*Scale,e.Radius*Scale,e.Kind,e.Angle);
-        }
-        int renderedShips=0;
-        foreach(var e in frame.Ships)
-        {
-            var p=Screen(e.Position);float r=Math.Max(2,e.Radius*Scale);
-            if(p.X < -r*3 || p.Y < -r*3 || p.X>w+r*3||p.Y>h+r*3)continue;
-            renderedShips++;
-            renderer.Line(Screen(e.Position-e.Velocity*.12f),p,Math.Max(1,r*.3f),new(.22f,.59f,1,.25f));
-            renderer.Ship(p,r,e.Angle,e.Kind,e.Team==0?Cyan:Red);
-            if(ShipCatalog.IsWeaponsPlatform((ShipClass)e.Kind))renderer.Gun(p,Math.Max(1.5f,r*.24f),e.Angle,0,e.Heat,e.Team==0?Cyan:Red,main:true);
-            if(e.Shield>.01f&&r>=3)renderer.Circle(p,r*1.35f,new(.4f,.7f,1,Math.Clamp(e.Shield,0,1)*.4f));
-            if(e.Heat>.65f)renderer.Circle(p,r*1.6f,new(1,.55f,.12f,Math.Clamp(e.Heat,0,1)*.7f));
-            if(e.Hull<.98f&&r>=3) {renderer.Rect(p.X-r,p.Y+r+3,r*2,2,new(.18f,.2f,.23f,1));renderer.Rect(p.X-r,p.Y+r+3,r*2*Math.Clamp(e.Hull,0,1),2,new(.45f,.95f,.5f,1));}
-            if(e.Serial==(spectator.Following?spectator.MainSerial:selected))DrawBrackets(p,Math.Max(2,r)*2.2f+8,White);
-            if(spectator.Following&&e.Serial==spectator.TargetSerial)DrawBrackets(p,Math.Max(2,r)*2.2f+8,new(1,.76f,.24f,1));
-        }
-        foreach(var turret in frame.Turrets)
-        {
-            var p=Screen(turret.Position);float r=Math.Max(1.4f,turret.Radius*Scale);
-            if(p.X < -r*4 || p.Y < -r*4 || p.X>w+r*4 || p.Y>h+r*4)continue;
-            renderer.Gun(p,r,turret.Angle,turret.Recoil,turret.Heat,turret.Team==0?Cyan:Red,(int)turret.Kind);
-        }
-        foreach(var e in frame.Particles)
-            if(WarpEffect.Foreground(e.Kind))
-                renderer.Particle(Screen(e.Position),Math.Max(2,e.Radius*Scale*2),e.Angle,e.Kind,e.Color.W);
+        var camera=new SceneCamera(w,h,Scale,center,h*.5f+30);
+        int renderedShips=BattleSceneRenderer.Draw(renderer,frame,camera,selected,
+            spectator.Following?spectator.MainSerial:-1,spectator.Following?spectator.TargetSerial:-1);
         CaptureColliders();
         if(collidersVisible)ColliderOverlay.Draw(renderer,colliders,Screen,Scale);
         var population=new TeamPopulation();battle.Store.ForEach<Identity,TeamPopulation>(ref population);
@@ -467,7 +446,8 @@ internal sealed class BattleApp : IDisposable
                 HeavyShots=frame.Counters.HeavyShots,TurretShots=frame.Counters.TurretShots,GameplayRevision=ArmamentRules.Revision,CountsValid=countsValid,StatisticsValid=statisticsValid,
                 WarpAtlas=renderer.HasWarpAtlas,config.EndlessReinforcements,ReinforcementRevision=WarpReinforcementRules.Revision,
                 FleetComposition=config.FleetComposition.ToString(),FleetRevision=FleetCompositionRules.Revision,
-                PhysicsRevision=PhysicsSettings.Revision,PhysicsSettings=config.Physics,
+                DeploymentRevision=config.Deployment==FleetDeployment.Tactical?FleetDeploymentRules.Revision:"legacy-random-v1",
+                PhysicsRevision=PhysicsSettings.Revision,PhysicsSettings=config.Physics,DamageRevision=DamageRules.Revision,DamageProfiles=config.Damage,TacticalRevision=TacticalRules.Revision,TacticsSettings=config.Tactics,SceneStyleRevision=BattleSceneRenderer.Revision,
                 Colliders=new {Enabled=collidersVisible,Count=colliders.Count,Ships=colliders.Count(c=>c.Kind==DebugColliderKind.Ship),Projectiles=colliders.Count(c=>c.Kind==DebugColliderKind.Projectile),Debris=colliders.Count(c=>c.Kind==DebugColliderKind.Debris),Disks=colliders.Count(c=>c.Shape==ProjectileShape.Disk),Rectangles=colliders.Count(c=>c.Shape==ProjectileShape.Rectangle)},
                 Observer=new {spectator.Following,spectator.ObservedSerial,spectator.MainSerial,spectator.TargetSerial,SelectedSerial=selected,Death=new {battle.ObservedDeath.Serial,battle.ObservedDeath.KillerSerial,battle.ObservedDeath.Tick,X=battle.ObservedDeath.Position.X,Y=battle.ObservedDeath.Position.Y}},
                 Camera=new {CenterX=center.X,CenterY=center.Y,Scale,Zoom=zoom,SafeViewport=new {Left=14,Top=140,Right=w-(statisticsVisible?392:14),Bottom=h-80},Main=spectator.Following?CameraShip(spectator.Main):null,Target=spectator.Target is { } cameraTarget?CameraShip(cameraTarget):null},

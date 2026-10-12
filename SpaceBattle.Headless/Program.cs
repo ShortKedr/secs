@@ -8,6 +8,24 @@ using SpaceBattle;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 try
 {
+    if (args.Contains("--validate-deployment")) { FleetDeploymentValidation.Run(); return 0; }
+    if (args.Contains("--validate-squads")) { SquadCompositionValidation.Run(); TacticalScoringValidation.Run(); return 0; }
+    if (args.Contains("--validate-legacy-tactics")) { Validation.LegacyTacticsChecks(); return 0; }
+    if (args.Contains("--validate-damage")) { WeaponDamageValidation.Run(); AiLocalityValidation.RunDamage(); return 0; }
+    if (args.Contains("--damage-study"))
+    {
+        var index = Array.IndexOf(args, "--output");
+        if (index < 0 || index + 1 >= args.Length) throw new ArgumentException("--damage-study requires --output inside Benchmarks.Local/tmp.");
+        var output = Path.GetFullPath(args[index + 1]);
+        var local = Path.GetFullPath("Benchmarks.Local/tmp").TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        if (!output.StartsWith(local, StringComparison.OrdinalIgnoreCase) || File.Exists(output))
+            throw new ArgumentException("Use a fresh output file in this project's Benchmarks.Local/tmp (run from the project root).");
+        var study = WeaponDamageValidation.CreateControlledStudy();
+        Directory.CreateDirectory(Path.GetDirectoryName(output)!);
+        File.WriteAllText(output, JsonSerializer.Serialize(study, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"Wrote {study.Revision}: {study.Results.Length} equal-base-DPS controlled layer comparisons to {output}");
+        return 0;
+    }
     if (args.Contains("--validate")) { Validation.Run(); return 0; }
     if (args.Contains("--validate-adapters")) { Console.WriteLine("PASS: " + string.Join(", ", AdapterValidation.RunAll())); return 0; }
     if (args.Contains("--validate-ports")) { Validation.ComparePorts(); return 0; }
@@ -123,6 +141,7 @@ internal static class Runner
                 MemoryScope = "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
                 Collision = "circle-kernel-v1; homogeneous disk ships; relative-motion analytic disk/rectangle projectile CCD",
                 GameplayRules = new { Revision = ArmamentRules.Revision, TacticalRevision = TacticalRules.Revision, PhysicsRevision = PhysicsSettings.Revision,
+                    DamageRevision = DamageRules.Revision, DamageProfiles = options.Config.Damage,
                     Armament = "independent attached cannon/plasma turrets; aligned hull heavy cannon with class-scaled damage and cooldown",
                     Ai = "kill-cost target leases, stable squads of 2-4, focus fire and wounded-ship screening",
                     TargetLockTicks = TacticalRules.MinimumTargetLockTicks, SwitchImprovement = TacticalRules.SwitchImprovement,

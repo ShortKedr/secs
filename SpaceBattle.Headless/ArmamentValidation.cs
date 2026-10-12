@@ -24,7 +24,7 @@ internal static partial class Validation
     private static void ArmamentCatalogChecks()
     {
         Require((int)WeaponKind.HeavyCannon == 4 && ArmamentRules.Revision == "mounted-armament-v7", "armament wire kind and revision");
-        Require(TacticalRules.Revision == "tactical-lock-v2", "armament preserves tactical revision");
+        Require(TacticalRules.Revision == "layered-squads-v3", "armament uses current tactical revision");
         foreach (var kind in Enum.GetValues<ShipClass>())
         {
             var (count, damage, cooldown) = kind switch
@@ -401,7 +401,7 @@ internal static partial class Validation
             {
                 battle.Store.Get<Transform>(parent).Angle = 0; battle.Step();
             }
-            Require(battle.Counters.Hits == 1 && MathF.Abs(before - battle.Store.Get<Hull>(target).Current - weapon.Damage) < 0.01f, kind + " heavy impact applies full unarmored power");
+            Require(battle.Counters.Hits == 1 && MathF.Abs(before - battle.Store.Get<Hull>(target).Current - weapon.Damage * 1.5f) < 0.01f, kind + " heavy impact applies specialized unarmored power");
             while (battle.Tick < deadline - 1)
             {
                 battle.Store.Get<Transform>(parent).Angle = 0; battle.Step();
@@ -512,7 +512,7 @@ internal static partial class Validation
             Require(battle.Store.Alive(target) != ShipCatalog.IsCarrier(kind), kind + " escort/carrier kill separation");
             if (battle.Store.Alive(target))
             {
-                var expected = 180 - ShipCatalog.Primary(kind).Damage * (1 - armor);
+                var expected = 180 - ShipCatalog.Primary(kind).Damage * 1.5f * (1 - armor);
                 Require(MathF.Abs(battle.Store.Get<Hull>(target).Current - expected) < 0.01f,
                     kind + " reduced heavy power still applies armored hull damage");
             }

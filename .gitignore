@@ -11,6 +11,7 @@ BenchmarkDotNet.Artifacts/
 
 # Temporary local research
 _other_ecs_benchmarks/
+/artifacts/
 
 # Local tooling and repeatable verification outputs, never dependency sources
 .dotnet/

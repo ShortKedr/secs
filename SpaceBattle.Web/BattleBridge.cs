@@ -54,6 +54,7 @@ public static unsafe partial class BattleBridge
                 EndlessReinforcements = true,
                 ReplenishCarriers = false,
                 FleetComposition = FleetComposition.LightSwarm,
+                Deployment = FleetDeployment.Tactical,
                 Physics = new PhysicsSettings { CollectTimings = collectTimings },
                 ChurnMultiplier = requested == 0 ? 0.5f : requested == 1 ? 1f : 2f
             });
@@ -83,8 +84,30 @@ public static unsafe partial class BattleBridge
     public static string Checksum() => Current.Checksum().ToString("X16");
 
     [JSExport]
+    public static string BrowserContract() => "png-assets-v1";
+
+    // Bounded diagnostic Step only; no snapshot/export and no alternate game rules.
+    [JSExport]
+    public static double DiagnosticStep(int ticks)
+    {
+        if (ticks is < 0 or > 120) throw new ArgumentOutOfRangeException(nameof(ticks));
+        var started = Stopwatch.GetTimestamp();
+        var current = Current;
+        for (int i = 0; i < ticks; i++)
+        {
+            current.Step();
+            statistics.RecordTick(current.LastTickMs, current.LastStageMs);
+        }
+        return Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+    }
+
+    [JSExport]
     public static string FleetRevision() => Current.Config.FleetComposition == FleetComposition.LightSwarm
         ? FleetCompositionRules.Revision : "uniform-v1";
+
+    [JSExport]
+    public static string DeploymentRevision() => Current.Config.Deployment == FleetDeployment.Tactical
+        ? FleetDeploymentRules.Revision : "legacy-random-v1";
 
     [JSExport]
     public static string PhysicsRevision() => PhysicsSettings.Revision;
@@ -111,6 +134,31 @@ public static unsafe partial class BattleBridge
 
     [JSExport]
     public static string Revision() => ArmamentRules.Revision;
+
+    [JSExport]
+    public static string DamageRevision() => DamageRules.Revision;
+    [JSExport]
+    public static string TacticalRevision() => TacticalRules.Revision;
+    [JSExport]
+    public static double DiagnosticTactics(int field)
+    {
+        var counters = Current.Tactics;
+        return field switch { 0 => counters.GroupChanges, 1 => counters.FormationReviews,
+            2 => counters.CompatibilityChecks, 3 => counters.ScoreEvaluations, 4 => counters.SpatialWork,
+            5 => counters.BudgetFallbacks, 6 => counters.IntentProjectiles,
+            _ => throw new ArgumentOutOfRangeException(nameof(field)) };
+    }
+
+    // On-demand layer inspection; never called by Step or rendering.
+    [JSExport]
+    public static double DiagnosticWeaponDamage(double amount, double shield, double armor, int weapon, int field)
+    {
+        var profile = DamageRules.ForWeapon((WeaponKind)weapon, Current.Config.Damage);
+        var damage = DamageRules.Resolve((float)amount, (float)shield, (float)armor, profile);
+        return field switch { 0 => damage.Shield, 1 => damage.Hull,
+            2 => damage.Shield * profile.ShieldHeatPerDamage, 3 => damage.RemainingBase,
+            _ => throw new ArgumentOutOfRangeException(nameof(field)) };
+    }
 
     [JSExport]
     public static double Reinforcement(int team, int field)
@@ -185,7 +233,7 @@ public static unsafe partial class BattleBridge
         return field switch
         {
             0 => (int)brain.Mode, 1 => Serial(brain.Target), 2 => Serial(brain.SquadLeader),
-            3 => Serial(brain.CoverAlly), 4 => brain.TargetLockUntilTick,
+            3 => Serial(brain.CoverAlly), 4 => brain.TargetLockUntilTick, 5 => brain.SquadSize,
             _ => throw new ArgumentOutOfRangeException(nameof(field))
         };
         static int Serial(EntityKey e) => Current.Store.Alive(e) && Current.Store.Has<Identity>(e)
@@ -202,11 +250,7 @@ public static unsafe partial class BattleBridge
     [JSExport]
     public static string Mode()
     {
-#if WEB_CORECLR_R2R
-        return "coreclr-r2r-binary";
-#elif WEB_CORECLR_INTERPRETER
-        return "coreclr-interpreter-binary";
-#elif WEB_INTERPRETER
+#if WEB_INTERPRETER
         return "interpreter-binary";
 #else
         return "aot-binary";
