@@ -1,7 +1,7 @@
 English | [Русский](README.ru.md)
 
 <p align="center">
-  <img src="docs/branding/shortkedr-ecs-emblem.png" width="200" alt="ShortKedr ECS — squirrel and cedar cone emblem">
+  <img src="docs/branding/logo/shortkedr-ecs-200.png" width="200" height="200" alt="ShortKedr ECS — squirrel and cedar cone emblem">
 </p>
 
 # SECS Library

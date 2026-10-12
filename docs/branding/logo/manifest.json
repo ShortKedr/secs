@@ -1,0 +1,118 @@
+{
+  "source": "../shortkedr-ecs-emblem.png",
+  "sourceWidth": 1254,
+  "sourceHeight": 1254,
+  "sourceSha256": "bb61323caf6868d63de1b54b4941e8f2cbc0a088244b82cfe1e3a6fe71f695f6",
+  "displaySize": 200,
+  "method": "Lanczos3 resampling of original transparent PNG; no redraw, crop or palette change",
+  "files": [
+    {
+      "file": "shortkedr-ecs-16.png",
+      "width": 16,
+      "height": 16,
+      "bytes": 887,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "17a733b4bb213368fbd5de71b7b3fe947d3147039458be31c0544353b74dfb57"
+    },
+    {
+      "file": "shortkedr-ecs-24.png",
+      "width": 24,
+      "height": 24,
+      "bytes": 1570,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "fcfc12513952b1cc0cad79411381196afdbebae9bc2afa85d0c3b24b990111f6"
+    },
+    {
+      "file": "shortkedr-ecs-32.png",
+      "width": 32,
+      "height": 32,
+      "bytes": 2422,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "78d3a461e108a29e975dd5ff759d8183196957c85221a3d4b1b51f0c031edfcb"
+    },
+    {
+      "file": "shortkedr-ecs-48.png",
+      "width": 48,
+      "height": 48,
+      "bytes": 4547,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "7ad3e3db1d88fe9831431d7af5e83586e7b1e09c0f4154dced0cd45cc0f44f5a"
+    },
+    {
+      "file": "shortkedr-ecs-64.png",
+      "width": 64,
+      "height": 64,
+      "bytes": 7185,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "0d9ca14c2fa2d8d1c6793b03e1817e16de52a30e2ac1aa2c657acfa5a9597e40"
+    },
+    {
+      "file": "shortkedr-ecs-96.png",
+      "width": 96,
+      "height": 96,
+      "bytes": 13942,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "d0e7c3027a56bdd9efdefef39bba9eb0c4dc96a809a537db5c30920498567054"
+    },
+    {
+      "file": "shortkedr-ecs-128.png",
+      "width": 128,
+      "height": 128,
+      "bytes": 22580,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "b7a2169ddab2246dcaddff7f2ac4d5f8d6f6897d644f7c475ab4df1991e089bc"
+    },
+    {
+      "file": "shortkedr-ecs-200.png",
+      "width": 200,
+      "height": 200,
+      "bytes": 46850,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "d3e5d7344f05d3a6c6c24fbb6dc19d4ea22d9173628ac66c2b3bf26ef057abe0"
+    },
+    {
+      "file": "shortkedr-ecs-256.png",
+      "width": 256,
+      "height": 256,
+      "bytes": 71354,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "e2e1edcc13b7ef128b07b153b148abd11d2d93921824b57c597ec7ac5edc7e0b"
+    },
+    {
+      "file": "shortkedr-ecs-400.png",
+      "width": 400,
+      "height": 400,
+      "bytes": 151704,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "cd13eb1e1aa7ceb34e3195b84029c88c3ac3408b55f6411d8ddc300a9421322e"
+    },
+    {
+      "file": "shortkedr-ecs-512.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 235904,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "ef58c857aa573abc203b73230bf17ec6c2a0beef73e0857d65287a5b27f48d76"
+    },
+    {
+      "file": "shortkedr-ecs-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 842556,
+      "alphaMin": 0,
+      "alphaMax": 255,
+      "sha256": "a365930427d679c0a38372b81b874d7a5619641b16d04720ba3d59cc82ead987"
+    }
+  ]
+}

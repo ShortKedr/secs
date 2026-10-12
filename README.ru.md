@@ -1,7 +1,7 @@
 [English](README.md) | Русский
 
 <p align="center">
-  <img src="docs/branding/shortkedr-ecs-emblem.png" width="200" alt="ShortKedr ECS — белка как продолжение кедровой шишки">
+  <img src="docs/branding/logo/shortkedr-ecs-200.png" width="200" height="200" alt="ShortKedr ECS — белка как продолжение кедровой шишки">
 </p>
 
 # Библиотека SECS
