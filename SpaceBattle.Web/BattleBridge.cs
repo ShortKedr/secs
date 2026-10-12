@@ -15,12 +15,24 @@ public static unsafe partial class BattleBridge
     private static readonly BattleFrame frame = new();
     private static double* buffer;
     private static int capacity;
+    private const int ColliderHeaderValues = 4, ColliderRowValues = 9;
+    private static readonly List<DebugCollider> colliders = new();
+    private static double* colliderBuffer;
+    private static int colliderCapacity;
+    private static bool colliderDebug;
     private static int profile;
     private static readonly SimulationStatistics statistics = new(Battle<SecsStore>.StageNames.Length);
     private static long nextStatisticsRefresh;
 
     [JSExport]
     public static int Reset(string requestedProfile, double seed)
+        => ResetCore(requestedProfile, seed, false);
+
+    [JSExport]
+    public static int ResetPhysicsProfile(string requestedProfile, double seed, bool collectTimings)
+        => ResetCore(requestedProfile, seed, collectTimings);
+
+    private static int ResetCore(string requestedProfile, double seed, bool collectTimings)
     {
         if (!double.IsFinite(seed) || seed != Math.Truncate(seed) || seed < 0 || seed > uint.MaxValue)
             throw new ArgumentOutOfRangeException(nameof(seed));
@@ -41,6 +53,8 @@ public static unsafe partial class BattleBridge
                 Seed = (uint)seed,
                 EndlessReinforcements = true,
                 ReplenishCarriers = false,
+                FleetComposition = FleetComposition.LightSwarm,
+                Physics = new PhysicsSettings { CollectTimings = collectTimings },
                 ChurnMultiplier = requested == 0 ? 0.5f : requested == 1 ? 1f : 2f
             });
         }
@@ -67,6 +81,33 @@ public static unsafe partial class BattleBridge
 
     [JSExport]
     public static string Checksum() => Current.Checksum().ToString("X16");
+
+    [JSExport]
+    public static string FleetRevision() => Current.Config.FleetComposition == FleetComposition.LightSwarm
+        ? FleetCompositionRules.Revision : "uniform-v1";
+
+    [JSExport]
+    public static string PhysicsRevision() => PhysicsSettings.Revision;
+
+    [JSExport]
+    public static int DebugColliders(bool enabled)
+    {
+        colliderDebug = enabled;
+        if (!enabled) colliders.Clear();
+        return Snapshot();
+    }
+
+    // Snapshot prepares this optional buffer before publishing any heap views to JavaScript.
+    [JSExport]
+    public static int ColliderSnapshot() => colliderDebug ? checked((int)(nint)colliderBuffer) : 0;
+
+    [JSExport]
+    public static double PhysicsTiming(int field)
+    {
+        var time = Current.PhysicsTimings;
+        return field switch { 0 => time.ContactCandidatesMs, 1 => time.SolverMs, 2 => time.HitCandidatesMs,
+            3 => time.HitNarrowMs, _ => throw new ArgumentOutOfRangeException(nameof(field)) };
+    }
 
     [JSExport]
     public static string Revision() => ArmamentRules.Revision;
@@ -101,6 +142,33 @@ public static unsafe partial class BattleBridge
     }
 
     // On-demand diagnostics do not enlarge the per-frame rendering buffer.
+    [JSExport]
+    public static void ObserveShip(int serial) => Current.ObserveShip(serial);
+
+    [JSExport]
+    public static double ShipObservation(int serial, int field)
+    {
+        if (!Current.TryGetShipObservation(serial, out var ship)) return field == 0 ? 0 : -1;
+        return field switch
+        {
+            0 => 1, 1 => ship.TargetSerial, 2 => ship.DockCarrierSerial,
+            3 => ship.Position.X, 4 => ship.Position.Y, 5 => ship.Radius,
+            6 => ship.Team, 7 => ship.Kind, 8 => ship.Hull, 9 => ship.Shield, 10 => ship.Heat,
+            _ => throw new ArgumentOutOfRangeException(nameof(field))
+        };
+    }
+
+    [JSExport]
+    public static double ObservedDeath(int field)
+    {
+        var death = Current.ObservedDeath;
+        return field switch
+        {
+            0 => death.Serial, 1 => death.KillerSerial, 2 => death.Position.X, 3 => death.Position.Y,
+            4 => death.Tick, _ => throw new ArgumentOutOfRangeException(nameof(field))
+        };
+    }
+
     [JSExport]
     public static double TacticCounter(int field) => field switch
     {
@@ -151,6 +219,7 @@ public static unsafe partial class BattleBridge
         var started = Stopwatch.GetTimestamp();
         var current = Current;
         current.Capture(frame, refreshEntities: false);
+        if (colliderDebug) CaptureColliders(current);
         int rows = frame.Ships.Count + frame.Projectiles.Count + frame.Debris.Count + frame.Particles.Count + frame.Turrets.Count;
         EnsureCapacity(rows);
         buffer[0] = 3;
@@ -221,7 +290,8 @@ public static unsafe partial class BattleBridge
         buffer[69] = current.Reinforcement(0).PendingShips + current.Reinforcement(1).PendingShips;
         buffer[70] = current.TeamShipCount(0);
         buffer[71] = current.TeamShipCount(1);
-        for (int i = 72; i < HeaderValues; i++) buffer[i] = 0;
+        buffer[72] = (int)current.Config.FleetComposition;
+        for (int i = 73; i < HeaderValues; i++) buffer[i] = 0;
         double* destination = buffer + HeaderValues;
         CopyRows(frame.Ships, ref destination);
         CopyRows(frame.Projectiles, ref destination);
@@ -251,6 +321,32 @@ public static unsafe partial class BattleBridge
     }
 
     private static Battle<SecsStore> Current => battle ?? throw new InvalidOperationException("Reset the battle first.");
+
+    private static void CaptureColliders(Battle<SecsStore> current)
+    {
+        current.CaptureColliders(colliders, refreshEntities: false);
+        if (colliderBuffer == null || colliders.Count > colliderCapacity)
+        {
+            int next = Math.Max(colliders.Count, Math.Max(256, colliderCapacity * 2));
+            var replacement = (double*)NativeMemory.Alloc((nuint)((ColliderHeaderValues + next * ColliderRowValues) * sizeof(double)));
+            if (replacement == null) throw new OutOfMemoryException();
+            NativeMemory.Free(colliderBuffer);
+            colliderBuffer = replacement;
+            colliderCapacity = next;
+        }
+        colliderBuffer[0] = 1;
+        colliderBuffer[1] = colliders.Count;
+        colliderBuffer[2] = ColliderRowValues;
+        colliderBuffer[3] = (ColliderHeaderValues + colliders.Count * ColliderRowValues) * sizeof(double);
+        double* destination = colliderBuffer + ColliderHeaderValues;
+        foreach (var c in colliders)
+        {
+            destination[0] = c.Serial; destination[1] = (int)c.Kind; destination[2] = (int)c.Shape;
+            destination[3] = c.Position.X; destination[4] = c.Position.Y; destination[5] = c.Angle;
+            destination[6] = c.Radius; destination[7] = c.HalfExtents.X; destination[8] = c.HalfExtents.Y;
+            destination += ColliderRowValues;
+        }
+    }
 
     private static void EnsureCapacity(int rows)
     {

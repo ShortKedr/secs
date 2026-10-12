@@ -237,9 +237,9 @@ internal sealed unsafe class Renderer : IDisposable
     public void Begin(int w, int h) { width = w; height = h; vertices.Clear(); gl.Viewport(0, 0, (uint)w, (uint)h); gl.ClearColor(.012f, .02f, .035f, 1); gl.Clear(ClearBufferMask.ColorBufferBit); }
     private void Add(Vector2 p, Vector4 c, Vector2 uv) => vertices.Add(new(new(p.X / width * 2 - 1, 1 - p.Y / height * 2), uv, c));
     public void Triangle(Vector2 a, Vector2 b, Vector2 c, Vector4 color) { var uv = new Vector2(-1); Add(a, color, uv); Add(b, color, uv); Add(c, color, uv); }
-    public void Line(Vector2 a, Vector2 b, float thickness, Vector4 color)
+    public void Line(Vector2 a, Vector2 b, float thickness, Vector4 color, bool preserveSmallSegments = false)
     {
-        var d = b - a; if (d.LengthSquared() < .001f) return;
+        var d = b - a; if (preserveSmallSegments ? d.LengthSquared() == 0 : d.LengthSquared() < .001f) return;
         var n = Vector2.Normalize(new Vector2(-d.Y, d.X)) * thickness * .5f;
         Triangle(a - n, a + n, b + n, color); Triangle(a - n, b + n, b - n, color);
     }
@@ -345,4 +345,53 @@ internal sealed unsafe class Renderer : IDisposable
     }
     public byte[] ReadPixels() { var pixels=new byte[width*height*4]; gl.Finish(); fixed(byte* p=pixels) gl.ReadPixels(0,0,(uint)width,(uint)height,PixelFormat.Rgba,PixelType.UnsignedByte,p); return pixels; }
     public void Dispose() { gl.DeleteBuffer(buffer); gl.DeleteVertexArray(vao); gl.DeleteProgram(program); gl.DeleteTexture(texture); }
+}
+
+internal static class ColliderOverlay
+{
+    private static Vector2 RectangleCorner(DebugCollider collider, int corner)
+    {
+        var local = new Vector2(corner is 0 or 3 ? -collider.HalfExtents.X : collider.HalfExtents.X,
+            corner < 2 ? -collider.HalfExtents.Y : collider.HalfExtents.Y);
+        float c = MathF.Cos(collider.Angle), s = MathF.Sin(collider.Angle);
+        return collider.Position + new Vector2(local.X*c-local.Y*s,local.X*s+local.Y*c);
+    }
+
+    public static void Draw(Renderer renderer, List<DebugCollider> colliders, Func<Vector2, Vector2> screen, float scale)
+    {
+        foreach(var collider in colliders)
+        {
+            var color = collider.Kind switch
+            {
+                DebugColliderKind.Ship => new Vector4(.25f,1,.4f,1),
+                DebugColliderKind.Projectile => new Vector4(1,.2f,.85f,1),
+                _ => new Vector4(.55f,.8f,.85f,1)
+            };
+            if(collider.Shape==ProjectileShape.Rectangle)
+            {
+                for(int i=0;i<4;i++)
+                    renderer.Line(screen(RectangleCorner(collider,i)),screen(RectangleCorner(collider,(i+1)%4)),1,color,true);
+            }
+            else
+            {
+                // Only tessellation varies with zoom; collider dimensions are never inflated.
+                int segments=(int)Math.Clamp(MathF.Ceiling(collider.Radius*scale),32,192);
+                for(int i=0;i<segments;i++)
+                {
+                    float a=i*MathF.Tau/segments,b=(i+1)*MathF.Tau/segments;
+                    renderer.Line(screen(collider.Position+new Vector2(MathF.Cos(a),MathF.Sin(a))*collider.Radius),
+                        screen(collider.Position+new Vector2(MathF.Cos(b),MathF.Sin(b))*collider.Radius),1,color,true);
+                }
+            }
+        }
+    }
+
+    public static void ValidateGeometry()
+    {
+        var collider=new DebugCollider(1,DebugColliderKind.Projectile,ProjectileShape.Rectangle,new(10,20),MathF.PI/2,.25f,new(2,.25f));
+        Vector2[] expected=[new(10.25f,18),new(10.25f,22),new(9.75f,22),new(9.75f,18)];
+        for(int i=0;i<4;i++)
+            if(Vector2.Distance(RectangleCorner(collider,i),expected[i])>.00001f)
+                throw new InvalidOperationException("Collider geometry validation failed: rotated rectangle half-extents.");
+    }
 }

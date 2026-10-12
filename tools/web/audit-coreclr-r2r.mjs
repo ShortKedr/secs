@@ -49,7 +49,9 @@ const hotExports = [
   ["SpaceBattle.Core", "__UpdateTurrets"],
   ["SpaceBattle.SECS", "SecsStore__ForEach"],
   ["SECS", "ForEach"],
-  ["Aether.Physics2D", "World__Step"],
+  ["SpaceBattle.Core", "PhysicsService__SolveVelocities"],
+  ["SpaceBattle.Core", "CircleSweepMath__TryCircleRelative"],
+  ["SpaceBattle.Core", "CircleSweepMath__TryRectangleRelative"],
 ];
 
 export function checkHotExports(inventory) {

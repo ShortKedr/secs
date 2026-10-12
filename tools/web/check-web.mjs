@@ -82,9 +82,10 @@ try {
     waitUntil: "networkidle",
     timeout: 120000,
   });
-  await page.waitForFunction(() => window.spaceBattle?.ready, null, {
+  await page.waitForFunction(() => window.spaceBattle?.ready || !document.querySelector("#retry").hidden, null, {
     timeout: 120000,
   });
+  assert.ok(await page.evaluate(() => window.spaceBattle?.ready), await page.locator("#load-detail").textContent());
   const state = () =>
     page.evaluate(() => JSON.parse(window.render_game_to_text()));
   async function checkEntities() {
@@ -132,6 +133,16 @@ try {
   assert.equal(initial.revision, "mounted-armament-v7");
   assert.equal(initial.tick, 0);
   assert.equal(initial.counts.ships, 198);
+  assert.equal(initial.fleetRevision, "light-swarm-v1");
+  assert.equal(initial.fleetComposition, "light-swarm");
+  assert.equal(initial.physicsRevision, "circle-kernel-v1");
+  const initialClasses = await page.evaluate(() => [0, 1].map(team => {
+    const counts = Array(11).fill(0);
+    for (const row of window.spaceBattle.snapshot.ships) if (row[1] === team) counts[row[2]]++;
+    return counts;
+  }));
+  for (const counts of initialClasses) assert.deepEqual(counts, [54, 18, 6, 6, 6, 2, 2, 2, 1, 1, 1]);
+  assert.equal(initial.counts.turrets, 52, "Rare frigates/destroyers reduce mounted-entity pressure");
   assert.equal(initial.paused, true);
   assert.ok(initial.counts.turrets > 0);
   await checkEntities();
@@ -385,7 +396,13 @@ try {
   assert.equal((await state()).following, true);
   await page.evaluate(() => window.advanceTime(500));
   const tracked = await state();
-  assert.ok(Math.abs(tracked.camera.x - tracked.ships[0].x) < 0.001);
+  assert.equal(tracked.observation.main.serial, ship.serial);
+  assert.ok(tracked.observation.viewport && tracked.camera.zoom > 0);
+  const trackedMain = tracked.observation.main;
+  const trackedScreen = { x: tracked.camera.width / 2 + (trackedMain.x - tracked.camera.x) * tracked.camera.scale,
+    y: tracked.camera.originY - (trackedMain.y - tracked.camera.y) * tracked.camera.scale };
+  assert.ok(trackedScreen.x > tracked.observation.viewport.left && trackedScreen.x < tracked.observation.viewport.right &&
+    trackedScreen.y > tracked.observation.viewport.top && trackedScreen.y < tracked.observation.viewport.bottom, "observed ship stays in safe frame");
   await page.click("#deselect");
   assert.equal((await state()).selected, null);
   const zoom = (await state()).camera.zoom;

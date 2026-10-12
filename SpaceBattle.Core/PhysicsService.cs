@@ -1,379 +1,391 @@
+using System.Diagnostics;
 using System.Numerics;
-using nkast.Aether.Physics2D.Collision;
-using nkast.Aether.Physics2D.Dynamics;
-using nkast.Aether.Physics2D.Dynamics.Contacts;
-using PhysicsVector = nkast.Aether.Physics2D.Common.Vector2;
 
 namespace SpaceBattle;
 
 public readonly record struct CollisionEvent(int FirstSerial, int SecondSerial, float RelativeSpeed, Vector2 Position);
 
-/// <summary>Single-threaded ship physics; public distances and speeds use game units.</summary>
+/// <summary>Circle ship dynamics and analytic projectile CCD in game units, shared by every host.</summary>
 public sealed class PhysicsService : IDisposable
 {
-    private const float Scale = 0.1f;
-    private const float InverseScale = 10f;
-    private const float PointQueryEpsilon = 0.0001f;
-    private readonly World world;
+    private sealed class ShipBody(int serial, Transform transform, float radius, float mass, float inertia)
+    {
+        public readonly int Serial = serial;
+        public readonly float Radius = radius, Mass = mass, Inertia = inertia;
+        public readonly float InverseMass = 1 / mass, InverseInertia = 1 / inertia;
+        public Vector2 Position = transform.Position, Velocity;
+        public float Angle = transform.Angle, AngularVelocity;
+        public bool Enabled = true;
+        public readonly Vector2[] Path = new Vector2[9];
+        public int PathSegments;
+    }
+    private struct Constraint
+    {
+        public int First, Second;
+        public Vector2 Normal, FirstArm, SecondArm;
+        public float Bias, NormalImpulse, TangentImpulse;
+    }
+    private sealed class SerialComparer(PhysicsService owner) : IComparer<int>
+    {
+        public int Compare(int a, int b) => owner.ships[a]!.Serial.CompareTo(owner.ships[b]!.Serial);
+    }
     private readonly List<ShipBody?> ships = new();
     private readonly Stack<int> freeIds = new();
+    private readonly List<int> active = new(), candidates = new();
+    private readonly List<Constraint> constraints = new();
+    private readonly SpatialBoundsIndex grid = new();
     private readonly List<CollisionEvent> contacts = new();
-    private readonly HashSet<ulong> contactPairs = new();
-    private readonly RayCastReportFixtureDelegate rayCallback;
-    private readonly QueryReportFixtureDelegate overlapCallback;
-    private readonly QueryReportFixtureDelegate candidateCallback;
-    private readonly QueryReportFixtureDelegate placementCallback;
-    private PhysicsVector placementPoint;
-    private float placementRadius, maximumShipRadius;
-    private bool placementBlocked;
     private readonly IReadOnlyList<CollisionEvent> contactView;
-    private bool disposed;
-    private int fixtureCount;
-    private int sweepSerial, sweepIgnoredSerial;
-    private float sweepFraction;
-    private PhysicsVector sweepPoint, sweepStart;
-    private bool sweepHasCandidate;
-    private long sweepQueries, emptySweeps, rayQueries, pointQueries;
+    private readonly SerialComparer comparer;
+    private readonly Comparison<int> compareSerial;
+    private readonly HashSet<int> liveSerials = new();
+    private HashSet<ulong> previousPairs = new(), currentPairs = new();
+    private readonly HashSet<ulong> constraintPairs = new();
+    private bool disposed, membershipDirty = true, gridDirty = true;
+    private int sweepSegments = 1;
+    private long sweeps, emptySweeps, hitCandidates, narrowTests;
+    private double contactCandidatesMs, solverMs, hitCandidatesMs, hitNarrowMs;
 
-    private sealed class ShipBody(Body body, int id, int serial, float radius)
+    public PhysicsSettings Settings { get; }
+    public PhysicsService(PhysicsSettings? settings = null)
     {
-        public readonly Body Body = body;
-        public readonly int Id = id, Serial = serial;
-        public readonly float Radius = radius;
+        Settings = settings ?? new(); Settings.Validate();
+        comparer = new(this); compareSerial = comparer.Compare; contactView = contacts.AsReadOnly();
     }
-
-    private sealed class ContactComparer : IComparer<CollisionEvent>
-    {
-        public static readonly ContactComparer Instance = new();
-        public int Compare(CollisionEvent first, CollisionEvent second)
-        {
-            int order = first.FirstSerial.CompareTo(second.FirstSerial);
-            return order != 0 ? order : first.SecondSerial.CompareTo(second.SecondSerial);
-        }
-    }
-
-    public PhysicsService()
-    {
-        world = new World(PhysicsVector.Zero);
-        world.ContactManager.BeginContact += BeginContact;
-        rayCallback = RayHit;
-        overlapCallback = StartOverlap;
-        candidateCallback = SweepCandidate;
-        placementCallback = PlacementOverlap;
-        contactView = contacts.AsReadOnly();
-    }
-
-    /// <summary>Live view of unique begin contacts, ordered by canonical serial pair after each step.</summary>
     public IReadOnlyList<CollisionEvent> Contacts => contactView;
     public int Bodies { get; private set; }
-    /// <summary>Includes fixtures owned by disabled (docked) ships.</summary>
-    public int Fixtures => fixtureCount;
-    public PhysicsQueryStatistics QueryStatistics => new(sweepQueries, emptySweeps, rayQueries, pointQueries);
+    public int Fixtures => Bodies;
+    public PhysicsQueryStatistics QueryStatistics => new(sweeps, emptySweeps, 0, 0, hitCandidates, narrowTests);
+    public PhysicsTimingStatistics Timings => new(contactCandidatesMs, solverMs, hitCandidatesMs, hitNarrowMs);
 
-    /// <summary>
-    /// Returns a reusable body slot; callers must discard its handle when removing the ship.
-    /// Bodies and fixtures are created in call order, so callers should use canonical spawn order.
-    /// </summary>
     public int AddShip(int serial, Transform transform, Collider collider)
     {
-        ThrowIfDisposed();
-        ValidateTransform(in transform);
-        if (!float.IsFinite(collider.Radius) || collider.Radius <= 0 ||
-            !float.IsFinite(collider.Mass) || collider.Mass <= 0)
+        ThrowIfDisposed(); ValidateTransform(transform);
+        var inertia = (float)(0.5 * collider.Mass * collider.Radius * collider.Radius);
+        if (!float.IsFinite(collider.Radius) || collider.Radius <= 0 || !float.IsFinite(collider.Mass) || collider.Mass <= 0 ||
+            !float.IsFinite(inertia) || inertia <= 0 || !float.IsFinite(1 / collider.Mass) || !float.IsFinite(1 / inertia))
             throw new ArgumentOutOfRangeException(nameof(collider));
-
-        var body = world.CreateBody(ToPhysics(transform.Position), transform.Angle, BodyType.Dynamic);
-        body.LinearDamping = 0;
-        body.AngularDamping = 0;
-        var id = freeIds.Count > 0 ? freeIds.Peek() : ships.Count;
-        var ship = new ShipBody(body, id, serial, collider.Radius * Scale);
-        maximumShipRadius = Math.Max(maximumShipRadius, ship.Radius);
-        body.Tag = ship;
-        float r = collider.Radius * Scale;
-        int count = collider.ShapeCount <= 1 ? 1 : Math.Clamp(collider.ShapeCount, 4, 6);
-        if (count == 1)
-        {
-            body.CreateCircle(r, collider.Mass / (MathF.PI * r * r));
-        }
-        else
-        {
-            // Fuselage, two wings, rounded core, then optional bow/stern caps.
-            // Aether sums fixture masses, including overlapping fixture area.
-            float area = r * r * (1.6f * 0.55f + 2 * 0.75f * 0.42f + MathF.PI * 0.7f * 0.7f
-                + (count - 4) * MathF.PI * 0.23f * 0.23f);
-            float density = collider.Mass / area;
-            body.CreateRectangle(1.6f * r, 0.55f * r, density, PhysicsVector.Zero);
-            body.CreateRectangle(0.75f * r, 0.42f * r, density, new PhysicsVector(-0.15f * r, 0.48f * r));
-            body.CreateRectangle(0.75f * r, 0.42f * r, density, new PhysicsVector(-0.15f * r, -0.48f * r));
-            body.CreateCircle(0.7f * r, density);
-            if (count >= 5) body.CreateCircle(0.23f * r, density, new PhysicsVector(0.72f * r, 0));
-            if (count >= 6) body.CreateCircle(0.23f * r, density, new PhysicsVector(-0.72f * r, 0));
-        }
-        foreach (var fixture in body.FixtureList)
-        {
-            fixture.Friction = 0;
-            fixture.Restitution = 0.1f;
-        }
-        if (id == ships.Count) ships.Add(ship);
-        else
-        {
-            freeIds.Pop();
-            ships[id] = ship;
-        }
-        Bodies++;
-        fixtureCount += count;
+        if (!liveSerials.Add(serial)) throw new ArgumentException("Duplicate live ship serial.", nameof(serial));
+        var body = new ShipBody(serial, transform, collider.Radius, collider.Mass, inertia);
+        body.Path[0] = transform.Position;
+        var id = freeIds.Count > 0 ? freeIds.Pop() : ships.Count;
+        if (id == ships.Count) ships.Add(body); else ships[id] = body;
+        Bodies++; membershipDirty = gridDirty = true;
+        grid.Reserve(ships.Count);
+        active.EnsureCapacity(ships.Count); candidates.EnsureCapacity(ships.Count);
+        var pairCapacity = (int)Math.Min((long)ships.Count * (ships.Count - 1) / 2, Settings.MaximumContactPairs);
+        constraints.EnsureCapacity(pairCapacity); contacts.EnsureCapacity(pairCapacity);
+        previousPairs.EnsureCapacity(pairCapacity); currentPairs.EnsureCapacity(pairCapacity);
+        constraintPairs.EnsureCapacity(pairCapacity);
         return id;
     }
-
     public void RemoveShip(int body)
     {
         ThrowIfDisposed();
         if ((uint)body >= (uint)ships.Count) throw new ArgumentOutOfRangeException(nameof(body));
-        var ship = ships[body];
-        if (ship is null) return;
-        fixtureCount -= ship.Body.FixtureList.Count;
-        world.Remove(ship.Body);
-        ship.Body.Tag = null;
-        ships[body] = null;
-        freeIds.Push(body);
-        Bodies--;
+        if (ships[body] is not { } ship) return;
+        liveSerials.Remove(ship.Serial); ships[body] = null; freeIds.Push(body); Bodies--;
+        membershipDirty = gridDirty = true;
     }
-
     public void SetShip(int body, in Transform transform, in Motion motion, bool enabled)
     {
-        var ship = GetBody(body);
-        ValidateTransform(in transform);
+        var ship = GetBody(body); ValidateTransform(transform);
         if (!Finite(motion.Velocity) || !float.IsFinite(motion.AngularVelocity))
             throw new ArgumentOutOfRangeException(nameof(motion));
-        if (!enabled) ship.Enabled = false;
-        var position = ToPhysics(transform.Position);
-        if (ship.Position != position || ship.Rotation != transform.Angle)
-            ship.SetTransform(position, transform.Angle);
-        ship.LinearVelocity = ToPhysics(motion.Velocity);
-        ship.AngularVelocity = motion.AngularVelocity;
-        ship.Enabled = enabled;
-        if (enabled) ship.Awake = true;
+        ship.Position = transform.Position; ship.Angle = transform.Angle;
+        ship.Velocity = motion.Velocity; ship.AngularVelocity = motion.AngularVelocity; ship.Enabled = enabled;
+        ship.Path[0] = ship.Position; ship.PathSegments = 0;
+        gridDirty = true;
     }
-
     public (Vector2 Position, float Angle, Vector2 Velocity, float AngularVelocity) GetShip(int body)
     {
         var ship = GetBody(body);
-        return (FromPhysics(ship.Position), ship.Rotation, FromPhysics(ship.LinearVelocity), ship.AngularVelocity);
+        return (ship.Position, ship.Angle, ship.Velocity, ship.AngularVelocity);
     }
-
+    public (float Mass, float Inertia) GetMassProperties(int body)
+    {
+        var ship = GetBody(body); return (ship.Mass, ship.Inertia);
+    }
     public void Step(float dt)
     {
         ThrowIfDisposed();
         if (!float.IsFinite(dt) || dt < 0) throw new ArgumentOutOfRangeException(nameof(dt));
-        contacts.Clear();
-        contactPairs.Clear();
-        sweepQueries = emptySweeps = rayQueries = pointQueries = 0;
-        if (dt > 0) world.Step(dt);
-        contacts.Sort(ContactComparer.Instance);
+        contacts.Clear(); sweeps = emptySweeps = hitCandidates = narrowTests = 0;
+        contactCandidatesMs = solverMs = hitCandidatesMs = hitNarrowMs = 0;
+        EnsureActive();
+        float travel = 0;
+        foreach (var id in active)
+        {
+            var body = ships[id]!;
+            body.Path[0] = body.Position; body.PathSegments = 0;
+            if (body.Enabled) travel = Math.Max(travel, body.Velocity.Length() * dt / body.Radius);
+        }
+        if (dt == 0) { sweepSegments = 1; gridDirty = true; return; }
+        (previousPairs, currentPairs) = (currentPairs, previousPairs); currentPairs.Clear();
+        var substeps = (int)Math.Clamp(Math.Ceiling(travel * 2.0), 1, Settings.MaximumSubsteps);
+        sweepSegments = substeps;
+        var h = dt / substeps;
+        for (var phase = 0; phase < substeps; phase++)
+        {
+            foreach (var id in active)
+            {
+                var body = ships[id]!;
+                if (!body.Enabled) continue;
+                var position = body.Position + body.Velocity * h;
+                var angle = body.Angle + body.AngularVelocity * h;
+                if (!Finite(position) || !float.IsFinite(angle)) throw new InvalidOperationException("Non-finite integration result.");
+                body.Position = position; body.Angle = angle;
+            }
+            constraints.Clear(); constraintPairs.Clear();
+            BuildContacts();
+            SolveVelocities(0);
+            for (var iteration = 0; iteration < Settings.PositionIterations; iteration++)
+            {
+                var start = Stamp();
+                var moved = CorrectPositions(); AddSolverTime(start);
+                if (!moved) break;
+                var firstNew = constraints.Count;
+                BuildContacts();
+                if (constraints.Count != firstNew) SolveVelocities(0);
+            }
+            foreach (var id in active)
+            {
+                var body = ships[id]!; body.Path[phase + 1] = body.Position; body.PathSegments = phase + 1;
+            }
+        }
+        contacts.Sort(static (a, b) => a.FirstSerial != b.FirstSerial
+            ? a.FirstSerial.CompareTo(b.FirstSerial) : a.SecondSerial.CompareTo(b.SecondSerial));
+        gridDirty = true;
     }
-
-    /// <summary>
-    /// Approximate projectile CCD using a center ray and four parallel rays at
-    /// +/- radius and +/- half radius. Not an exact swept disk: grazing contacts
-    /// between rays, rounded end caps, and target motion during a step can be missed.
-    /// Impact is a point on the target fixture, not the projectile center.
-    /// </summary>
-    public bool Sweep(Vector2 from, Vector2 to, float radius,
-        out int targetSerial, out Vector2 impact)
-        => SweepCore(from, to, radius, true, -1, out targetSerial, out impact);
-
-    /// <summary>Ignores every fixture of one ship, without occluding other swept hits.</summary>
-    public bool Sweep(Vector2 from, Vector2 to, float radius, int ignoredSerial,
-        out int targetSerial, out Vector2 impact)
-        => SweepCore(from, to, radius, true, ignoredSerial, out targetSerial, out impact);
-
-    // Reference path for differential tests; skips only the empty broadphase rejection.
-    internal bool SweepUnfiltered(Vector2 from, Vector2 to, float radius,
-        out int targetSerial, out Vector2 impact, int ignoredSerial = -1)
-        => SweepCore(from, to, radius, false, ignoredSerial, out targetSerial, out impact);
-
-    private bool SweepCore(Vector2 from, Vector2 to, float radius, bool rejectEmpty, int ignoredSerial,
-        out int targetSerial, out Vector2 impact)
+    private void BuildContacts()
+    {
+        var start = Stamp(); grid.Clear();
+        foreach (var id in active)
+        {
+            var body = ships[id]!;
+            if (body.Enabled) grid.Add(id, body.Position, body.Position, body.Radius + Settings.PositionSlop);
+        }
+        foreach (var firstId in active)
+        {
+            var a = ships[firstId]!; if (!a.Enabled) continue;
+            grid.Query(a.Position, a.Position, a.Radius + Settings.PositionSlop, candidates);
+            candidates.Sort(compareSerial);
+            foreach (var secondId in candidates)
+            {
+                var b = ships[secondId]!;
+                if (b.Serial <= a.Serial) continue;
+                var sum = (double)a.Radius + b.Radius;
+                var delta = b.Position - a.Position;
+                if ((double)delta.X * delta.X + (double)delta.Y * delta.Y > (sum + Settings.PositionSlop) * (sum + Settings.PositionSlop)) continue;
+                var key = Pair(a.Serial, b.Serial);
+                if (!constraintPairs.Contains(key) && constraints.Count >= Settings.MaximumContactPairs)
+                    throw new InvalidOperationException("Physics contact budget exceeded; increase MaximumContactPairs or reduce density.");
+                if (!constraintPairs.Add(key)) continue;
+                var distance = Math.Sqrt((double)delta.X * delta.X + (double)delta.Y * delta.Y);
+                var normal = distance > 0 ? new Vector2((float)(delta.X / distance), (float)(delta.Y / distance)) : Vector2.UnitX;
+                var point = a.Position + normal * (float)((distance + a.Radius - b.Radius) * 0.5);
+                var armA = point - a.Position; var armB = point - b.Position;
+                var relative = PointVelocity(b.Velocity, b.AngularVelocity, armB) - PointVelocity(a.Velocity, a.AngularVelocity, armA);
+                var speed = Vector2.Dot(relative, normal);
+                constraints.Add(new() { First = firstId, Second = secondId, Normal = normal, FirstArm = armA, SecondArm = armB,
+                    Bias = speed < -Settings.RestitutionThreshold ? -Settings.Restitution * speed : 0 });
+                if (!currentPairs.Contains(key) && currentPairs.Count >= Settings.MaximumContactPairs)
+                    throw new InvalidOperationException("Physics per-tick contact budget exceeded.");
+                if (currentPairs.Add(key) && !previousPairs.Contains(key))
+                {
+                    if (contacts.Count >= Settings.MaximumContactPairs)
+                        throw new InvalidOperationException("Physics begin-contact budget exceeded.");
+                    contacts.Add(new(a.Serial, b.Serial, relative.Length(), point));
+                }
+            }
+        }
+        if (Settings.CollectTimings) contactCandidatesMs += Elapsed(start);
+    }
+    private void SolveVelocities(int first)
+    {
+        var start = Stamp();
+        for (var iteration = 0; iteration < Settings.VelocityIterations; iteration++)
+            for (var i = first; i < constraints.Count; i++)
+            {
+                var c = constraints[i]; var a = ships[c.First]!; var b = ships[c.Second]!;
+                var relative = PointVelocity(b.Velocity, b.AngularVelocity, c.SecondArm) - PointVelocity(a.Velocity, a.AngularVelocity, c.FirstArm);
+                var impulse = (c.Bias - Vector2.Dot(relative, c.Normal)) / (a.InverseMass + b.InverseMass);
+                var accumulated = Math.Max(0, c.NormalImpulse + impulse);
+                ApplyImpulse(a, b, c.Normal * (accumulated - c.NormalImpulse), c.FirstArm, c.SecondArm, false);
+                c.NormalImpulse = accumulated;
+                if (Settings.Friction > 0)
+                {
+                    var tangent = new Vector2(-c.Normal.Y, c.Normal.X);
+                    relative = PointVelocity(b.Velocity, b.AngularVelocity, c.SecondArm) - PointVelocity(a.Velocity, a.AngularVelocity, c.FirstArm);
+                    var ra = Cross(c.FirstArm, tangent); var rb = Cross(c.SecondArm, tangent);
+                    var denominator = (double)a.InverseMass + b.InverseMass + (double)ra * ra * a.InverseInertia + (double)rb * rb * b.InverseInertia;
+                    var limit = Settings.Friction * c.NormalImpulse;
+                    var friction = (float)Math.Clamp(c.TangentImpulse - Vector2.Dot(relative, tangent) / denominator, -limit, limit);
+                    ApplyImpulse(a, b, tangent * (friction - c.TangentImpulse), c.FirstArm, c.SecondArm, true);
+                    c.TangentImpulse = friction;
+                }
+                constraints[i] = c;
+            }
+        AddSolverTime(start);
+    }
+    private bool CorrectPositions()
+    {
+        var moved = false;
+        foreach (var c in constraints)
+        {
+            var a = ships[c.First]!; var b = ships[c.Second]!; var delta = b.Position - a.Position;
+            var distance = Math.Sqrt((double)delta.X * delta.X + (double)delta.Y * delta.Y);
+            var penetration = (double)a.Radius + b.Radius - distance - Settings.PositionSlop;
+            if (penetration <= 0.0001f) continue;
+            var normal = distance > 0 ? new Vector2((float)(delta.X / distance), (float)(delta.Y / distance)) : c.Normal;
+            var correction = (float)(Math.Min(Settings.MaximumCorrection, penetration * Settings.CorrectionFraction) / ((double)a.InverseMass + b.InverseMass));
+            a.Position -= normal * (correction * a.InverseMass); b.Position += normal * (correction * b.InverseMass);
+            moved = true;
+        }
+        return moved;
+    }
+    public bool Sweep(Vector2 from, Vector2 to, float radius, out int targetSerial, out Vector2 impact)
+        => Sweep(from, to, radius, -1, out targetSerial, out impact);
+    public bool Sweep(Vector2 from, Vector2 to, float radius, int ignoredSerial, out int targetSerial, out Vector2 impact)
+        => SweepCore(from, to, radius, default, 0, ignoredSerial, false, true, out targetSerial, out impact);
+    internal bool SweepUnfiltered(Vector2 from, Vector2 to, float radius, out int targetSerial, out Vector2 impact, int ignoredSerial = -1)
+        => SweepCore(from, to, radius, default, 0, ignoredSerial, false, false, out targetSerial, out impact);
+    public bool SweepRectangle(Vector2 from, Vector2 to, Vector2 halfExtents, float angle, int ignoredSerial, out int targetSerial, out Vector2 impact)
+        => SweepCore(from, to, Math.BitIncrement(Math.Sqrt((double)halfExtents.X * halfExtents.X + (double)halfExtents.Y * halfExtents.Y)),
+            halfExtents, angle, ignoredSerial, true, true, out targetSerial, out impact);
+    private bool SweepCore(Vector2 from, Vector2 to, double radius, Vector2 extents, float angle, int ignoredSerial,
+        bool rectangle, bool filtered, out int targetSerial, out Vector2 impact)
     {
         ThrowIfDisposed();
-        if (!Finite(from) || !Finite(to) || !float.IsFinite(radius) || radius < 0)
+        if (!Finite(from) || !Finite(to) || !double.IsFinite(radius) || radius < 0 ||
+            rectangle && (!Finite(extents) || extents.X < 0 || extents.Y < 0 || !float.IsFinite(angle)))
             throw new ArgumentOutOfRangeException(nameof(radius));
-        sweepSerial = -1;
-        sweepIgnoredSerial = ignoredSerial;
-        sweepFraction = float.PositiveInfinity;
-        sweepPoint = ToPhysics(to);
-        sweepQueries++;
-        var start = ToPhysics(from);
-        var end = ToPhysics(to);
-        var delta = to - from;
-        var hasOffset = radius > 0 && delta.LengthSquared() > 0;
-        var offset = hasOffset ? ToPhysics(Vector2.Normalize(new Vector2(-delta.Y, delta.X)) * radius) : PhysicsVector.Zero;
-        if (rejectEmpty && !HasSweepCandidate(start, end, offset, hasOffset))
+        EnsureActive(); sweeps++;
+        var start = Stamp();
+        if (filtered)
         {
-            emptySweeps++;
-            targetSerial = -1;
-            impact = FromPhysics(sweepPoint);
-            return false;
+            EnsureSweepGrid();
+            grid.QueryBounds(Math.BitDecrement(Math.Min(from.X, to.X) - radius), Math.BitDecrement(Math.Min(from.Y, to.Y) - radius),
+                Math.BitIncrement(Math.Max(from.X, to.X) + radius), Math.BitIncrement(Math.Max(from.Y, to.Y) + radius), candidates);
         }
-        Cast(start, end);
-        if (hasOffset)
+        else { candidates.Clear(); candidates.AddRange(active); }
+        if (Settings.CollectTimings) hitCandidatesMs += Elapsed(start);
+        start = Stamp();
+        targetSerial = -1; impact = to; double best = double.PositiveInfinity;
+        var eligible = 0;
+        foreach (var id in candidates)
         {
-            Cast(start + offset, end + offset);
-            Cast(start - offset, end - offset);
-            offset *= 0.5f;
-            Cast(start + offset, end + offset);
-            Cast(start - offset, end - offset);
+            var body = ships[id]!;
+            if (!body.Enabled || body.Serial == ignoredSerial) continue;
+            hitCandidates++; eligible++;
+            var segments = sweepSegments;
+            for (var phase = 0; phase < segments; phase++)
+            {
+                var targetFrom = body.PathSegments == 0 ? body.Position : body.Path[phase];
+                var targetTo = body.PathSegments == 0 ? body.Position : body.Path[phase + 1];
+                var shotDx = ((double)to.X - from.X) / segments;
+                var shotDy = ((double)to.Y - from.Y) / segments;
+                var shotX = from.X + shotDx * phase; var shotY = from.Y + shotDy * phase;
+                var rx = shotX - targetFrom.X; var ry = shotY - targetFrom.Y;
+                var dx = shotDx - ((double)targetTo.X - targetFrom.X);
+                var dy = shotDy - ((double)targetTo.Y - targetFrom.Y);
+                narrowTests++;
+                double local;
+                var hit = rectangle
+                    ? CircleSweepMath.TryRectangleRelative(-rx, -ry, -dx, -dy, extents, angle, body.Radius, out local)
+                    : CircleSweepMath.TryCircleRelative(rx, ry, dx, dy, (double)body.Radius + radius, out local);
+                if (!hit) continue;
+                var fraction = (phase + local) / segments;
+                if (fraction > best || fraction == best && body.Serial >= targetSerial) continue;
+                best = fraction; targetSerial = body.Serial;
+                var centerX = from.X + ((double)to.X - from.X) * fraction;
+                var centerY = from.Y + ((double)to.Y - from.Y) * fraction;
+                var targetX = targetFrom.X + ((double)targetTo.X - targetFrom.X) * local;
+                var targetY = targetFrom.Y + ((double)targetTo.Y - targetFrom.Y) * local;
+                var nx = centerX - targetX; var ny = centerY - targetY;
+                if (rectangle)
+                {
+                    var cosine = Math.Cos(angle); var sine = Math.Sin(angle);
+                    var localX = targetX - centerX; var localY = targetY - centerY;
+                    var x = Math.Clamp(localX * cosine + localY * sine, -extents.X, extents.X);
+                    var y = Math.Clamp(-localX * sine + localY * cosine, -extents.Y, extents.Y);
+                    var normalX = centerX + x * cosine - y * sine - targetX;
+                    var normalY = centerY + x * sine + y * cosine - targetY;
+                    if (normalX != 0 || normalY != 0) { nx = normalX; ny = normalY; }
+                }
+                var length = Math.Sqrt(nx * nx + ny * ny);
+                if (length == 0) { nx = 1; ny = 0; length = 1; }
+                impact = new((float)(targetX + nx / length * body.Radius), (float)(targetY + ny / length * body.Radius));
+            }
         }
-        targetSerial = sweepSerial;
-        impact = FromPhysics(sweepPoint);
-        return float.IsFinite(sweepFraction);
+        if (eligible == 0) emptySweeps++;
+        if (Settings.CollectTimings) hitNarrowMs += Elapsed(start);
+        return double.IsFinite(best);
     }
-
-    private bool HasSweepCandidate(PhysicsVector start, PhysicsVector end, PhysicsVector offset, bool hasOffset)
-    {
-        if (!float.IsFinite(offset.X) || !float.IsFinite(offset.Y)) return true;
-        var bounds = new AABB { LowerBound = start, UpperBound = start };
-        IncludeEndpoints(ref bounds, start, end);
-        if (hasOffset)
-        {
-            IncludeEndpoints(ref bounds, start + offset, end + offset);
-            IncludeEndpoints(ref bounds, start - offset, end - offset);
-            offset *= 0.5f;
-            IncludeEndpoints(ref bounds, start + offset, end + offset);
-            IncludeEndpoints(ref bounds, start - offset, end - offset);
-        }
-        // Enclose actual rounded endpoints and all five origin queries, not an idealized disk.
-        var magnitude = MathF.Max(1, MathF.Max(MathF.Max(MathF.Abs(bounds.LowerBound.X), MathF.Abs(bounds.LowerBound.Y)),
-            MathF.Max(MathF.Abs(bounds.UpperBound.X), MathF.Abs(bounds.UpperBound.Y))));
-        var padding = PointQueryEpsilon + magnitude * 0.000001f;
-        bounds.LowerBound = new(MathF.BitDecrement(bounds.LowerBound.X - padding), MathF.BitDecrement(bounds.LowerBound.Y - padding));
-        bounds.UpperBound = new(MathF.BitIncrement(bounds.UpperBound.X + padding), MathF.BitIncrement(bounds.UpperBound.Y + padding));
-        if (!float.IsFinite(bounds.LowerBound.X) || !float.IsFinite(bounds.LowerBound.Y) ||
-            !float.IsFinite(bounds.UpperBound.X) || !float.IsFinite(bounds.UpperBound.Y)) return true;
-        sweepHasCandidate = false;
-        world.QueryAABB(candidateCallback, ref bounds);
-        return sweepHasCandidate;
-    }
-
-    private static void IncludeEndpoints(ref AABB bounds, PhysicsVector start, PhysicsVector end)
-    {
-        bounds.LowerBound = new(MathF.Min(bounds.LowerBound.X, MathF.Min(start.X, end.X)),
-            MathF.Min(bounds.LowerBound.Y, MathF.Min(start.Y, end.Y)));
-        bounds.UpperBound = new(MathF.Max(bounds.UpperBound.X, MathF.Max(start.X, end.X)),
-            MathF.Max(bounds.UpperBound.Y, MathF.Max(start.Y, end.Y)));
-    }
-
-    private bool SweepCandidate(Fixture fixture)
-    {
-        if (!Eligible(fixture, out _)) return true;
-        sweepHasCandidate = true;
-        return false;
-    }
-
-    private void Cast(PhysicsVector from, PhysicsVector to)
-    {
-        // RayCast ignores fixtures containing its origin, so query that point first.
-        sweepStart = from;
-        var epsilon = new PhysicsVector(PointQueryEpsilon, PointQueryEpsilon);
-        var bounds = new AABB { LowerBound = from - epsilon, UpperBound = from + epsilon };
-        pointQueries++;
-        world.QueryAABB(overlapCallback, ref bounds);
-        if (from != to) { rayQueries++; world.RayCast(rayCallback, from, to); }
-    }
-
     public bool CanSpawn(Vector2 position, float radius)
     {
         ThrowIfDisposed();
         if (!Finite(position) || !float.IsFinite(radius) || radius <= 0) throw new ArgumentOutOfRangeException(nameof(radius));
-        placementPoint = ToPhysics(position); placementRadius = radius * Scale; placementBlocked = false;
-        var extent = new PhysicsVector(placementRadius + maximumShipRadius, placementRadius + maximumShipRadius);
-        var bounds = new AABB { LowerBound = placementPoint - extent, UpperBound = placementPoint + extent };
-        world.QueryAABB(placementCallback, ref bounds);
-        return !placementBlocked;
-    }
-
-    private bool PlacementOverlap(Fixture fixture)
-    {
-        if (fixture.Body.Tag is not ShipBody ship || !ship.Body.Enabled) return true;
-        var delta = ship.Body.Position - placementPoint;
-        var distance = placementRadius + ship.Radius;
-        if (delta.LengthSquared() >= distance * distance) return true;
-        placementBlocked = true; return false;
-    }
-
-    private bool Eligible(Fixture fixture, out ShipBody ship)
-    {
-        ship = fixture.Body.Tag as ShipBody ?? null!;
-        return ship is not null && ship.Body.Enabled && ship.Serial != sweepIgnoredSerial;
-    }
-
-    private bool StartOverlap(Fixture fixture)
-    {
-        if (Eligible(fixture, out var ship) && fixture.TestPoint(ref sweepStart))
-            SelectHit(ship, sweepStart, 0);
+        EnsureSweepGrid(); grid.Query(position, position, radius, candidates);
+        foreach (var id in candidates)
+        {
+            var body = ships[id]!; if (!body.Enabled) continue;
+            var delta = body.Position - position; var sum = (double)radius + body.Radius;
+            if ((double)delta.X * delta.X + (double)delta.Y * delta.Y < sum * sum) return false;
+        }
         return true;
     }
-
-    private float RayHit(Fixture fixture, PhysicsVector point, PhysicsVector normal, float fraction)
+    private void EnsureSweepGrid()
     {
-        if (!Eligible(fixture, out var ship)) return -1;
-        SelectHit(ship, point, fraction);
-        // Keep equal-fraction hits visible for a stable serial tie break.
-        return MathF.Min(1, sweepFraction + 0.000001f);
+        if (!gridDirty) return;
+        EnsureActive(); grid.Clear();
+        foreach (var id in active)
+        {
+            var body = ships[id]!; if (!body.Enabled) continue;
+            double minX = body.Position.X, maxX = minX, minY = body.Position.Y, maxY = minY;
+            for (var p = 0; p <= body.PathSegments; p++)
+            {
+                minX = Math.Min(minX, body.Path[p].X); maxX = Math.Max(maxX, body.Path[p].X);
+                minY = Math.Min(minY, body.Path[p].Y); maxY = Math.Max(maxY, body.Path[p].Y);
+            }
+            grid.AddBounds(id, minX - body.Radius, minY - body.Radius, maxX + body.Radius, maxY + body.Radius);
+        }
+        gridDirty = false;
     }
-
-    private void SelectHit(ShipBody ship, PhysicsVector point, float fraction)
+    private void EnsureActive()
     {
-        if (fraction > sweepFraction || (fraction == sweepFraction && ship.Serial >= sweepSerial)) return;
-        sweepFraction = fraction;
-        sweepSerial = ship.Serial;
-        sweepPoint = point;
+        if (!membershipDirty) return;
+        active.Clear();
+        for (var id = 0; id < ships.Count; id++) if (ships[id] is not null) active.Add(id);
+        active.Sort(compareSerial); membershipDirty = false;
     }
-
-    private bool BeginContact(Contact contact)
-    {
-        if (contact.FixtureA.Body.Tag is not ShipBody first || contact.FixtureB.Body.Tag is not ShipBody second)
-            return true;
-        if (first.Id > second.Id) (first, second) = (second, first);
-        ulong pair = ((ulong)(uint)first.Id << 32) | (uint)second.Id;
-        if (!contactPairs.Add(pair)) return true;
-        if (first.Serial > second.Serial) (first, second) = (second, first);
-        contact.GetWorldManifold(out _, out var points);
-        var point = points[0];
-        var relative = first.Body.GetLinearVelocityFromWorldPoint(point) - second.Body.GetLinearVelocityFromWorldPoint(point);
-        float speed = MathF.Sqrt(relative.X * relative.X + relative.Y * relative.Y) * InverseScale;
-        contacts.Add(new CollisionEvent(first.Serial, second.Serial, speed, FromPhysics(point)));
-        return true;
-    }
-
-    private Body GetBody(int id)
+    private ShipBody GetBody(int id)
     {
         ThrowIfDisposed();
-        if ((uint)id >= (uint)ships.Count || ships[id] is not { } ship)
-            throw new ArgumentOutOfRangeException(nameof(id), "Ship body does not exist.");
-        return ship.Body;
+        if ((uint)id >= (uint)ships.Count || ships[id] is not { } body) throw new ArgumentOutOfRangeException(nameof(id));
+        return body;
     }
-
-    private static PhysicsVector ToPhysics(Vector2 value) => new(value.X * Scale, value.Y * Scale);
-    private static Vector2 FromPhysics(PhysicsVector value) => new(value.X * InverseScale, value.Y * InverseScale);
-    private static bool Finite(Vector2 value) => float.IsFinite(value.X) && float.IsFinite(value.Y);
-    private static void ValidateTransform(in Transform transform)
+    private static void ApplyImpulse(ShipBody a, ShipBody b, Vector2 impulse, Vector2 armA, Vector2 armB, bool angular)
     {
-        if (!Finite(transform.Position) || !float.IsFinite(transform.Angle))
-            throw new ArgumentOutOfRangeException(nameof(transform));
+        a.Velocity -= impulse * a.InverseMass; b.Velocity += impulse * b.InverseMass;
+        if (angular) { a.AngularVelocity -= Cross(armA, impulse) * a.InverseInertia; b.AngularVelocity += Cross(armB, impulse) * b.InverseInertia; }
     }
+    private static Vector2 PointVelocity(Vector2 velocity, float angular, Vector2 arm) => velocity + new Vector2(-arm.Y, arm.X) * angular;
+    private static float Cross(Vector2 a, Vector2 b) => a.X * b.Y - a.Y * b.X;
+    private static ulong Pair(int a, int b) => ((ulong)(uint)a << 32) | (uint)b;
+    private static bool Finite(Vector2 v) => float.IsFinite(v.X) && float.IsFinite(v.Y);
+    private static void ValidateTransform(Transform t)
+    {
+        if (!Finite(t.Position) || !float.IsFinite(t.Angle)) throw new ArgumentOutOfRangeException(nameof(t));
+    }
+    private long Stamp() => Settings.CollectTimings ? Stopwatch.GetTimestamp() : 0;
+    private static double Elapsed(long start) => (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
+    private void AddSolverTime(long start) { if (Settings.CollectTimings) solverMs += Elapsed(start); }
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(disposed, this);
-
     public void Dispose()
     {
         if (disposed) return;
-        world.ContactManager.BeginContact -= BeginContact;
-        world.Clear();
-        ships.Clear();
-        freeIds.Clear();
-        contacts.Clear();
-        contactPairs.Clear();
-        Bodies = fixtureCount = 0;
-        disposed = true;
+        ships.Clear(); freeIds.Clear(); active.Clear(); candidates.Clear(); constraints.Clear(); contacts.Clear(); liveSerials.Clear();
+        previousPairs.Clear(); currentPairs.Clear(); constraintPairs.Clear(); grid.Clear(); Bodies = 0; disposed = true;
     }
 }

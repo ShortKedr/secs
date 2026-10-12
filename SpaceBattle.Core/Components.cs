@@ -5,6 +5,7 @@ namespace SpaceBattle;
 
 public enum ShipClass { Interceptor, Fighter, Bomber, Gunship, Corvette, Frigate, Destroyer, Support, LightCarrier, FleetCarrier, FoundryCarrier }
 public enum WeaponKind { MachineGun, Cannon, Plasma, Missile, HeavyCannon }
+public enum ProjectileShape { Disk, Rectangle }
 public enum ItemKind { Empty, ShieldCell, HeatSink, RepairKit }
 public enum BrainMode { Attack, Retreat, Docking, Patrol, Screen }
 
@@ -38,7 +39,7 @@ public struct Overheated { public int SinceTick; }
 public struct InCombat { public int UntilTick; }
 public struct Boosting { public int UntilTick; }
 public struct ShieldBroken { public int SinceTick; }
-public struct Projectile { public int Serial; public EntityKey Owner, Target; public WeaponKind Kind; public float Damage, Radius; public int ExpiresTick; }
+public struct Projectile { public int Serial; public EntityKey Owner, Target; public WeaponKind Kind; public float Damage, Radius, HalfLength; public int ExpiresTick; public ProjectileShape Shape; }
 public struct Debris { public int Serial, ExpiresTick; public float Damage, Radius; }
 public struct Particle { public int Serial, ExpiresTick, Kind, StartTick; public float Size; public Vector4 Color; }
 public struct Lifetime { public int EndTick; }
@@ -71,7 +72,7 @@ public static class ShipCatalog
         ShipClass.Destroyer => 4.2f, ShipClass.Support => 2.8f,
         ShipClass.LightCarrier => 8, ShipClass.FleetCarrier => 10, _ => 12
     };
-    public static int Shapes(ShipClass kind) => kind <= ShipClass.Fighter ? 1 : 4 + (int)kind % 3;
+    public static int Shapes(ShipClass kind) => 1;
     public static Weapon Primary(ShipClass kind) => IsWeaponsPlatform(kind) ? new()
     {
         Kind = WeaponKind.HeavyCannon, Burst = 1, Speed = 170,

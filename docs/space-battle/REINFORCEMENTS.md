@@ -44,6 +44,10 @@ fast raiders, armored escorts, bomber groups or mixed patrols. Successive waves
 vary their escort mix. If the side has no carriers, the wave includes a new one;
 some compositions restore two. These are new ships, not copies of destroyed IDs.
 
+Interactive clients now use the [light-swarm compositions](FLEETS.md): all four
+variants favor small ships, with different bomber/raider/screening weights.
+The original equal/armored mixtures remain available in the Core's Uniform mode.
+
 The aperture opens 44 world units inside an arena corner. New ships materialize
 within 28 units of it, facing and moving inward. Up to 32 local candidate positions
 are checked per arrival using the physics broadphase and conservative hull circles.

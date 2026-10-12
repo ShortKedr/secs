@@ -1,10 +1,10 @@
 Space Battle Web distribution
 
 This browser application bundles only SECS, SpaceBattle.Core, SpaceBattle.SECS,
-Aether.Physics2D, .NET/Blazor WebAssembly, and Lucide icons. It does not bundle
+.NET/Blazor WebAssembly, and Lucide icons. It does not bundle
 LeoECS, LeoECS Lite, Morpeh, StaticEcs, Silk.NET, or the benchmark/test tooling.
 
-Aether.Physics2D 2.2.0
+Historical Aether.Physics2D 2.2.0 reference (not bundled by the current simulation)
 Copyright (c) Kastellanos Nikolaos 2015-2024
 Microsoft Permissive License (MS-PL). Original license: AETHER.txt.
 https://github.com/nkast/Aether.Physics2D

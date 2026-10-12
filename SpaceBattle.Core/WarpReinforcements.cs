@@ -149,7 +149,9 @@ public sealed partial class Battle<TStore>
         var composition = warpCompositions[wave.Composition];
         for (var i = 0; i < count; i++)
             kinds[i] = i < carrierCount ? ShipClass.LightCarrier + (wave.Number + i - 1) % Config.CarriersPerTeam
-                : composition[(i - carrierCount) % composition.Length];
+                : Config.FleetComposition == FleetComposition.LightSwarm
+                    ? FleetCompositionRules.Escort(Config.FleetComposition, i - carrierCount, wave.Composition)
+                    : composition[(i - carrierCount) % composition.Length];
         wave.Ships = kinds; wave.NextShip = 0; wave.Active = true;
         wave.ArrivalTick = wave.NextSpawnTick = Tick + Config.ReinforcementWarmupTicks;
         wave.EndTick = wave.ArrivalTick + count * Config.ReinforcementSpawnIntervalTicks + 300;

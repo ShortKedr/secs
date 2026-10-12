@@ -153,6 +153,7 @@ canvas {
   height: 30px;
 }
 .segments .active,
+#colliders.active,
 #follow.active {
   background: #293d40;
   color: #80e4ef;

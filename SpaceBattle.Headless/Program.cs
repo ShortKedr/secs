@@ -48,7 +48,7 @@ internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, Bat
             ChurnMultiplier = float.Parse(Value("--churn", "1")), ParticleMultiplier = int.Parse(Value("--particles", "1"))
         };
         config.Validate();
-        var output = Path.GetFullPath(Value("--output", "docs/space-battle/results/secs.json"));
+        var output = Path.GetFullPath(Value("--output", "Benchmarks.Local/tmp/circle-kernel/secs.json"));
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../")).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         if (!output.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Output must stay inside the current project.");
@@ -121,15 +121,15 @@ internal static class Runner
                 SimulatedSeconds = options.Ticks / 60.0, WallSeconds = elapsed, Options = options.Config,
                 TimingScope = "Step includes all systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
                 MemoryScope = "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
-                Collision = "Aether.Physics2D 2.2.0; compound ship fixtures; five-ray approximate projectile CCD",
-                GameplayRules = new { Revision = ArmamentRules.Revision, TacticalRevision = TacticalRules.Revision,
+                Collision = "circle-kernel-v1; homogeneous disk ships; relative-motion analytic disk/rectangle projectile CCD",
+                GameplayRules = new { Revision = ArmamentRules.Revision, TacticalRevision = TacticalRules.Revision, PhysicsRevision = PhysicsSettings.Revision,
                     Armament = "independent attached cannon/plasma turrets; aligned hull heavy cannon with class-scaled damage and cooldown",
                     Ai = "kill-cost target leases, stable squads of 2-4, focus fire and wounded-ship screening",
                     TargetLockTicks = TacticalRules.MinimumTargetLockTicks, SwitchImprovement = TacticalRules.SwitchImprovement,
                     MaxSquadSize = TacticalRules.MaxSquadSize,
                     Aim = "constant-velocity intercept including inherited shooter velocity and muzzle offset",
                     ImpreciseAimProbability = 0.25, MaxSpreadRadians = FireControl.MaxSpreadRadians,
-                    ProjectileTeam = "none", CollisionImmunity = "none; all enabled ship fixtures can be hit, including the shooter",
+                    ProjectileTeam = "none", CollisionImmunity = "owner ship only (parent for mounts); disabled/docked bodies excluded",
                     FriendlyFireCounter = "observed hits with a still-live owner identity; excludes attribution after owner destruction" } },
             Provenance = new
             {

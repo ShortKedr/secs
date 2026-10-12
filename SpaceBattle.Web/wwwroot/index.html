@@ -239,6 +239,9 @@
         </div>
       </section>
       <div class="camera-tools">
+        <button id="colliders" data-tip="colliders" aria-label="Collider outlines (F2)" aria-pressed="false" disabled>
+          <i data-lucide="square-dashed"></i>
+        </button>
         <button id="zoom-in" data-tip="zoomIn" aria-label="Zoom in">
           <i data-lucide="plus"></i></button
         ><button id="zoom-out" data-tip="zoomOut" aria-label="Zoom out">
@@ -275,6 +278,6 @@
     </main>
     <script src="assets/lucide.min.js"></script>
     <script src="_framework/blazor.webassembly.js" autostart="false"></script>
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

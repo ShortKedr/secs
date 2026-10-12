@@ -1,3 +1,6 @@
+import { resolveObservedShip, frameObservedShips, observationViewport } from "./observer-camera.js";
+import { readColliderBuffer, drawColliders, colliderSummary, colliderDetails } from "./collider-debug.js";
+
 (() => {
   "use strict";
   const $ = (id) => document.getElementById(id);
@@ -24,6 +27,8 @@
       report: "Simulation report",
       fullscreen: "Fullscreen",
       follow: "Follow ship",
+      colliders: "Collider outlines (F2)",
+      docked: "Docked at",
       close: "Clear selection",
       zoomIn: "Zoom in",
       zoomOut: "Zoom out",
@@ -104,6 +109,8 @@
       report: "Отчёт о симуляции",
       fullscreen: "Полный экран",
       follow: "Следить за кораблём",
+      colliders: "Контуры коллайдеров (F2)",
+      docked: "Пристыкован к",
       close: "Снять выделение",
       zoomIn: "Приблизить",
       zoomOut: "Отдалить",
@@ -189,6 +196,8 @@
     last = 0,
     busy = false,
     runtimeStarted = false;
+  let observedPosition = null, observationMain = null, observationTarget = null,
+    observationReason = null, observationBounds = null, observationClock = 0, observationSwitches = 0;
   let runtime,
     bridge,
     runtimeMode = null,
@@ -205,6 +214,7 @@
     renderCpuMs = 0,
     discardedTicks = 0;
   const rowViews = [];
+  let colliderDebug = false, colliderRows = null;
   const frameGroups = [[], [], [], [], []];
   const profiles = ["low", "nominal", "high"];
   const counterNames = [
@@ -356,6 +366,8 @@
       turrets: frameGroups[4],
       binary: {},
       revision: bridge.Revision(),
+      fleetRevision: bridge.FleetRevision(),
+      physicsRevision: bridge.PhysicsRevision(),
     };
     snapshot.tick = header[1];
     snapshot.arenaHalfSize = header[2];
@@ -375,6 +387,7 @@
     snapshot.counters.reinforcementShips = header[68];
     snapshot.pendingReinforcements = header[69];
     snapshot.aliveTeams = [header[70], header[71]];
+    snapshot.fleetComposition = ["uniform", "light-swarm"][header[72]];
     Object.assign(snapshot.performance, {
       samples: header[32],
       meanMs: header[33],
@@ -406,7 +419,16 @@
       rows.length = count;
       for (let i = 0; i < count; i++) rows[i] = rowViews[offset++];
     }
-    if (following) track();
+    if (following) resolveObservation();
+    colliderRows = colliderDebug ? readColliderBuffer(buffer, bridge.ColliderSnapshot()) : null;
+  }
+  function showColliders(enabled) {
+    if (!ready || busy) return;
+    colliderDebug = Boolean(enabled);
+    accept(bridge.DebugColliders(colliderDebug));
+    $("colliders").classList.toggle("active", colliderDebug);
+    $("colliders").setAttribute("aria-pressed", String(colliderDebug));
+    draw();
   }
   function advance(ticks) {
     const started = performance.now();
@@ -429,9 +451,10 @@
     }
     $("seed").setCustomValidity("");
     try {
+      stopFollowing();
       accept(bridge.Reset($("profile").value, seed));
       selected = null;
-      following = false;
+      observationSwitches = 0;
       accumulator = 0;
       last = 0;
       tickCostMs = 0;
@@ -485,7 +508,7 @@
     camera.x = 0;
     camera.y = 0;
     camera.zoom = 1;
-    following = false;
+    stopFollowing();
     calculateFit();
   }
   function centerY() {
@@ -506,6 +529,7 @@
     };
   }
   function zoom(factor, x = width / 2, y = centerY()) {
+    stopFollowing();
     const before = world(x, y);
     camera.zoom = Math.max(0.35, Math.min(20, camera.zoom * factor));
     const after = world(x, y);
@@ -513,12 +537,68 @@
     camera.y += before.y - after.y;
     draw();
   }
-  function track() {
-    const ship = snapshot?.ships.find((r) => r[0] === selected);
-    if (ship) {
-      camera.x = ship[3];
-      camera.y = ship[4];
-    } else following = false;
+  function observationRow(row) {
+    return { serial: row[0], team: row[1], kind: row[2], x: row[3], y: row[4], radius: row[8],
+      hull: row[9], shield: row[10], heat: row[11] };
+  }
+  function observe(serial) {
+    if (!ready || serial === null || serial < 0 || !bridge.ShipObservation(serial, 0)) return null;
+    const row = snapshot.ships.find(r => r[0] === serial);
+    const ship = row ? observationRow(row) : { serial, x: bridge.ShipObservation(serial, 3), y: bridge.ShipObservation(serial, 4),
+      radius: bridge.ShipObservation(serial, 5), team: bridge.ShipObservation(serial, 6), kind: bridge.ShipObservation(serial, 7),
+      hull: bridge.ShipObservation(serial, 8), shield: bridge.ShipObservation(serial, 9), heat: bridge.ShipObservation(serial, 10) };
+    ship.targetSerial = bridge.ShipObservation(serial, 1);
+    ship.dockCarrierSerial = bridge.ShipObservation(serial, 2);
+    return ship;
+  }
+  function stopFollowing() {
+    following = false;
+    observationMain = observationTarget = observationBounds = null;
+    observationClock = 0;
+    if (ready && snapshot) bridge.ObserveShip(-1);
+    $("follow").classList.remove("active");
+    $("follow").setAttribute("aria-pressed", "false");
+  }
+  function setFollowing(value) {
+    if (!value || !observe(selected)) { stopFollowing(); updateUI(); draw(); return; }
+    following = true;
+    observationReason = "selected";
+    bridge.ObserveShip(selected);
+    resolveObservation();
+    updateUI();
+    track(true);
+    draw();
+  }
+  function resolveObservation() {
+    const current = observe(selected);
+    const death = current ? null : { serial: bridge.ObservedDeath(0), killerSerial: bridge.ObservedDeath(1),
+      position: { x: bridge.ObservedDeath(2), y: bridge.ObservedDeath(3) } };
+    const resolved = current ? { ship: current, reason: "tracking" } : resolveObservedShip(selected, observedPosition, death,
+      serial => serial === selected ? current : observe(serial), snapshot.ships.map(observationRow));
+    if (!resolved.ship) { selected = null; observationReason = "empty"; stopFollowing(); return; }
+    if (resolved.ship.serial !== selected) {
+      selected = resolved.ship.serial;
+      observationReason = resolved.reason;
+      observationSwitches++;
+      bridge.ObserveShip(selected);
+    }
+    const watched = current ?? observe(selected);
+    observedPosition = { x: watched.x, y: watched.y };
+    const carrier = watched.dockCarrierSerial >= 0 ? snapshot.ships.find(r => r[0] === watched.dockCarrierSerial) : null;
+    observationMain = carrier ? observationRow(carrier) : watched;
+    const target = snapshot.ships.find(r => r[0] === watched.targetSerial && r[0] !== observationMain.serial);
+    observationTarget = target ? observationRow(target) : null;
+  }
+  function track(snap = false) {
+    if (!following || !observationMain) return;
+    const now = performance.now(), seconds = observationClock ? (now - observationClock) / 1000 : 0;
+    observationClock = now;
+    const obstacles = [".toolbar", ".scoreboard", "#telemetry", "#simulation-stats", ".camera-tools", "footer"]
+      .map(selector => document.querySelector(selector)).filter(el => !el.hidden)
+      .map(el => el.getBoundingClientRect());
+    const safe = observationViewport(width, height, obstacles);
+    observationBounds = frameObservedShips(camera, observationMain, observationTarget, safe,
+      { width, height, centerY: centerY(), fitScale }, seconds, snap);
   }
   const color = (r) =>
     `rgba(${Math.round(r[12] * 255)},${Math.round(r[13] * 255)},${Math.round(r[14] * 255)},${Math.max(0, Math.min(1, r[15]))})`;
@@ -543,6 +623,7 @@
     });
   }
   function draw() {
+    track();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#080a0c";
     ctx.fillRect(0, 0, width, height);
@@ -629,6 +710,8 @@
         ctx.arc(p.x, p.y, size * 0.75 + 5, 0, Math.PI * 2);
         ctx.stroke();
       }
+      if (following && r[0] === observationMain?.serial) observationMarker(p, size * 0.82 + 8, "#f3fafb", 2);
+      if (following && r[0] === observationTarget?.serial) observationMarker(p, size * 0.82 + 8, "#ffc366", 1.6);
     }
     for (const r of snapshot.turrets) {
       const p = screen(r), radius = Math.max(1.4, r[8] * scale);
@@ -640,7 +723,19 @@
       if (r[2] === 3 || r[2] === 6 || r[2] === 7) drawParticle(r, scale);
     }
     ctx.globalAlpha = 1;
+    if (colliderDebug) drawColliders(ctx, colliderRows,
+      { ...camera, scale, width, height, originY: centerY() });
     $("zoom-label").textContent = Math.round(camera.zoom * 100) + "%";
+  }
+  function observationMarker(p, radius, color, thickness) {
+    const arm = Math.min(14, radius * 0.4);
+    ctx.strokeStyle = color; ctx.lineWidth = thickness; ctx.beginPath();
+    for (const [x, y] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+      ctx.moveTo(p.x + x * radius, p.y + y * (radius - arm));
+      ctx.lineTo(p.x + x * radius, p.y + y * radius);
+      ctx.lineTo(p.x + x * (radius - arm), p.y + y * radius);
+    }
+    ctx.stroke();
   }
   function drawParticle(r, scale) {
     const isWarp = r[2] >= 4;
@@ -709,18 +804,20 @@
       `${metrics.ticksPerSecond.toFixed(1)} ${t("tickUnit")} · ${metrics.meanMs.toFixed(2)} ${t("tickTimeUnit")}`;
     if (!$("simulation-stats").hidden) updateStatistics(metrics);
     const ship = snapshot.ships.find((r) => r[0] === selected);
+    const detail = ship ? observationRow(ship) : observe(selected);
     $("telemetry").hidden = selected === null;
     if (selected !== null) {
-      $("ship-name").textContent = ship
-        ? `${t(ship[2] >= 8 ? "carrier" : "escort")} ${ship[2]} · #${ship[0]}`
+      $("ship-name").textContent = detail
+        ? `${t(detail.kind >= 8 ? "carrier" : "escort")} ${detail.kind} · #${detail.serial}`
         : t("destroyed");
       $("follow").classList.toggle("active", following);
-      $("follow").disabled = !ship;
-      for (const [name, value] of ship
+      $("follow").setAttribute("aria-pressed", String(following));
+      $("follow").disabled = !detail;
+      for (const [name, value] of detail
         ? [
-            ["hull", ship[9]],
-            ["shield", ship[10]],
-            ["heat", ship[11]],
+            ["hull", detail.hull],
+            ["shield", detail.shield],
+            ["heat", detail.heat],
           ]
         : [
             ["hull", 0],
@@ -730,7 +827,8 @@
         $(name).value = Math.max(0, Math.min(100, value * 100));
         $(name + "-value").textContent = Math.round(value * 100) + "%";
       }
-      $("ship-position").textContent = ship
+      $("ship-position").textContent = detail?.dockCarrierSerial >= 0
+        ? `${t("docked")} #${detail.dockCarrierSerial}` : ship
         ? `X ${ship[3].toFixed(0)} · Y ${ship[4].toFixed(0)} · V ${Math.hypot(ship[5], ship[6]).toFixed(1)}`
         : "";
     }
@@ -937,6 +1035,7 @@
         if (warpPixels.data[i] <= warpData.alphaThreshold) warpPixels.data[i] = 0;
       warpContext.putImageData(warpPixels, 0, 0);
       ready = true;
+      $("colliders").disabled = false;
       reset();
       if (!ready) return;
       $("load-state").hidden = true;
@@ -1022,7 +1121,7 @@
         distance = Math.hypot(a.x - b.x, a.y - b.y);
       if (pinch > 0) zoom(distance / pinch, (a.x + b.x) / 2, (a.y + b.y) / 2);
       pinch = distance;
-      following = false;
+      stopFollowing();
     } else if (drag) {
       const dx = event.clientX - previous.x,
         dy = event.clientY - previous.y;
@@ -1033,7 +1132,7 @@
       if (drag.moved) {
         camera.x -= dx / (fitScale * camera.zoom);
         camera.y += dy / (fitScale * camera.zoom);
-        following = false;
+        stopFollowing();
       }
     }
   });
@@ -1053,7 +1152,7 @@
         }
       }
       selected = best?.[0] ?? null;
-      following = false;
+      stopFollowing();
       updateUI();
     }
     pointers.delete(event.pointerId);
@@ -1109,14 +1208,11 @@
   };
   $("deselect").onclick = () => {
     selected = null;
-    following = false;
+    stopFollowing();
     updateUI();
   };
-  $("follow").onclick = () => {
-    following = !following;
-    track();
-    updateUI();
-  };
+  $("follow").onclick = () => setFollowing(!following);
+  $("colliders").onclick = () => showColliders(!colliderDebug);
   $("fullscreen").onclick = async () => {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
@@ -1132,9 +1228,14 @@
       setPaused(!paused);
     } else if (event.code === "KeyF") {
       $("fullscreen").click();
+    } else if (event.code === "KeyC") {
+      setFollowing(!following);
+    } else if (event.code === "F2") {
+      event.preventDefault();
+      if (!event.repeat) showColliders(!colliderDebug);
     } else if (event.code === "Escape" && !document.fullscreenElement) {
       selected = null;
-      following = false;
+      stopFollowing();
       updateUI();
     }
   });
@@ -1214,6 +1315,7 @@
       tick: snapshot?.tick || 0,
       counts: snapshot?.counts || {},
       binary: snapshot?.binary,
+      colliderDebug: { enabled: colliderDebug, ...colliderSummary(colliderRows) },
       renderCounts: snapshot ? Object.fromEntries(["ships", "projectiles", "debris", "particles", "turrets"].map((key) => [key, snapshot[key].length])) : {},
       counters: snapshot?.counters || {},
       pendingReinforcements: snapshot?.pendingReinforcements ?? 0,
@@ -1226,15 +1328,20 @@
         particleKinds: particleSprites ? [...particleSprites.keys()] : [],
         warpAtlas: Boolean(warpAtlas), warpKinds: warpSprites ? [...warpSprites.keys()] : [] },
       revision: snapshot?.revision,
+      fleetRevision: snapshot?.fleetRevision,
+      physicsRevision: snapshot?.physicsRevision,
+      fleetComposition: snapshot?.fleetComposition,
       tactics: tacticCounters(),
       statistics: statistics(),
       fps,
       lastFrameMs,
       stepMs: snapshot?.stepMs ?? 0,
       lastAdvanceMs,
-      camera: { ...camera, scale: fitScale * camera.zoom, width, height },
+      camera: { ...camera, scale: fitScale * camera.zoom, width, height, originY: centerY() },
       selected,
       following,
+      observation: { main: observationMain, target: observationTarget, viewport: observationBounds,
+        reason: observationReason, switches: observationSwitches, lastPosition: observedPosition },
       coordinateConvention:
         "World +X right, +Y up; screen +X right, +Y down; angle radians from world +X; sprites nose-up",
       ships: (snapshot?.ships || []).slice(0, 12).map((r) => ({
@@ -1274,6 +1381,8 @@
     reinforcements,
     aliveTeamCounts: () => snapshot?.aliveTeams.slice() ?? [0, 0],
     statistics,
+    showColliders,
+    colliders: () => ({ enabled: colliderDebug, ...colliderSummary(colliderRows), rows: colliderDetails(colliderRows) }),
     refresh: () => {
       accept(bridge.Snapshot());
       updateUI();
@@ -1287,8 +1396,14 @@
       draw();
     },
     select: (serial) => {
+      stopFollowing();
       selected = serial;
       updateUI();
+      draw();
+    },
+    follow: (serial = selected) => {
+      selected = serial;
+      setFollowing(true);
     },
     camera,
   };

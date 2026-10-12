@@ -17,7 +17,8 @@ DOCUMENTS = [
     "docs/SECS_OPTIMIZATION.md", "docs/benchmarks/optimization-methodology.md",
     "docs/space-battle/README.md", "docs/space-battle/PLAN.md",
     "docs/space-battle/SYSTEMS.md", "docs/space-battle/TACTICS.md", "docs/space-battle/ARMAMENT.md", "docs/space-battle/REINFORCEMENTS.md", "docs/space-battle/COVER.md", "docs/space-battle/PERFORMANCE_INVESTIGATION.md", "docs/space-battle/REPORT.md",
-    "docs/space-battle/SPATIAL_OPTIMIZATION.md", "tools/performance/README.md",
+    "docs/space-battle/SPATIAL_OPTIMIZATION.md", "docs/space-battle/FLEETS.md", "docs/space-battle/PHYSICS.md",
+    "tools/physics/README.md", "tools/performance/README.md",
     "Benchmarks.Local/README.md", "THIRD_PARTY_NOTICES.md",
 ]
 

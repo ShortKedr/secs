@@ -55,6 +55,11 @@ public sealed partial class Battle<TStore>
         Collect();
         ulong hash = 14695981039346656037;
         Add((uint)Tick); Add((uint)serial); Add((uint)nextFormationTick);
+        Add(1); Float(Config.Physics.Restitution); Float(Config.Physics.Friction); Float(Config.Physics.RestitutionThreshold);
+        Add((uint)Config.Physics.VelocityIterations); Add((uint)Config.Physics.PositionIterations); Add((uint)Config.Physics.MaximumSubsteps);
+        Add((uint)Config.Physics.MaximumContactPairs);
+        Float(Config.Physics.PositionSlop); Float(Config.Physics.CorrectionFraction); Float(Config.Physics.MaximumCorrection);
+        if (Config.FleetComposition != FleetComposition.Uniform) Add((uint)Config.FleetComposition);
         foreach (var row in ships)
         {
             Add((uint)row.Identity.Serial); Add((uint)row.Identity.Class); Add((uint)row.Identity.Team);
@@ -91,7 +96,7 @@ public sealed partial class Battle<TStore>
         foreach (var row in projectiles)
         {
             var e = row.Entity; var p = Store.Get<Projectile>(e); Add((uint)p.Serial); Add((uint)p.Kind); Ref(p.Owner); Ref(p.Target);
-            Float(p.Damage); Float(p.Radius); Add((uint)p.ExpiresTick); TransformHash(Store.Get<Transform>(e)); MotionHash(Store.Get<Motion>(e));
+            Float(p.Damage); Float(p.Radius); Float(p.HalfLength); Add((uint)p.Shape); Add((uint)p.ExpiresTick); TransformHash(Store.Get<Transform>(e)); MotionHash(Store.Get<Motion>(e));
         }
         foreach (var row in debris)
         {
@@ -139,7 +144,7 @@ public sealed partial class Battle<TStore>
             var motion = Store.Get<Motion>(e); var t = Store.Get<Transform>(e); var collider = Store.Get<Collider>(e);
             var brain = Store.Get<Brain>(e);
             if (!float.IsFinite(t.Position.X + t.Position.Y + t.Angle + motion.Velocity.X + motion.Velocity.Y + heat.Value +
-                hull.Current + hull.Maximum + hull.Armor + shield.Current + shield.Maximum + shield.RegenPerSecond + heat.Limit + heat.CoolingPerSecond + brain.EstimatedKillSeconds) ||
+                hull.Current + hull.Maximum + hull.Armor + shield.Current + shield.Maximum + shield.RegenPerSecond + heat.Limit + heat.CoolingPerSecond + brain.EstimatedKillSeconds + motion.AngularVelocity) ||
                 brain.EstimatedKillSeconds < 0 ||
                 hull.Current is < 0 || hull.Current > hull.Maximum || shield.Current < 0 || shield.Current > shield.Maximum || heat.Value < 0 ||
                 inventory.Capacity is < 1 or > 16 || collider.ShapeCount != ShipCatalog.Shapes(row.Identity.Class))

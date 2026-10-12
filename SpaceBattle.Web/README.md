@@ -11,8 +11,32 @@ The production host and Pages workflow still use Mono AOT.
 
 ## Runtime and Scenario
 
+The dashed-square button or F2 toggles collider outlines (off by default): green
+ship circles, pink projectile circles/oriented rectangles, grey debris circles.
+These are exact current collision shapes, not sprite bounds, trails or CCD swept
+volumes; zoom does not inflate their geometry. Docked ships, mounted guns and
+decorative particles have no separate active outlines. The overlay works while
+paused and following a ship, persists across reset, and never changes gameplay.
+Its reusable optional binary buffer is only collected while enabled; ordinary
+frame dimensions and the disabled rendering path are unchanged.
+
+Select a ship, then use the crosshair or C to follow it. White brackets identify
+the observed ship and amber brackets its live target. Auto zoom/framing keeps both
+inside the largest clear screen area, with the main ship nearer its center;
+pan and zoom ease on render time, including while paused. Death switches to a
+live, known fatal projectile owner (including friendly fire), otherwise the
+nearest visible survivor, with lower serial as the equal-distance tie-breaker.
+Unattributed debris/contacts use the fallback. Docking keeps the watched identity
+and frames its carrier. Pan, zoom, Fit, deselection and reset cancel following.
+The camera does not change AI, damage, RNG or replay checksum. Target/death
+metadata is pulled on demand; binary frame dimensions remain unchanged.
+
 The interactive host enables [corner warp reinforcement waves](../docs/space-battle/REINFORCEMENTS.md)
 for depleted fleets, preserving survivors and varying the incoming composition.
+
+The [light-swarm roster](../docs/space-battle/FLEETS.md) gives each side 54
+Interceptors and 18 Fighters, rare heavy escorts and three carriers. Production
+and warp waves use the same light emphasis without raising the population cap.
 
 Hulls, mounting bases and gun heads use the same native team palette:
 cyan RGB `(0.2, 0.85, 0.95)` and red `(1, 0.37, 0.4)`. Two tinted variants of
@@ -22,7 +46,8 @@ are preserved. Orange overheat indicators remain distinct.
 
 This is a real .NET 8 Blazor WebAssembly host for the unchanged
 [SpaceBattle.Core](../SpaceBattle.Core), [SpaceBattle.SECS](../SpaceBattle.SECS)
-and [SECS](../SECS) simulation with Aether.Physics2D. C# runs the simulation in
+and [SECS](../SECS) simulation with the shared [circle physics kernel](../docs/space-battle/PHYSICS.md).
+Aether is no longer a production dependency. C# runs the simulation in
 the browser; production uses AOT-compiled WebAssembly. JavaScript Canvas is a thin
 renderer, not a JavaScript rewrite of the battle. Direct JS exports expose a
 reused render buffer in WASM memory, without JSON snapshots or per-frame full
@@ -47,6 +72,8 @@ in both clients. Binary frame v3 retains 16-double rows, uses an 80-double heade
 and appends turret rows after particles. Header fields 63/64 count alive/visible
 mounts; 65/66 count heavy/turret shots. Turret row fields 9/10/11 are parent
 serial, recoil and normalized heat. All ECS totals include mounted entities.
+Reserved header field 72 now identifies fleet composition (0 Uniform, 1 LightSwarm);
+`FleetRevision()` identifies its rules without changing header/row dimensions.
 
 V6 reduces auxiliary turret damage to 25% and doubles cooldown: cannon 7 damage
 per 84 ticks, plasma 3.25 per 36 ticks. Nominal raw battery DPS is eight times

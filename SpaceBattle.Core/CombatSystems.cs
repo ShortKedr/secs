@@ -63,10 +63,13 @@ public sealed partial class Battle<TStore>
                 if (projectiles.Count >= Config.MaxProjectiles) break;
                 var position = origin + forward * muzzleOffset;
                 var e = Store.Create(); var number = ++serial;
+                var radius = weapon.Kind == WeaponKind.MachineGun ? 0.12f : weapon.Kind == WeaponKind.HeavyCannon ? 0.9f : 0.45f;
+                var rectangle = weapon.Kind is WeaponKind.MachineGun or WeaponKind.Cannon;
                 Store.Set(e, new Transform { Position = position, Previous = position, Angle = angle });
                 Store.Set(e, new Motion { Velocity = velocity + forward * weapon.Speed, MaxSpeed = weapon.Speed * 1.5f });
                 Store.Set(e, new Projectile { Serial = number, Owner = shot.Owner, Target = shot.Target,
-                    Kind = weapon.Kind, Damage = weapon.Damage, Radius = weapon.Kind == WeaponKind.MachineGun ? 0.12f : weapon.Kind == WeaponKind.HeavyCannon ? 0.9f : 0.45f, ExpiresTick = Tick + 240 });
+                    Kind = weapon.Kind, Damage = weapon.Damage, Radius = radius, HalfLength = rectangle ? radius * 2 : 0,
+                    Shape = rectangle ? ProjectileShape.Rectangle : ProjectileShape.Disk, ExpiresTick = Tick + 240 });
                 projectiles.Add(new(e, number)); Counters.Shots++; Counters.StructuralAdds += 3;
                 if (mounted) { Counters.TurretShots++; Store.Get<MountedTurret>(shot.Gun).LastFireTick = Tick; }
                 if (weapon.Kind == WeaponKind.HeavyCannon) Counters.HeavyShots++;
@@ -85,7 +88,8 @@ public sealed partial class Battle<TStore>
             if (Battle.teamCounts[id.Team] >= Battle.Config.ShipsPerTeam + Battle.Config.CarriersPerTeam) return;
             var rng = new RandomStream(Battle.Config.Seed ^ (uint)(id.Serial * 1009 + Battle.Tick));
             var offset = new Vector2(rng.Range(-16, 16), rng.Range(-16, 16));
-            Battle.builds.Add(new(id.Team, (ShipClass)(c.Built % 8), t.Position + offset, e, id.Serial));
+            Battle.builds.Add(new(id.Team, FleetCompositionRules.Escort(Battle.Config.FleetComposition, c.Built),
+                t.Position + offset, e, id.Serial));
         }
     }
     private struct DockSystem : IProcessor<Identity, Docked, Hull>
@@ -163,9 +167,13 @@ public sealed partial class Battle<TStore>
         foreach (var row in projectiles)
         {
             ref var p = ref Store.Get<Projectile>(row.Entity); var t = Store.Get<Transform>(row.Entity);
-            if (p.ExpiresTick <= Tick || Outside(t.Position)) { retired.Add(row.Entity); continue; }
+            if (p.ExpiresTick <= Tick) { retired.Add(row.Entity); continue; }
             var ownerSerial = Store.Alive(p.Owner) && Store.Has<Identity>(p.Owner) ? Store.Get<Identity>(p.Owner).Serial : -1;
-            if (!physics.Sweep(t.Previous, t.Position, p.Radius, ownerSerial, out var targetSerial, out var impact)) continue;
+            int targetSerial; Vector2 impact;
+            var hit = p.Shape == ProjectileShape.Rectangle
+                ? physics.SweepRectangle(t.Previous, t.Position, new(p.HalfLength, p.Radius), t.Angle, ownerSerial, out targetSerial, out impact)
+                : physics.Sweep(t.Previous, t.Position, p.Radius, ownerSerial, out targetSerial, out impact);
+            if (!hit) { if (Outside(t.Position)) retired.Add(row.Entity); continue; }
             if (!serialToShip.TryGetValue(targetSerial, out var target) || !AliveShip(target)) continue;
             Damage(target, p.Damage, p.Kind == WeaponKind.Plasma, false, p.Owner); Counters.Hits++;
             if (Store.Alive(p.Owner) && Store.Has<Identity>(p.Owner) &&
@@ -179,9 +187,10 @@ public sealed partial class Battle<TStore>
         foreach (var row in debris)
         {
             ref var p = ref Store.Get<Debris>(row.Entity); var t = Store.Get<Transform>(row.Entity);
-            if (p.ExpiresTick <= Tick || Outside(t.Position)) { retired.Add(row.Entity); continue; }
+            if (p.ExpiresTick <= Tick) { retired.Add(row.Entity); continue; }
             // Fragments damage either faction. No engine or artificial velocity decay.
-            if (!physics.Sweep(t.Previous, t.Position, p.Radius, out var targetSerial, out var impact)) continue;
+            if (!physics.Sweep(t.Previous, t.Position, p.Radius, out var targetSerial, out var impact))
+            { if (Outside(t.Position)) retired.Add(row.Entity); continue; }
             if (!serialToShip.TryGetValue(targetSerial, out var target) || !AliveShip(target)) continue;
             var speed = Store.Get<Motion>(row.Entity).Velocity.Length();
             Damage(target, p.Damage * MathF.Max(0.2f, speed / 40), false, true);
@@ -205,7 +214,11 @@ public sealed partial class Battle<TStore>
             ? attacker : EntityKey.None;
         State(e, StateKind.Combat, true);
         if (shield.Current <= 0) State(e, StateKind.ShieldBreak, true);
-        if (hull.Current <= 0) State(e, StateKind.Destroy, true);
+        if (hull.Current <= 0)
+        {
+            RecordObservedDeath(e, attacker);
+            State(e, StateKind.Destroy, true);
+        }
     }
     private void Effect(Vector2 position, Vector2 velocity, int kind, int count, float heavyRadius = 6)
     {

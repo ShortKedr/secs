@@ -23,7 +23,8 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
     public int PhysicsBodies => physics.Bodies;
     public int PhysicsFixtures => physics.Fixtures;
     public PhysicsQueryStatistics PhysicsQueries => physics.QueryStatistics;
-    private readonly PhysicsService physics = new();
+    public PhysicsTimingStatistics PhysicsTimings => physics.Timings;
+    private readonly PhysicsService physics;
     private readonly List<ShipRow> ships = new();
     private readonly List<MovingRow> projectiles = new(), debris = new(), particles = new();
     private readonly List<MovingRow> turrets = new();
@@ -43,7 +44,7 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
 
     public Battle(TStore store, BattleConfig config)
     {
-        config.Validate(); Config = config; Store = store;
+        config.Validate(); Config = config; Store = store; physics = new(config.Physics);
         var rng = new RandomStream(config.Seed);
         for (var team = 0; team < 2; team++)
         {
@@ -52,7 +53,8 @@ public sealed partial class Battle<TStore> : IDisposable where TStore : IEcsStor
                 homes[i] = SpawnShip(team, ShipClass.LightCarrier + i,
                     new Vector2(team == 0 ? -90 : 90, (i - (homes.Length - 1) * 0.5f) * 34), EntityKey.None);
             for (var i = 0; i < config.ShipsPerTeam; i++)
-                SpawnShip(team, (ShipClass)(i % 8), new Vector2((team == 0 ? -1 : 1) * rng.Range(40, 72), rng.Range(-65, 65)), homes[i % homes.Length]);
+                SpawnShip(team, FleetCompositionRules.Escort(config.FleetComposition, i),
+                    new Vector2((team == 0 ? -1 : 1) * rng.Range(40, 72), rng.Range(-65, 65)), homes[i % homes.Length]);
         }
         Store.Commit(); Collect();
         InitializeWarpReinforcements();

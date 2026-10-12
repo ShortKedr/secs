@@ -21,13 +21,14 @@ test("WASM exported function indices distinguish globals and aliases", () => {
 test("a runtime flag and compiled Battle.Step cannot pass missing query-loop coverage", () => {
   assert.throws(() => checkHotExports({}), /BattleBridge__Advance/);
   const functions = ["BattleBridge__Advance", "Battle_1<System___Canon>__Step", "PhysicsService__Step",
-    "AiSystem<System___Canon>__Execute", "WeaponSystem<System___Canon>__Execute", "__UpdateTurrets", "World__Step"];
-  const inventory = Object.fromEntries(["SpaceBattle.Web", "SpaceBattle.Core", "Aether.Physics2D"].map((name) => [name, { functions }]));
+    "AiSystem<System___Canon>__Execute", "WeaponSystem<System___Canon>__Execute", "__UpdateTurrets",
+    "PhysicsService__SolveVelocities", "CircleSweepMath__TryCircleRelative", "CircleSweepMath__TryRectangleRelative"];
+  const inventory = Object.fromEntries(["SpaceBattle.Web", "SpaceBattle.Core"].map((name) => [name, { functions }]));
   assert.throws(() => checkHotExports(inventory), /SecsStore__ForEach/);
   inventory["SpaceBattle.SECS"] = { functions: ["SecsStore__ForEach<Identity>" ] };
   assert.throws(() => checkHotExports(inventory), /SECS \/ ForEach/);
   inventory.SECS = { functions: ["Query__ForEach<Processor>"] };
-  assert.equal(checkHotExports(inventory).length, 9);
+  assert.equal(checkHotExports(inventory).length, 11);
 });
 
 test("runtime evidence maps function indices and keeps interpreter samples separate", () => {

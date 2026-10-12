@@ -10,6 +10,15 @@ Interactive Silk.NET/OpenGL 3.3 frontend for `Battle<SecsStore>`. The default
 configuration starts 96 escorts per team plus carriers (198 total), all controlled
 by AI. Use `--ships 2048` for the 4096-escort stress configuration.
 
+Current source uses the shared [circle physics experiment](../docs/space-battle/PHYSICS.md)
+instead of Aether: disk hulls, inertial rotation, contact friction and analytic
+relative-motion disk/rectangle hits. This changes gameplay/checksums; historical
+benchmark results still describe their original model.
+
+The [light-swarm roster](../docs/space-battle/FLEETS.md) starts 54 Interceptors
+and 18 Fighters per team, with rare heavy escorts and the same three carriers.
+Production and warp waves retain a predominantly light fleet; the total cap is unchanged.
+
 Depleted fleets receive [corner warp reinforcement waves](../docs/space-battle/REINFORCEMENTS.md)
 with varied compositions and visible warning/arrival effects. Surviving ships are
 not reset. `--finite` disables the interactive endless-wave rule.
@@ -44,6 +53,26 @@ battle, Home fits the arena, WASD/arrows pan, middle/right drag pans, wheel zoom
 at the cursor, left click selects a ship. The top HUD controls are clickable.
 F3 or the bar-chart icon toggles detailed simulation statistics; `--statistics`
 opens the panel on launch, including for automated captures.
+
+F2 or the bounding-box HUD icon toggles collider wireframes (off by default).
+Ships are green disks, projectiles magenta disks or rotated rectangles, and
+debris grey/cyan disks. Outlines use actual world-space dimensions without a
+minimum display size, including during spectator follow/zoom; tiny colliders
+may require zooming in. The overlay is frontend-only and collected only while
+enabled. `--colliders` enables reproducible PNG captures; adjacent JSON includes
+`Colliders.Enabled` and counts by entity kind and shape. `--validate-controls`
+also checks both toggles, rotated rectangle geometry and unchanged checksums.
+
+Select a ship, then use C or the crosshair HUD button to follow it. White brackets
+mark the observed ship; amber brackets mark its live target. The camera smoothly
+frames both with the observed ship nearer the safe viewport center. On death it
+follows a live, known fatal projectile owner (including friendly fire), otherwise
+the nearest visible survivor; equal distances prefer the smaller serial.
+Unattributed debris/contacts use the fallback. Docking retains the original watch
+and frames its carrier until undocking. Manual pan/zoom, Home, selecting elsewhere
+and restart cancel following. This is presentation only, not an AI/gameplay rule.
+`--follow-ship 22` enables reproducible observer captures; `--validate-observer`
+runs pure camera/lifecycle tests before creating a window.
 
 ## Live Statistics
 

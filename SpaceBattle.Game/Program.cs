@@ -7,7 +7,7 @@ using SpaceBattle;
 using SpaceBattle.Game;
 
 System.Globalization.CultureInfo.CurrentCulture=System.Globalization.CultureInfo.InvariantCulture;
-try { using var app = new BattleApp(args); app.Run(); return 0; }
+try { if(args.Contains("--validate-observer")) {SpectatorCameraValidation.Run();return 0;} using var app = new BattleApp(args); app.Run(); return 0; }
 catch(Exception e) { Console.Error.WriteLine(e); return 1; }
 
 internal sealed class BattleApp : IDisposable
@@ -16,6 +16,8 @@ internal sealed class BattleApp : IDisposable
     private readonly BattleConfig config;
     private Battle<SecsStore> battle;
     private readonly BattleFrame frame = new();
+    private readonly List<DebugCollider> colliders = new();
+    private bool collidersVisible;
     private Renderer? renderer;
     private IInputContext? input;
     private GL? gl;
@@ -33,6 +35,8 @@ internal sealed class BattleApp : IDisposable
     private bool controlsVerified;
     private bool captured, paused;
     private int selected = -1;
+    private readonly SpectatorCamera spectator = new();
+    private readonly int followShip;
     private float zoom = 1, speed = 1;
     private Vector2 center, previousMouse;
     private double accumulator;
@@ -76,6 +80,8 @@ internal sealed class BattleApp : IDisposable
         }
         capture=Value("--capture"); captureTick=Number("--capture-tick",0); exitCapture=args.Contains("--exit-after-capture");validate=args.Contains("--validate-render");
         validateControls=args.Contains("--validate-controls");
+        followShip=ProfileNumber("--follow-ship",-1);
+        if(followShip < -1)throw new ArgumentException("--follow-ship must be a nonnegative serial.");
         validateLiveStatistics=args.Contains("--validate-live-statistics");
         validateEffects=args.Contains("--validate-effects");
         if(Value("--effects-capture") is { } effectsPath)effectsCapture=ProjectOutput(effectsPath);
@@ -85,6 +91,7 @@ internal sealed class BattleApp : IDisposable
         if(gunTintsCapture is not null&&!validateGunTints)throw new ArgumentException("--gun-tints-capture requires --validate-gun-tints.");
         if(validateEffects&&validateGunTints)throw new ArgumentException("Run effect and gun tint galleries separately.");
         statisticsVisible=args.Contains("--statistics");
+        collidersVisible=args.Contains("--colliders");
         hidden=args.Contains("--hidden");
         profileFrames=ProfileNumber("--profile-frames",0);
         profileWarmup=ProfileNumber("--profile-warmup",120);
@@ -120,7 +127,8 @@ internal sealed class BattleApp : IDisposable
             capture=ProjectOutput(capture);
         }
         config=new BattleConfig { ShipsPerTeam=Number("--ships",Number("--ships-per-team",96)), Seed=(uint)Number("--seed",7331),
-            EndlessReinforcements=!args.Contains("--finite"), ReplenishCarriers=false };config.Validate();
+            EndlessReinforcements=!args.Contains("--finite"), ReplenishCarriers=false,
+            FleetComposition=FleetComposition.LightSwarm };config.Validate();
         battle=new(new SecsStore(),config);
         var options=WindowOptions.Default;
         int width=Number("--width",1440), height=Number("--height",900);
@@ -163,11 +171,13 @@ internal sealed class BattleApp : IDisposable
         }
         battle.Capture(frame);
         if(validateControls)CheckControls();
+        if(followShip>=0)StartFollow(followShip);
         // Offline fast-forward is deliberately separate from the real-time accumulator.
         for(int i=0;i<captureTick;i++) Step();
         battle.Capture(frame);
         zoom=initialZoom;
         center=Vector2.Zero;
+        UpdateCamera(0,true);
         replayStartTick=battle.Tick;
         ResetRates();
         liveValidationStart=Timestamp();
@@ -179,9 +189,11 @@ internal sealed class BattleApp : IDisposable
         switch(key)
         {
             case Key.Space: TogglePause();break;
+            case Key.F2: ToggleColliders();break;
             case Key.F3: statisticsVisible=!statisticsVisible;break;
             case Key.R: Restart();break;
-            case Key.Home: center=Vector2.Zero;zoom=1;break;
+            case Key.Home: StopFollow();center=Vector2.Zero;zoom=1;break;
+            case Key.C: ToggleFollow();break;
             case Key.Equal: speed=Math.Min(8,speed*2);break;
             case Key.Minus: speed=Math.Max(.25f,speed/2);break;
             case Key.Escape: window.Close();break;
@@ -189,13 +201,44 @@ internal sealed class BattleApp : IDisposable
     }
     private void ZoomAt(Vector2 mouse,float scroll)
     {
+        StopFollow();
         var before=ToWorld(mouse);zoom=Math.Clamp(zoom*MathF.Pow(1.15f,scroll),.25f,24);center+=before-ToWorld(mouse);
     }
-    private void PanDelta(Vector2 delta)=>center+=new Vector2(-delta.X*window.FramebufferSize.X/window.Size.X,delta.Y*window.FramebufferSize.Y/window.Size.Y)/Scale;
+    private void PanDelta(Vector2 delta) {StopFollow();center+=new Vector2(-delta.X*window.FramebufferSize.X/window.Size.X,delta.Y*window.FramebufferSize.Y/window.Size.Y)/Scale;}
+    private void StopFollow() {spectator.Stop();battle.ObserveShip(-1);}
+    private void StartFollow(int serial)
+    {
+        if(!spectator.Start(serial,battle.TryGetShipObservation))return;
+        selected=serial;battle.ObserveShip(serial);UpdateCamera(0,true);
+    }
+    private void ToggleFollow() {if(spectator.Following)StopFollow();else StartFollow(selected);}
+    private void ResolveObserver()
+    {
+        if(!spectator.Following)return;
+        if(!battle.TryGetShipObservation(spectator.ObservedSerial,out _))battle.Capture(frame,refreshEntities:false);
+        if(spectator.Resolve(battle.TryGetShipObservation,battle.ObservedDeath,frame.Ships))
+        {battle.ObserveShip(spectator.ObservedSerial);selected=spectator.ObservedSerial;}
+    }
+    private void UpdateCamera(double dt,bool snap=false)
+    {
+        ResolveObserver();
+        spectator.Advance((float)dt,new(window.FramebufferSize.X,window.FramebufferSize.Y,statisticsVisible),BaseScale,snap);
+        if(spectator.Following) {center=spectator.Center;zoom=spectator.Scale/BaseScale;}
+    }
     private void CheckControls()
     {
         static void Check(bool ok,string name) {if(!ok)throw new InvalidOperationException($"Control validation failed: {name}");}
         bool initialStatisticsVisible=statisticsVisible;statisticsVisible=false;
+        bool initialCollidersVisible=collidersVisible;
+        var colliderChecksum=battle.Checksum();
+        HandleKey(Key.F2);Check(collidersVisible!=initialCollidersVisible,"collider key toggle");
+        Click(new(500f*window.Size.X/window.FramebufferSize.X,22f*window.Size.Y/window.FramebufferSize.Y));
+        Check(collidersVisible==initialCollidersVisible,"collider button toggle");
+        collidersVisible=true;CaptureColliders();Check(colliders.Count>0,"enabled collider capture");
+        collidersVisible=false;CaptureColliders();Check(colliders.Count==0,"disabled collider capture cleared");
+        Check(battle.Checksum()==colliderChecksum,"collider toggles/capture preserve gameplay checksum");
+        collidersVisible=initialCollidersVisible;
+        ColliderOverlay.ValidateGeometry();
         HandleKey(Key.Space);Check(paused,"pause");HandleKey(Key.Space);Check(!paused,"resume");
         HandleKey(Key.Equal);Check(speed==2,"speed up");HandleKey(Key.Minus);Check(speed==1,"speed down");
         var mouse=new Vector2(window.Size.X*.6f,window.Size.Y*.55f);
@@ -207,6 +250,17 @@ internal sealed class BattleApp : IDisposable
         {
             var screen=Screen(frame.Ships[0].Position);
             Click(new(screen.X*window.Size.X/window.FramebufferSize.X,screen.Y*window.Size.Y/window.FramebufferSize.Y));Check(selected>=0,"selection");
+            Check(!spectator.Following,"ordinary selection does not follow");
+            HandleKey(Key.C);Check(spectator.Following&&spectator.ObservedSerial==selected,"follow key");
+            HandleKey(Key.Space);int followTick=battle.Tick;UpdateCamera(.1);Check(spectator.Following&&battle.Tick==followTick,"paused view follows without ticks");HandleKey(Key.Space);
+            screen=Screen(spectator.Main.Position);
+            Click(new(screen.X*window.Size.X/window.FramebufferSize.X,screen.Y*window.Size.Y/window.FramebufferSize.Y));
+            Check(!spectator.Following&&spectator.TargetSerial==-1&&selected>=0,"normal canvas selection cancels follow");
+            HandleKey(Key.C);
+            PanDelta(Vector2.One);Check(!spectator.Following&&spectator.TargetSerial==-1,"pan cancels follow");
+            HandleKey(Key.C);ZoomAt(mouse,1);Check(!spectator.Following,"zoom cancels follow");
+            HandleKey(Key.C);HandleKey(Key.Home);Check(!spectator.Following,"home cancels follow");
+            StartFollow(selected);Click(new(448f*window.Size.X/window.FramebufferSize.X,22f*window.Size.Y/window.FramebufferSize.Y));Check(!spectator.Following,"follow button");
         }
         statisticsVisible=initialStatisticsVisible;
         HandleKey(Key.F3);Check(statisticsVisible!=initialStatisticsVisible,"statistics key toggle");
@@ -224,19 +278,26 @@ internal sealed class BattleApp : IDisposable
         Check(battle.Tick==tick&&ticksPerSecond==0&&wallTicks==0,"paused tick rate");HandleKey(Key.Space);
         HandleKey(Key.R);statistics.Refresh();
         Check(frame.Tick==battle.Tick&&frame.Ships.Count==battle.ShipCount&&frame.Turrets.Count==battle.TurretCount,"restart snapshot reset");
-        Check(battle.Tick==0&&selected==-1&&statistics.SampleCount==0&&statistics.LastMs==0&&statistics.MeanMs==0&&statistics.P99Ms==0,"restart statistics reset");
+        Check(battle.Tick==0&&selected==-1&&!spectator.Following&&statistics.SampleCount==0&&statistics.LastMs==0&&statistics.MeanMs==0&&statistics.P99Ms==0,"restart statistics reset");
         Check(statistics.P95Ms==0&&statistics.MaximumMs==0&&statistics.StageMeanMs.All(ms=>ms==0),"restart stage reset");
         var bounded=new SimulationStatistics(1);double[] stage=[1];
         for(int i=0;i<=SimulationStatistics.WindowCapacity;i++)bounded.RecordTick(1,stage);
         bounded.Refresh();Check(bounded.SampleCount==SimulationStatistics.WindowCapacity&&bounded.MeanMs==1&&bounded.P99Ms==1&&bounded.StageMeanMs[0]==1,"bounded rolling statistics");
-        controlsVerified=true;Console.WriteLine("Control logic validation PASS (pause, speed, pan, cursor zoom, fit, selection, restart, statistics toggles/counts/reset/window).");
+        controlsVerified=true;Console.WriteLine("Control logic validation PASS (pause, speed, pan, cursor zoom, fit, selection, follow key/button, manual cancellation, paused camera, restart, statistics toggles/counts/reset/window, collider toggles/geometry/checksum).");
     }
     private void ResetRates() {rateStart=Timestamp();wallTicks=wallFrames=0;ticksPerSecond=renderFps=renderCpuMs=0;}
     private void TogglePause() {paused=!paused;ResetRates();}
-    private void Restart() { battle.Dispose();battle=new(new SecsStore(),config);accumulator=0;selected=-1;statistics.Reset();statisticsRefreshAt=0;ResetRates();battle.Capture(frame); }
+    private void ToggleColliders() {collidersVisible=!collidersVisible;if(!collidersVisible)colliders.Clear();}
+    private void CaptureColliders()
+    {
+        if(collidersVisible)battle.CaptureColliders(colliders,refreshEntities:false);
+        else colliders.Clear();
+    }
+    private void Restart() { StopFollow();battle.Dispose();battle=new(new SecsStore(),config);accumulator=0;selected=-1;statistics.Reset();statisticsRefreshAt=0;ResetRates();battle.Capture(frame); }
     private void Step(bool live=false)
     {
         battle.Step();
+        ResolveObserver();
         if(profileFrames==0)statistics.RecordTick(battle.LastTickMs,battle.LastStageMs);
         if(live)wallTicks++;
     }
@@ -248,14 +309,15 @@ internal sealed class BattleApp : IDisposable
         {
             var d=Vector2.Zero;if(k.IsKeyPressed(Key.W)||k.IsKeyPressed(Key.Up))d.Y+=1;if(k.IsKeyPressed(Key.S)||k.IsKeyPressed(Key.Down))d.Y-=1;
             if(k.IsKeyPressed(Key.A)||k.IsKeyPressed(Key.Left))d.X-=1;if(k.IsKeyPressed(Key.D)||k.IsKeyPressed(Key.Right))d.X+=1;
-            center+=d*(float)dt*200/zoom;
+            if(d!=Vector2.Zero) {StopFollow();center+=d*(float)dt*200/zoom;}
         }
         if(paused) return;
         accumulator+=Math.Min(dt,.25)*speed;
         int steps=0;while(accumulator>=1.0/config.TickRate&&steps++<32) { Step(true);accumulator-=1.0/config.TickRate; }
         battle.Capture(frame, refreshEntities: false);
     }
-    private float Scale=>Math.Max(1,Math.Min(window.FramebufferSize.X-40,window.FramebufferSize.Y-240))/(config.ArenaHalfSize*2)*zoom;
+    private float BaseScale=>Math.Max(1,Math.Min(window.FramebufferSize.X-40,window.FramebufferSize.Y-240))/(config.ArenaHalfSize*2);
+    private float Scale=>spectator.Following?spectator.Scale:BaseScale*zoom;
     private Vector2 Screen(Vector2 p)=>new(window.FramebufferSize.X*.5f+(p.X-center.X)*Scale,window.FramebufferSize.Y*.5f+30-(p.Y-center.Y)*Scale);
     private Vector2 ToWorld(Vector2 mouse)
     {
@@ -265,8 +327,9 @@ internal sealed class BattleApp : IDisposable
     private void Click(Vector2 mouse)
     {
         float x=mouse.X*window.FramebufferSize.X/window.Size.X,y=mouse.Y*window.FramebufferSize.Y/window.Size.Y;
-        if(y<44) { if(x<88)TogglePause();else if(x<132)speed=Math.Max(.25f,speed/2);else if(x<180)speed=Math.Min(8,speed*2);else if(x<280)Restart();else if(x<360){center=Vector2.Zero;zoom=1;}else if(x<420)statisticsVisible=!statisticsVisible;return; }
+        if(y<44) { if(x<88)TogglePause();else if(x<132)speed=Math.Max(.25f,speed/2);else if(x<180)speed=Math.Min(8,speed*2);else if(x<280)Restart();else if(x<360){HandleKey(Key.Home);}else if(x<420)statisticsVisible=!statisticsVisible;else if(x<476)ToggleFollow();else if(x<524)ToggleColliders();return; }
         if(statisticsVisible&&x>=window.FramebufferSize.X-374&&y>=138&&y<446)return;
+        StopFollow();
         var world=ToWorld(mouse);var ship=frame.Ships.OrderBy(s=>Vector2.DistanceSquared(world,s.Position)).FirstOrDefault();
         selected=frame.Ships.Count>0&&Vector2.Distance(world,ship.Position)<Math.Max(ship.Radius,10/Scale)?ship.Serial:-1;
     }
@@ -285,6 +348,7 @@ internal sealed class BattleApp : IDisposable
         }
         int w=window.FramebufferSize.X,h=window.FramebufferSize.Y;
         long renderStart=Timestamp();
+        UpdateCamera(dt);
         var (renderedShips,population)=RenderScene();
         renderCpuMs=Elapsed(renderStart)*1000;
         if(capture is not null&&!captured)SaveCapture(w,h,renderedShips,population);
@@ -322,6 +386,7 @@ internal sealed class BattleApp : IDisposable
         profile.PollGpu();
         long simulationStart=FrontendProfiler.Timestamp();Step();long simulationEnd=FrontendProfiler.Timestamp();
         battle.Capture(frame, refreshEntities: false);long snapshotEnd=FrontendProfiler.Timestamp();
+        UpdateCamera(1.0/config.TickRate);
         profile.BeginGpu();
         long renderStart=FrontendProfiler.Timestamp();RenderScene();long renderEnd=FrontendProfiler.Timestamp();
         profile.EndGpu();profile.CollectErrors(profile.SampleIndex);
@@ -356,7 +421,8 @@ internal sealed class BattleApp : IDisposable
             if(e.Shield>.01f&&r>=3)renderer.Circle(p,r*1.35f,new(.4f,.7f,1,Math.Clamp(e.Shield,0,1)*.4f));
             if(e.Heat>.65f)renderer.Circle(p,r*1.6f,new(1,.55f,.12f,Math.Clamp(e.Heat,0,1)*.7f));
             if(e.Hull<.98f&&r>=3) {renderer.Rect(p.X-r,p.Y+r+3,r*2,2,new(.18f,.2f,.23f,1));renderer.Rect(p.X-r,p.Y+r+3,r*2*Math.Clamp(e.Hull,0,1),2,new(.45f,.95f,.5f,1));}
-            if(e.Serial==selected)renderer.Circle(p,r*2+4,White);
+            if(e.Serial==(spectator.Following?spectator.MainSerial:selected))DrawBrackets(p,Math.Max(2,r)*2.2f+8,White);
+            if(spectator.Following&&e.Serial==spectator.TargetSerial)DrawBrackets(p,Math.Max(2,r)*2.2f+8,new(1,.76f,.24f,1));
         }
         foreach(var turret in frame.Turrets)
         {
@@ -367,6 +433,8 @@ internal sealed class BattleApp : IDisposable
         foreach(var e in frame.Particles)
             if(WarpEffect.Foreground(e.Kind))
                 renderer.Particle(Screen(e.Position),Math.Max(2,e.Radius*Scale*2),e.Angle,e.Kind,e.Color.W);
+        CaptureColliders();
+        if(collidersVisible)ColliderOverlay.Draw(renderer,colliders,Screen,Scale);
         var population=new TeamPopulation();battle.Store.ForEach<Identity,TeamPopulation>(ref population);
         Hud(w,h,population);renderer.End();
         return (renderedShips,population);
@@ -398,6 +466,11 @@ internal sealed class BattleApp : IDisposable
                 TurretPoses=frame.Turrets.Select(t=>new {t.Serial,t.ParentSerial,t.Team,t.Kind,X=t.Position.X,Y=t.Position.Y,t.Angle,t.Radius,t.Heat,t.Recoil}),
                 HeavyShots=frame.Counters.HeavyShots,TurretShots=frame.Counters.TurretShots,GameplayRevision=ArmamentRules.Revision,CountsValid=countsValid,StatisticsValid=statisticsValid,
                 WarpAtlas=renderer.HasWarpAtlas,config.EndlessReinforcements,ReinforcementRevision=WarpReinforcementRules.Revision,
+                FleetComposition=config.FleetComposition.ToString(),FleetRevision=FleetCompositionRules.Revision,
+                PhysicsRevision=PhysicsSettings.Revision,PhysicsSettings=config.Physics,
+                Colliders=new {Enabled=collidersVisible,Count=colliders.Count,Ships=colliders.Count(c=>c.Kind==DebugColliderKind.Ship),Projectiles=colliders.Count(c=>c.Kind==DebugColliderKind.Projectile),Debris=colliders.Count(c=>c.Kind==DebugColliderKind.Debris),Disks=colliders.Count(c=>c.Shape==ProjectileShape.Disk),Rectangles=colliders.Count(c=>c.Shape==ProjectileShape.Rectangle)},
+                Observer=new {spectator.Following,spectator.ObservedSerial,spectator.MainSerial,spectator.TargetSerial,SelectedSerial=selected,Death=new {battle.ObservedDeath.Serial,battle.ObservedDeath.KillerSerial,battle.ObservedDeath.Tick,X=battle.ObservedDeath.Position.X,Y=battle.ObservedDeath.Position.Y}},
+                Camera=new {CenterX=center.X,CenterY=center.Y,Scale,Zoom=zoom,SafeViewport=new {Left=14,Top=140,Right=w-(statisticsVisible?392:14),Bottom=h-80},Main=spectator.Following?CameraShip(spectator.Main):null,Target=spectator.Target is { } cameraTarget?CameraShip(cameraTarget):null},
                 battle.Counters.ReinforcementWaves,battle.Counters.ReinforcementShips,
                 Reinforcements=Enumerable.Range(0,2).Select(team=> {var wave=battle.Reinforcement(team);return new {Team=team,wave.Wave,wave.Corner,wave.Composition,wave.PendingShips,wave.ArrivalTick,wave.NextSpawnTick,wave.EndTick,X=wave.Position.X,Y=wave.Position.Y,wave.Active};}).ToArray(),
                 Statistics=new {statistics.SampleCount,Capacity=SimulationStatistics.WindowCapacity,statistics.LastMs,statistics.MeanMs,statistics.P95Ms,statistics.P99Ms,statistics.MaximumMs,StageNames=Battle<SecsStore>.StageNames,statistics.StageMeanMs,WallTicksPerSecond=ticksPerSecond,RenderFps=renderFps,RenderSubmissionCpuMs=renderCpuMs,TickBudgetMs,MeanBudgetPercent=statistics.MeanMs/TickBudgetMs*100,Paused=paused,PanelVisible=statisticsVisible,OfflineCapture=true}};
@@ -421,7 +494,18 @@ internal sealed class BattleApp : IDisposable
         var pointer=input?.Mice.FirstOrDefault()?.Position;
         if(pointer is { } pos&&pos.X* w/window.Size.X>=360&&pos.X*w/window.Size.X<420&&pos.Y*h/window.Size.Y<44)
             r.Text(365,47,"STATISTICS",White,1);
-        r.Text(Math.Max(430,w-300),14,$"{speed:0.##}X  TICK {frame.Tick}",White);
+        var followColor=spectator.Following?Cyan:White;
+        r.Circle(new(448,22),7,followColor);
+        r.Line(new(435,22),new(444,22),1,followColor);r.Line(new(452,22),new(461,22),1,followColor);
+        r.Line(new(448,9),new(448,18),1,followColor);r.Line(new(448,26),new(448,35),1,followColor);
+        if(pointer is { } followPointer&&followPointer.X*w/window.Size.X>=420&&followPointer.X*w/window.Size.X<476&&followPointer.Y*h/window.Size.Y<44)
+            r.Text(420,47,"FOLLOW SHIP",White,1);
+        var colliderColor=collidersVisible?Cyan:White;
+        DrawBrackets(new(500,22),9,colliderColor);
+        r.Line(new(495,22),new(505,22),1,colliderColor);r.Line(new(500,17),new(500,27),1,colliderColor);
+        if(pointer is { } colliderPointer&&colliderPointer.X*w/window.Size.X>=476&&colliderPointer.X*w/window.Size.X<524&&colliderPointer.Y*h/window.Size.Y<44)
+            r.Text(476,47,"COLLIDERS (F2)",White,1);
+        r.Text(Math.Max(538,w-300),14,$"{speed:0.##}X  TICK {frame.Tick}",White);
         for(int team=0;team<2;team++)
         {
             int count=0;float heat=0,shield=0;
@@ -453,5 +537,20 @@ internal sealed class BattleApp : IDisposable
         window.Title=$"Space Battle | {battle.Framework} | tick {frame.Tick} | alive {AliveEntities} | p99 {statistics.P99Ms:0.00} ms";
     }
     private void DisposeGraphics() { profiler?.Dispose();profiler=null;renderer?.Dispose();renderer=null;input?.Dispose();input=null;gl?.Dispose();gl=null; }
+    private object CameraShip(ShipObservation ship)
+    {
+        var screen=Screen(ship.Position);
+        return new {ship.Serial,ship.Team,ship.Kind,ship.Hull,ship.Shield,ship.Heat,ship.DockCarrierSerial,WorldX=ship.Position.X,WorldY=ship.Position.Y,X=screen.X,Y=screen.Y,ship.Radius,Padding=ship.Radius*2.2f*Scale+18};
+    }
+    private void DrawBrackets(Vector2 p,float radius,Vector4 color)
+    {
+        float length=Math.Min(12,radius*.4f);
+        for(int x=-1;x<=1;x+=2)for(int y=-1;y<=1;y+=2)
+        {
+            var corner=p+new Vector2(x,y)*radius;
+            renderer!.Line(corner,corner-new Vector2(x*length,0),1.5f,color);
+            renderer.Line(corner,corner-new Vector2(0,y*length),1.5f,color);
+        }
+    }
     public void Dispose() { DisposeGraphics();battle.Dispose();window.Dispose(); }
 }

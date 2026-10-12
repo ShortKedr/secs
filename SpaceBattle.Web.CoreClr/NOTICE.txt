@@ -12,9 +12,10 @@ Native runtime relinking uses Emscripten 6.0.2; original LICENSE and AUTHORS
 are copied to EMSCRIPTEN.txt and EMSCRIPTEN-AUTHORS.txt by the build helper.
 Compiler binaries, SDKs and build tools are not shipped in the web site.
 
-The unchanged application also includes Aether.Physics2D 2.2.0 (MS-PL,
-AETHER.txt), Lucide 1.55.0 (ISC/MIT, LUCIDE.txt), and original generated
-artwork (ARTWORK.md). No other ECS frameworks are bundled here.
+The application uses the shared C# circle kernel, Lucide 1.55.0
+(ISC/MIT, LUCIDE.txt), and original generated artwork (ARTWORK.md).
+AETHER.txt is retained as a historical license reference; Aether is not
+part of the current simulation. No other ECS frameworks are bundled here.
 No additional license is assigned to the repository's own code or artwork.
 
 This is an experimental runtime path, not a Microsoft support guarantee

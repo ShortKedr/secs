@@ -57,15 +57,21 @@ internal static partial class Validation
             for (var i = 0; i < 1800; i++) battle.Step();
             Require(first == battle.Checksum(), "deterministic replay");
         }
+        FleetCompositionChecks();
+        ObservationChecks();
+        ColliderChecks();
         PhysicsChecks(); SpatialChecks(); FireControlChecks(); ProjectileChecks(); ProjectileOwnerChecks(); HeavyImpactChecks(); WarpReinforcementChecks(); MechanicsChecks(); TacticalChecks(); TacticalSpatialChecks(); ArmamentChecks(); LifecycleSpatialChecks(); StatisticsChecks();
-        Console.WriteLine("PASS: classes, plasma heat, live combat, production, structural churn, damaging debris, deterministic replay, compound physics and swept hits.");
+        Console.WriteLine("PASS: classes, plasma heat, live combat, production, structural churn, damaging debris, deterministic replay, circle physics and analytic swept hits.");
     }
     private static void PhysicsChecks()
     {
+        AnalyticSweepChecks();
+        PhysicsKernelChecks();
+        PhysicsPrecisionChecks();
         using var physics = new PhysicsService();
         var shape = new Collider { Radius = 2, Mass = 20, ShapeCount = 6 };
         var id = physics.AddShip(1, new Transform { Position = new(10, 0) }, shape);
-        Require(physics.Fixtures == 6, "six compound fixtures");
+        Require(physics.Fixtures == 1, "one physical disk replaces former compound fixtures");
         Require(physics.Sweep(new(0, 0), new(20, 0), 0.1f, out var serial, out var impact) && serial == 1, "fast swept projectile without team filtering");
         Require(float.IsFinite(impact.X) && float.IsFinite(impact.Y) && impact.X > 0 && impact.X < 20, "swept impact lies on path");
         Require(physics.Sweep(new(10, 0), new(20, 0), 0.1f, out serial, out _) && serial == 1, "sweep includes starting body (owner)");
