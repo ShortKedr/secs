@@ -1,10 +1,15 @@
 [English](README.md) | Русский
 
-# Space Battle ECS Comparison
+# Библиотека SECS
 
-## [Читать отчёт о бенчмарках](docs/space-battle/REPORT.ru.md)
+Архетипная ECS для .NET 8 с тестами выполнения, микробенчмарками и автономным
+примером космического сражения с видом сверху.
 
-## [Запустить демо .NET WASM в браузере](https://shortkedr.github.io/secs/?lang=ru)
+## Space Battle ECS Comparison
+
+### [Читать отчёт о бенчмарках](docs/space-battle/REPORT.ru.md)
+
+### [Запустить демо .NET WASM в браузере](https://shortkedr.github.io/secs/?lang=ru)
 
 [Исходники Web и локальное воспроизведение](SpaceBattle.Web/README.ru.md). Браузер
 выполняет общую симуляцию Core + SECS + Aether, а не полное сравнение пяти фреймворков.
@@ -28,12 +33,7 @@
 [Историческая диагностика WASM](docs/space-battle/PERFORMANCE_INVESTIGATION.ru.md) |
 [Интерактивный клиент](SpaceBattle.Game/README.ru.md)
 
-## Библиотека SECS
-
-Архетипная ECS для .NET 8 с тестами выполнения, микробенчмарками и автономным
-примером космического сражения с видом сверху.
-
-## Space Battle
+### Space Battle
 
 Большие корабли получили [независимые турели и тяжёлую пушку корпуса](docs/space-battle/ARMAMENT.ru.md).
 Текущий геймплей новее зафиксированной нагрузки бенчмарка.

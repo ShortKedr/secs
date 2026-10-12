@@ -1,10 +1,15 @@
 English | [Русский](README.ru.md)
 
-# Space Battle ECS Comparison
+# SECS Library
 
-## [Read the benchmark report](docs/space-battle/REPORT.md)
+Archetype ECS for .NET 8, with runtime tests, microbenchmarks, and an autonomous
+top-down space battle sample.
 
-## [Run the live .NET WASM demo](https://shortkedr.github.io/secs/)
+## Space Battle ECS Comparison
+
+### [Read the benchmark report](docs/space-battle/REPORT.md)
+
+### [Run the live .NET WASM demo](https://shortkedr.github.io/secs/)
 
 [Web source and local reproduction](SpaceBattle.Web/README.md). The browser runs
 the shared Core + SECS + Aether simulation, not the full five-framework comparison.
@@ -28,12 +33,7 @@ Cover: current gameplay, not the frozen measured run. [Capture workflow](docs/sp
 [Historical WASM diagnostics](docs/space-battle/PERFORMANCE_INVESTIGATION.md) |
 [Interactive frontend](SpaceBattle.Game/README.md)
 
-## SECS Library
-
-Archetype ECS for .NET 8, with runtime tests, microbenchmarks, and an autonomous
-top-down space battle sample.
-
-## Space Battle
+### Space Battle
 
 The sample combines AI steering, eleven ship classes, five weapon types,
 compound collision bodies, hull/shields, inventories, thermal management,
