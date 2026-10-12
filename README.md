@@ -3,7 +3,7 @@ English | [Русский](README.ru.md)
 # SECS Library
 
 <p align="center">
-  <img src="docs/branding/shortkedr-ecs-logo.png" width="240" alt="ShortKedr ECS — a chipmunk helper joining components">
+  <img src="docs/branding/shortkedr-ecs-cone.png" width="240" alt="ShortKedr ECS — cedar cone emblem">
 </p>
 
 Archetype ECS for .NET 8, with runtime tests, microbenchmarks, and an autonomous
