@@ -1,0 +1,86 @@
+# Planning example, not active from this directory.
+# Stage 0: current unit tests only. No cross-runner state comparison yet.
+name: SECS baseline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: secs-baseline-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+  DOTNET_CLI_HOME: ${{ github.workspace }}/Benchmarks.Local/.dotnet
+  NUGET_PACKAGES: ${{ github.workspace }}/Benchmarks.Local/nuget-packages
+
+jobs:
+  unit:
+    name: SECS unit ${{ matrix.os }} ${{ matrix.configuration }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, ubuntu-24.04-arm, macos-15]
+        configuration: [Debug, Release]
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        id: sdk
+        with:
+          # Replace this with an agreed exact SDK version for D2 replay.
+          dotnet-version: "8.0.x"
+      - name: Select installed SDK and record environment
+        env:
+          SELECTED_SDK: ${{ steps.sdk.outputs.dotnet-version }}
+        run: |
+          if (Test-Path global.json) { throw 'Reconcile the example with the existing root SDK pin.' }
+          @{ sdk = @{ version = $env:SELECTED_SDK; rollForward = 'disable'; allowPrerelease = $false } } |
+            ConvertTo-Json -Depth 3 | Set-Content global.json -Encoding utf8
+          New-Item -ItemType Directory -Force Benchmarks.Local/tmp/secs-ci | Out-Null
+          dotnet --info | Tee-Object -FilePath Benchmarks.Local/tmp/secs-ci/dotnet-info.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Restore only unit test dependencies
+        run: dotnet restore SECS.Tests/SECS.Tests.csproj
+      - name: Run current tests
+        run: >-
+          dotnet test SECS.Tests/SECS.Tests.csproj
+          --configuration ${{ matrix.configuration }} --no-restore
+          --logger "trx;LogFileName=unit.trx"
+          --results-directory Benchmarks.Local/tmp/secs-ci/tests
+      - name: Retain diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: secs-unit-${{ matrix.os }}-${{ matrix.configuration }}
+          path: Benchmarks.Local/tmp/secs-ci/
+          retention-days: 7
+          if-no-files-found: error
+
+  baseline:
+    name: SECS baseline
+    needs: unit
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Require every matrix job to succeed
+        shell: pwsh
+        env:
+          UNIT_RESULT: ${{ needs.unit.result }}
+        run: |
+          if ($env:UNIT_RESULT -ne 'success') { throw "Unit matrix result: $env:UNIT_RESULT" }
+          Write-Output 'Existing tests passed on every matrix target. Replay comparison is a separate planned stage.'
