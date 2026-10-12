@@ -33,31 +33,41 @@ async function inspect() {
     turrets: window.spaceBattle.snapshot.turrets.map(row => Array.from(row)) }));
 }
 function geometry(ships) {
-  let overlaps = 0, clearance = Infinity, opposingClearance = Infinity;
+  let overlaps = 0, clearance = Infinity, opposingClearance = Infinity, carrierClearance = Infinity;
   for (let i = 0; i < ships.length; i++) for (let j = i + 1; j < ships.length; j++) {
     const a = ships[i], b = ships[j];
     const distance = Math.hypot(a[3] - b[3], a[4] - b[4]) - a[8] - b[8];
     if (distance < -1e-5) overlaps++;
     clearance = Math.min(clearance, distance);
     if (a[1] !== b[1]) opposingClearance = Math.min(opposingClearance, distance);
+    else if (a[2] >= 8 || b[2] >= 8) carrierClearance = Math.min(carrierClearance, distance);
   }
-  return { overlaps, clearance, opposingClearance,
+  return { overlaps, clearance, opposingClearance, carrierClearance,
     width: Math.max(...ships.map(s => s[3] + s[8])) - Math.min(...ships.map(s => s[3] - s[8])),
     height: Math.max(...ships.map(s => s[4] + s[8])) - Math.min(...ships.map(s => s[4] - s[8])) };
 }
 function checkInitial(data) {
-  assert.equal(data.state.tick, 0); assert.equal(data.state.deploymentRevision, "dispersed-front-v1");
+  assert.equal(data.state.tick, 0); assert.equal(data.state.deploymentRevision, "dispersed-front-v2");
   assert.equal(data.state.runtimeMode, "aot-binary"); assert.equal(data.ships.length, 198);
   assert.equal(data.state.colliderDebug.enabled, false);
   assert.equal(data.state.counters.shots, 0); assert.equal(data.state.counters.shipsDestroyed, 0);
   const space = geometry(data.ships);
-  assert.equal(space.overlaps, 0); assert.ok(space.clearance >= 3.6 - 1e-4);
+  assert.equal(space.overlaps, 0); assert.ok(space.clearance >= 2.4 - 1e-4);
+  assert.ok(space.carrierClearance >= 4 - 1e-4, "Carrier surface clearance unchanged");
   assert.ok(space.opposingClearance > 100, "Initial central standoff, not interleaved fleets");
   const cyan = data.ships.filter(s => s[1] === 0), red = data.ships.filter(s => s[1] === 1);
   assert.equal(cyan.length, 99); assert.equal(red.length, 99);
   for (let i = 0; i < cyan.length; i++) {
-    assert.equal(cyan[i][2], red[i][2]); assert.equal(cyan[i][3], -red[i][3]); assert.equal(cyan[i][4], red[i][4]);
+    assert.equal(cyan[i][2], red[i][2]); assert.equal(cyan[i][8], red[i][8]);
+    assert.equal(cyan[i][3], -red[i][3]); assert.equal(cyan[i][4], red[i][4]);
   }
+  const escorts = red.filter(s => s[2] < 8), carriers = red.filter(s => s[2] >= 8);
+  const offGrid = (value, origin) => Math.abs((value - origin) / 12 - Math.round((value - origin) / 12)) > 0.001;
+  assert.ok(escorts.filter(s => offGrid(s[3], 210 * 0.28) && offGrid(s[4], 0)).length >= escorts.length / 4,
+    "Actual escort coordinates leave the fallback grid on both axes");
+  for (const axis of [3, 4]) assert.ok(new Set(escorts.map(s => Math.round(s[axis] * 100))).size > escorts.length / 2,
+    "Escort coordinates do not collapse into shared rows or columns");
+  assert.equal(new Set(carriers.map(s => Math.round(s[3] * 100))).size, carriers.length, "Nonaligned carrier depths");
   for (const ship of data.ships) {
     assert.ok(Math.abs(ship[3]) + ship[8] < 210 && Math.abs(ship[4]) + ship[8] < 210);
     assert.equal(ship[9], 1); assert.equal(ship[10], 1); assert.equal(ship[11], 0);
@@ -67,6 +77,7 @@ function checkInitial(data) {
 try {
   await load(beforeUrl);
   const before = await inspect();
+  assert.equal(before.state.tick, 0, "Before capture is initial deployment");
   await page.screenshot({ path: path.join(output, "before-initial.png") });
   await load(url);
   const after = await inspect(), space = checkInitial(after);
@@ -74,22 +85,38 @@ try {
     before.ships.map(s => [s[0], s[1], s[2], s[5], s[6], s[7], s[8], s[9], s[10], s[11]]), "Roster, birth serials, motion and attributes unchanged");
   assert.deepEqual(after.turrets.map(s => [s[0], s[1], s[2], s[8], s[9]]),
     before.turrets.map(s => [s[0], s[1], s[2], s[8], s[9]]), "Mounted guns unchanged");
-  assert.ok(space.width > geometry(before.ships).width * 1.6);
-  assert.ok(space.height > geometry(before.ships).height * 1.6);
+  const oldSpace = geometry(before.ships);
+  if (before.state.deploymentRevision === "dispersed-front-v1") {
+    assert.equal(oldSpace.overlaps, 0, "v1 baseline has no overlaps");
+    assert.ok(Math.abs(space.opposingClearance - oldSpace.opposingClearance) <= Math.max(12, oldSpace.opposingClearance * 0.15),
+      "v2 retains approximately the v1 opposing-fleet standoff");
+  } else {
+    assert.ok(before.state.deploymentRevision === undefined || before.state.deploymentRevision === "legacy-random-v1",
+      "Before capture must be tactical v1 or historical legacy");
+    assert.ok(space.width > oldSpace.width * 1.6, "Historical expansion versus legacy width");
+    assert.ok(space.height > oldSpace.height * 1.6, "Historical expansion versus legacy height");
+  }
   await page.screenshot({ path: path.join(output, "after-initial.png") });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.spaceBattle.refresh());
   await page.screenshot({ path: path.join(output, "after-mobile-initial.png") });
   await page.setViewportSize({ width: 1440, height: 900 });
 
+  const seededPositions = new Map();
   for (const [profile, seed] of [["low", 7331], ["nominal", 7331], ["high", 7331], ["nominal", 27]]) {
-    let expected;
+    let expected, expectedInitial;
     for (let repeat = 0; repeat < 2; repeat++) {
       await page.evaluate(({ profile, seed }) => {
         document.querySelector("#profile").value = profile; document.querySelector("#seed").value = String(seed);
         window.spaceBattle.reset(); window.spaceBattle.pause(true); window.spaceBattle.fit();
       }, { profile, seed });
       const initial = await inspect(); checkInitial(initial);
+      const initialRows = { ships: initial.ships, turrets: initial.turrets };
+      if (repeat) assert.deepEqual(initialRows, expectedInitial, "Reset repeats exact initial geometry and attributes");
+      else {
+        expectedInitial = initialRows;
+        if (profile === "nominal") seededPositions.set(seed, initial.ships.filter(s => s[1] === 1));
+      }
       const checkpoints = [{ tick: 0, checksum: initial.state.checksum, counts: initial.state.counts, counters: initial.state.counters }];
       let previousTick = 0;
       for (const tick of [120, 360, 900]) {
@@ -109,6 +136,11 @@ try {
       runs.push({ profile, seed, repeat, checkpoints });
     }
   }
+  const firstSeed = seededPositions.get(7331), otherSeed = seededPositions.get(27);
+  assert.notDeepEqual(firstSeed.filter(s => s[2] < 8).map(s => s.slice(3, 5)),
+    otherSeed.filter(s => s[2] < 8).map(s => s.slice(3, 5)), "Seed changes actual escort geometry");
+  for (const axis of [3, 4]) assert.notDeepEqual(firstSeed.filter(s => s[2] >= 8).map(s => s[axis]),
+    otherSeed.filter(s => s[2] >= 8).map(s => s[axis]), "Seed changes carrier X and Y geometry");
   assert.deepEqual(errors, []);
   const result = { engine, before: geometry(before.ships), after: space, runs, errors };
   await fs.writeFile(path.join(output, "results.json"), JSON.stringify(result, null, 2));

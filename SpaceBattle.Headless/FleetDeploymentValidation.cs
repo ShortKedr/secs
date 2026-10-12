@@ -9,7 +9,9 @@ internal static class FleetDeploymentValidation
     public static void Run()
     {
         Require(new BattleConfig().Deployment == FleetDeployment.LegacyRandom, "core deployment remains opt-in");
-        Require(FleetDeploymentRules.Revision == "dispersed-front-v1", "deployment revision");
+        Require(FleetDeploymentRules.Revision == "dispersed-front-v2", "deployment revision");
+        Require(FleetDeploymentRules.EscortClearance == 2.4f && FleetDeploymentRules.CarrierClearance == 4,
+            "deployment surface clearance contract");
         PlannerChecks();
         var expected = PortChecks(static () => new SecsStore());
         Check(PortChecks(static () => new LeoEcsLiteStore()), "Lite");
@@ -49,6 +51,28 @@ internal static class FleetDeploymentValidation
             Require(circles.All(c => c.Position.X > c.Radius), "positive-X plan leaves a central standoff");
             var bothTeams = circles.Concat(circles.Select(c => (new Vector2(-c.Position.X, c.Position.Y), c.Radius))).ToArray();
             Geometry(bothTeams, config.ArenaHalfSize, $"planner {composition}/{count}/{carriers}/{seed}");
+            PlanClearance(plan, config);
+        }
+
+        foreach (var composition in Compositions)
+        foreach (var carriers in new[] { 2, 3 })
+        {
+            var config = Config(96, carriers, composition);
+            var baseline = FleetDeploymentRules.Create(config);
+            foreach (var seed in new uint[] { 0, 1, 7331, uint.MaxValue })
+            {
+                var seededConfig = config with { Seed = seed };
+                var plan = FleetDeploymentRules.Create(seededConfig);
+                var repeat = FleetDeploymentRules.Create(seededConfig);
+                Require(plan.Carriers.SequenceEqual(repeat.Carriers) && plan.Escorts.SequenceEqual(repeat.Escorts),
+                    "irregular seeded geometry repeats exactly");
+                Require(!baseline.Escorts.SequenceEqual(plan.Escorts), "seed changes actual escort positions");
+                Require(!baseline.Carriers.Select(p => p.X).SequenceEqual(plan.Carriers.Select(p => p.X)) &&
+                    !baseline.Carriers.Select(p => p.Y).SequenceEqual(plan.Carriers.Select(p => p.Y)),
+                    "seed changes carrier X and Y positions");
+                IrregularPositions(plan, seededConfig);
+                PlanClearance(plan, seededConfig);
+            }
         }
 
         foreach (var composition in Compositions)
@@ -57,12 +81,18 @@ internal static class FleetDeploymentValidation
         foreach (var arena in new[] { 80f, 90f, 160f, 600f, float.MaxValue })
         foreach (var composition in Compositions)
         foreach (var carriers in new[] { 2, 3 })
+        foreach (var seed in new uint[] { 0, 27, 7331, uint.MaxValue })
         {
-            var config = Config(16, carriers, composition) with { ArenaHalfSize = arena };
+            var config = Config(16, carriers, composition, seed) with { ArenaHalfSize = arena };
             var plan = FleetDeploymentRules.Create(config);
+            var repeat = FleetDeploymentRules.Create(config);
+            Require(plan.Carriers.SequenceEqual(repeat.Carriers) && plan.Escorts.SequenceEqual(repeat.Escorts),
+                "small/extreme arena seeded planner repeats exactly");
             var circles = plan.Carriers.Select((p, i) => (p, ShipCatalog.Radius(ShipClass.LightCarrier + i)))
                 .Concat(plan.Escorts.Select((p, i) => (p, ShipCatalog.Radius(FleetCompositionRules.Escort(composition, i))))).ToArray();
-            Geometry(circles, arena, $"arena boundary/cap {arena}/{composition}/{carriers}");
+            Geometry(circles.Concat(circles.Select(c => (new Vector2(-c.p.X, c.p.Y), c.Item2))).ToArray(),
+                arena, $"arena boundary/cap {arena}/{composition}/{carriers}/{seed}");
+            PlanClearance(plan, config);
             Require(circles.All(c => c.p.X <= 600 && MathF.Abs(c.p.Y) <= 600), "bounded planning extent even at extreme arena size");
         }
         foreach (var arena in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity })
@@ -77,6 +107,41 @@ internal static class FleetDeploymentValidation
             var invalid = Config(8, 3, FleetComposition.Uniform) with { Deployment = mode };
             Reject(invalid.Validate, "unknown deployment config");
             Reject(() => FleetDeploymentRules.Create(invalid), "unknown deployment planner");
+        }
+    }
+
+    private static void IrregularPositions(FleetDeploymentPlan plan, BattleConfig config)
+    {
+        var front = MathF.Max(16, MathF.Min(config.ArenaHalfSize, 600) * 0.28f);
+        var spacing = FleetDeploymentRules.SlotSpacing;
+        static bool OffGrid(float value, float origin, float step) =>
+            MathF.Abs((value - origin) / step - MathF.Round((value - origin) / step)) > 0.001f;
+        Require(plan.Escorts.Count(p => OffGrid(p.X, front, spacing) && OffGrid(p.Y, 0, spacing)) >= plan.Escorts.Length / 4,
+            "actual escorts leave the hidden fallback lattice on both axes");
+        // Centimeter buckets ignore float noise; a common-offset grid must not pass.
+        Require(plan.Escorts.Select(p => MathF.Round(p.X * 100)).Distinct().Count() > plan.Escorts.Length / 2 &&
+            plan.Escorts.Select(p => MathF.Round(p.Y * 100)).Distinct().Count() > plan.Escorts.Length / 2,
+            "escort positions do not collapse into shared columns or rows");
+        Require(plan.Carriers.Select(p => MathF.Round(p.X * 100)).Distinct().Count() == plan.Carriers.Length,
+            "carriers have nonaligned depths");
+    }
+
+    private static void PlanClearance(FleetDeploymentPlan plan, BattleConfig config)
+    {
+        var circles = plan.Carriers.Select((p, i) => (Position: p, Radius: ShipCatalog.Radius(ShipClass.LightCarrier + i)))
+            .Concat(plan.Escorts.Select((p, i) => (Position: p, Radius: ShipCatalog.Radius(FleetCompositionRules.Escort(config.FleetComposition, i)))))
+            .ToArray();
+        Geometry(circles.Concat(circles.Select(c => (new Vector2(-c.Position.X, c.Position.Y), c.Radius))).ToArray(),
+            config.ArenaHalfSize, $"seeded clearance {config.FleetComposition}/{config.Seed}");
+        for (var i = 0; i < circles.Length; i++)
+        for (var j = 0; j < i; j++)
+        {
+            var a = circles[i]; var b = circles[j];
+            var dx = (double)a.Position.X - b.Position.X; var dy = (double)a.Position.Y - b.Position.Y;
+            var gap = Math.Sqrt(dx * dx + dy * dy) - a.Radius - b.Radius;
+            var required = j < plan.Carriers.Length ? 4.0 : 2.4;
+            Require(gap >= required - 0.0001,
+                $"{config.FleetComposition}/{config.ArenaHalfSize}/{config.Seed}: hulls {j}/{i} preserve surface gap {required}");
         }
     }
 
