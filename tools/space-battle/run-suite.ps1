@@ -31,9 +31,9 @@ if (-not $SkipBuild) {
 $dll = Join-Path $root 'SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll'
 function Get-SourceHashes {
     $hashes = [ordered]@{}
-    $files = git ls-files -- SECS SpaceBattle.Core SpaceBattle.SECS SpaceBattle.Adapters SpaceBattle.Headless Benchmarks.Local/vendor Benchmarks.Local/StaticLibrary.csproj Benchmarks.Local/MorpehLibrary.csproj
+    $files = git ls-files --cached --others --exclude-standard -- SECS SpaceBattle.Core SpaceBattle.SECS SpaceBattle.Adapters SpaceBattle.Headless Benchmarks.Local/vendor Benchmarks.Local/StaticLibrary.csproj Benchmarks.Local/MorpehLibrary.csproj
     if ($LASTEXITCODE -ne 0) { throw 'Cannot identify measured source files.' }
-    foreach ($file in ($files | Where-Object { $_ -match '\.(cs|csproj|props|targets|json)$' } | Sort-Object)) {
+    foreach ($file in ($files | Where-Object { $_ -match '\.(cs|csproj|props|targets|json)$' } | Sort-Object -Unique)) {
         $hashes[$file] = (Get-FileHash -LiteralPath (Join-Path $root $file) -Algorithm SHA256).Hash
     }
     return $hashes

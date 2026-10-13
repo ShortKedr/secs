@@ -24,7 +24,7 @@ internal sealed class BattleApp : IDisposable
     private FrontendProfiler? profiler;
     private readonly int profileFrames, profileWarmup;
     private readonly string? profileOutput, profileCsv;
-    private readonly bool hidden;
+    private readonly bool hidden, profilePaced;
     private int replayStartTick;
     private readonly string? capture;
     private readonly string? effectsCapture;
@@ -101,6 +101,8 @@ internal sealed class BattleApp : IDisposable
         hidden=args.Contains("--hidden");
         profileFrames=ProfileNumber("--profile-frames",0);
         profileWarmup=ProfileNumber("--profile-warmup",120);
+        profilePaced=args.Contains("--profile-paced");
+        if(profilePaced&&profileFrames==0)throw new ArgumentException("--profile-paced requires --profile-frames N.");
         if(profileFrames<0||profileFrames>1_000_000||profileWarmup<0||profileWarmup>1_000_000)
             throw new ArgumentException("Profile frame counts must be between 0 and 1000000.");
         if(args.Contains("--profile-frames")&&profileFrames==0)throw new ArgumentException("--profile-frames must be positive.");
@@ -143,7 +145,7 @@ internal sealed class BattleApp : IDisposable
         options.Size=new Vector2D<int>(width,height);
         options.Title="Space Battle | SECS"; options.API=new GraphicsAPI(ContextAPI.OpenGL,ContextProfile.Core,ContextFlags.ForwardCompatible,new APIVersion(3,3));
         options.IsVisible=!hidden&&(!(validateEffects||validateGunTints||validateSceneStyle)||args.Contains("--visible"))&&(capture is null || args.Contains("--visible")); options.VSync=profileFrames==0&&capture is null;
-        if(profileFrames>0) {options.FramesPerSecond=0;options.UpdatesPerSecond=0;}
+        if(profileFrames>0) {options.FramesPerSecond=profilePaced?config.TickRate:0;options.UpdatesPerSecond=0;}
         window=Window.Create(options);window.Load+=Load;window.Update+=Update;window.Render+=Render;window.Closing+=DisposeGraphics;
     }
     public void Run()=>window.Run();
@@ -193,7 +195,7 @@ internal sealed class BattleApp : IDisposable
         replayStartTick=battle.Tick;
         ResetRates();
         liveValidationStart=Timestamp();
-        if(profileFrames>0)profiler=new FrontendProfiler(gl,profileFrames,profileWarmup,profileOutput!,profileCsv);
+        if(profileFrames>0)profiler=new FrontendProfiler(gl,profileFrames,profileWarmup,profileOutput!,profileCsv,profilePaced);
         Console.WriteLine($"OpenGL {gl.GetStringS(StringName.Version)}; atlas={renderer.HasAtlas}; gunAtlas={renderer.HasGunAtlas}; effectsAtlas={renderer.HasEffectsAtlas}; warpAtlas={renderer.HasWarpAtlas}; tick={battle.Tick}");
     }
     private void HandleKey(Key key)

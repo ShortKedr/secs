@@ -39,6 +39,7 @@ __pycache__/
 # Current SpaceBattle report publishes JSON, summaries and tick-CSV hashes.
 /docs/space-battle/current/*.ticks.csv
 /docs/space-battle/game-current/*.ticks.csv
+/docs/space-battle/desktop-current/*.ticks.csv
 
 # Retain generated measurement tables, not the generated benchmark executables.
 !/Benchmarks.Local/bdn-*/

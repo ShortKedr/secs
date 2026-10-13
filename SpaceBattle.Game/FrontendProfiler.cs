@@ -20,6 +20,7 @@ internal sealed class FrontendProfiler : IDisposable
     private readonly uint[] errors = new uint[64];
     private readonly int[] errorFrames = new int[64];
     private readonly int warmup;
+    private readonly bool paced;
     private readonly string output;
     private readonly string? csv;
     private int frames, activeSlot = -1, nextSlot, errorCount, errorOverflow;
@@ -41,9 +42,10 @@ internal sealed class FrontendProfiler : IDisposable
         public double? GpuRenderMs;
     }
 
-    public FrontendProfiler(GL gl, int count, int warmup, string output, string? csv)
+    public FrontendProfiler(GL gl, int count, int warmup, string output, string? csv, bool paced)
     {
         this.gl = gl; this.warmup = warmup; this.output = output; this.csv = csv;
+        this.paced = paced;
         samples = new Sample[count];
         hudSamples = new double[count];
         stageSamples = Battle<SecsStore>.StageNames.Select(_ => new double[count]).ToArray();
@@ -192,20 +194,25 @@ internal sealed class FrontendProfiler : IDisposable
         var report = new
         {
             SchemaVersion = 1,
-            Mode = "deterministic fixed replay: exactly one simulation Step per rendered frame, uncapped, VSync off",
+            Mode = paced ? "paced fixed replay: one simulation Step per rendered frame, 60 frames/s cap, VSync off"
+                : "deterministic fixed replay: exactly one simulation Step per rendered frame, uncapped, VSync off",
             RealTimeGameplayFpsMeasured = false,
             SampleFrames = samples.Length, WarmupFrames = warmup, StepsPerFrame = 1,
             ReplayStartTick = replayStartTick, FirstMeasuredTick = samples[0].Tick, LastMeasuredTick = samples[^1].Tick,
             Width = width, Height = height, Zoom = zoom, Hidden = hidden, Atlas = hasAtlas,
-            VSync = false, FrameRateCap = 0, UpdateRateCap = 0, ControlsVerified = controlsVerified,
+            VSync = false, FrameRateCap = paced ? battle.Config.TickRate : 0, UpdateRateCap = 0, ControlsVerified = controlsVerified,
             battle.Config, Framework = battle.Framework,
-            Date = DateTimeOffset.Now, Runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+            Date = DateTimeOffset.Now, Machine = Environment.MachineName,
+            Runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
             TieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
             GameplayRevision = ArmamentRules.Revision,
             Driver = new { Vendor = vendor, Renderer = device, Version = version },
             CoreDllSha256 = AssemblyHash(typeof(Battle<>).Assembly), GameDllSha256 = AssemblyHash(typeof(FrontendProfiler).Assembly),
             SecsAdapterDllSha256 = AssemblyHash(typeof(SecsStore).Assembly),
+            SecsDllSha256 = AssemblyHash(typeof(SECS.World).Assembly),
             FinalBattleChecksum = battle.Checksum().ToString("X16", CultureInfo.InvariantCulture),
+            Counters = JsonSerializer.SerializeToElement(battle.Counters.Copy(), new JsonSerializerOptions { IncludeFields = true }),
+            Tactics = JsonSerializer.SerializeToElement(battle.Tactics, new JsonSerializerOptions { IncludeFields = true }),
             StopwatchFrequencyHz = Stopwatch.Frequency, FirstMeasuredStartTimestamp = firstMeasuredStart, LastMeasuredBoundaryTimestamp = lastMeasuredBoundary,
             Definitions = new
             {
