@@ -70,8 +70,10 @@ describe this cover, not the historical benchmark. An invalid or mismatched
 pair must not replace the published cover.
 
 Seed, tick, nominal profile and zoom are checked against the actual browser state.
-Loaded-file hashes cover WASM/boot resources, renderer modules and source atlases;
-the local validator compares them with the exact served build. External HTTP
+Loaded-file hashes cover WASM/boot resources, renderer modules, build identity,
+the atlas manifest and all six generated PNG textures. The local validator
+compares them with the exact served build and both manifests; original source
+atlas PNG/JSON pairs are not loaded by the browser. External HTTP
 resources are rejected. The activity gate requires at least 24 on-screen ships,
 both teams still alive and at least one active projectile. It rejects an empty
 or already finished battle, not a performance regression. Adjust the fixed tick

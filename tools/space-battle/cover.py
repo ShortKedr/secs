@@ -18,11 +18,17 @@ PURPOSE = "current-gameplay-cover-not-benchmark"
 RENDERER = "SpaceBattle.Web Chromium Canvas"
 BUILD_FILES = {
     "index.html", "app.js", "styles.css", "observer-camera.js", "collider-debug.js",
-    "_framework/blazor.boot.json", "_framework/dotnet.native.wasm",
+    "web-atlases.js", "build-identity.json", "assets/web-atlases.json", "assets/lucide.min.js",
+    "_framework/blazor.boot.json", "_framework/blazor.webassembly.js", "_framework/dotnet.native.wasm",
     "_framework/SpaceBattle.Web.wasm", "_framework/SpaceBattle.Core.wasm",
     "_framework/SpaceBattle.SECS.wasm", "_framework/SECS.wasm",
-    *{f"assets/{name}-atlas.{suffix}" for name in ("ships", "guns", "effects", "warp") for suffix in ("png", "json")},
 }
+ATLAS_SLOTS = {
+    "ships": ("ships-team-0", "ships-team-1"),
+    "guns": ("guns-team-0", "guns-team-1"),
+    "effects": ("effects-clean",), "warp": ("warp-clean",),
+}
+ATLAS_FILE = re.compile(r"assets/(ships-team-[01]|guns-team-[01]|effects-clean|warp-clean)-([a-f0-9]{20})\.png")
 COUNTS = "Ships RenderedShips AliveCyan AliveRed Projectiles Debris Particles AliveEntities AliveShips DockedShips Turrets AliveTurrets DockedTurrets HeavyShots TurretShots".split()
 FLAGS = "Nonblank Atlas ControlsVerified CountsValid StatisticsValid OfflineCapture".split()
 REVISIONS = "GameplayRevision PhysicsRevision FleetRevision".split()
@@ -82,14 +88,58 @@ def validate_counts(capture):
 
 
 def validate_build_files(files, site=None):
-    require(type(files) is dict and BUILD_FILES <= files.keys(), "Missing captured web build files")
+    require(type(files) is dict, "Invalid captured web build files")
+    missing = BUILD_FILES - files.keys()
+    require(not missing, "Missing captured web build files: " + ", ".join(sorted(missing)))
+    textures = {}
     for name, sha in files.items():
         require(type(name) is str and re.fullmatch(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", name) is not None
                 and all(part not in (".", "..") for part in name.split("/")), "Invalid build file path")
         require(type(sha) is str and re.fullmatch(r"[0-9A-F]{64}", sha) is not None, "Invalid build file hash")
+        match = ATLAS_FILE.fullmatch(name)
+        if match:
+            slot, prefix = match.groups()
+            require(slot not in textures, "Duplicate captured atlas texture: " + slot)
+            require(sha.lower().startswith(prefix), "Atlas filename/hash mismatch: " + name)
+            textures[slot] = name
         if site is not None:
             file = project_path(site / name)
             require(file.is_relative_to(site) and file.is_file() and digest(file) == sha, "Capture build mismatch: " + name)
+    missing = {slot for slots in ATLAS_SLOTS.values() for slot in slots} - textures.keys()
+    require(not missing, "Missing captured atlas textures: " + ", ".join(sorted(missing)))
+    if site is not None:
+        validate_build_manifests(files, textures, site)
+
+
+def validate_build_manifests(files, textures, site):
+    identity = read_json(site / "build-identity.json")
+    require(type(identity) is dict and identity.get("schema") == 1 and
+            identity.get("contract") == "png-assets-v1", "Invalid web build identity")
+    declared = identity.get("files")
+    require(type(declared) is dict and
+            {"app.js", "_framework/blazor.boot.json", "assets/web-atlases.json"} <= declared.keys(),
+            "Incomplete web build identity")
+    for name, sha in declared.items():
+        require(type(sha) is str and re.fullmatch(r"[a-f0-9]{64}", sha) is not None and
+                files.get(name) == sha.upper(), "Build identity/capture mismatch: " + name)
+
+    # The browser loads generated PNGs, not the original source atlas PNG/JSON pairs.
+    bundle = read_json(site / "assets/web-atlases.json")
+    require(type(bundle) is dict and bundle.get("schema") == 1 and
+            bundle.get("revision") == "png-atlases-v1", "Invalid web atlas bundle")
+    atlases = bundle.get("atlases")
+    require(type(atlases) is dict and atlases.keys() == ATLAS_SLOTS.keys(), "Incomplete web atlas bundle")
+    for family, slots in ATLAS_SLOTS.items():
+        atlas = atlases[family]
+        declared = atlas.get("textures") if type(atlas) is dict else None
+        require(type(declared) is list and len(declared) == len(slots), "Invalid atlas textures: " + family)
+        expected = {textures[slot] for slot in slots}
+        for texture in declared:
+            require(type(texture) is dict and type(texture.get("file")) is str, "Invalid atlas texture: " + family)
+            name, sha = "assets/" + texture["file"], texture.get("sha256")
+            require(name in expected and type(sha) is str and re.fullmatch(r"[a-f0-9]{64}", sha) is not None and
+                    files.get(name) == sha.upper(), "Atlas manifest/capture mismatch: " + name)
+            expected.remove(name)
 
 
 def validate_capture(path, settings, site):

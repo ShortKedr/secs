@@ -1,6 +1,7 @@
 """Self-contained cover validation tests; no renderer, benchmarks, or Git writes."""
 
 import copy
+import hashlib
 import importlib.util
 import io
 import json
@@ -19,6 +20,15 @@ SPEC.loader.exec_module(cover)
 COMMIT = "a" * 40
 SETTINGS = {"Seed": 7331, "Tick": 180, "ShipsPerTeam": 96,
             "Width": 960, "Height": 540, "Zoom": 2}
+# Model the production browser's requests independently of the validator's constants.
+STATIC_FILES = """index.html app.js styles.css observer-camera.js collider-debug.js
+web-atlases.js build-identity.json assets/web-atlases.json assets/lucide.min.js
+_framework/blazor.boot.json _framework/blazor.webassembly.js _framework/dotnet.native.wasm
+_framework/SpaceBattle.Web.wasm _framework/SpaceBattle.Core.wasm
+_framework/SpaceBattle.SECS.wasm _framework/SECS.wasm""".split()
+IDENTITY_FILES = """app.js styles.css observer-camera.js collider-debug.js web-atlases.js
+assets/web-atlases.json assets/lucide.min.js _framework/blazor.boot.json
+_framework/blazor.webassembly.js""".split()
 
 
 class CoverTests(unittest.TestCase):
@@ -31,10 +41,28 @@ class CoverTests(unittest.TestCase):
         self.settings = SETTINGS.copy()
         self.assembly_directory = self.root / "site"
         self.assembly_directory.mkdir()
-        for name in cover.BUILD_FILES:
+        self.build_files = STATIC_FILES.copy()
+        for name in self.build_files:
             file = self.assembly_directory / name
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_bytes(("fixture:" + name).encode())
+        self.bundle = {"schema": 1, "revision": "png-atlases-v1", "atlases": {}}
+        for family, slots in (("ships", ("ships-team-0", "ships-team-1")),
+                              ("guns", ("guns-team-0", "guns-team-1")),
+                              ("effects", ("effects-clean",)), ("warp", ("warp-clean",))):
+            textures = []
+            for slot in slots:
+                data = ("fixture texture:" + slot).encode()
+                sha = hashlib.sha256(data).hexdigest()
+                name = slot + "-" + sha[:20] + ".png"
+                (self.assembly_directory / "assets" / name).write_bytes(data)
+                self.build_files.append("assets/" + name)
+                textures.append({"file": name, "sha256": sha, "width": 64, "height": 64})
+            self.bundle["atlases"][family] = {"textures": textures}
+        (self.assembly_directory / "assets/web-atlases.json").write_text(json.dumps(self.bundle))
+        self.identity = {"schema": 1, "contract": "png-assets-v1", "runtime": "8.0.31",
+                         "files": {name: cover.digest(self.assembly_directory / name).lower() for name in IDENTITY_FILES}}
+        (self.assembly_directory / "build-identity.json").write_text(json.dumps(self.identity))
         self.png = self.root / "frame.png"
         self.make_scene(self.png)
         self.capture = self.capture_metadata(self.png)
@@ -69,7 +97,7 @@ class CoverTests(unittest.TestCase):
             "CountsValid": True, "StatisticsValid": True,
             "BattleChecksum": "0123456789ABCDEF", "GameplayRevision": "fixture-revision",
             "PhysicsRevision": "fixture-physics", "FleetRevision": "fixture-fleet",
-            "BuildFiles": {name: cover.digest(self.assembly_directory / name) for name in cover.BUILD_FILES},
+            "BuildFiles": {name: cover.digest(self.assembly_directory / name) for name in self.build_files},
             "LastTickMs": 1.25, "P99": 2.5,
             "Statistics": {"OfflineCapture": True, "SampleCount": 180, "Capacity": 600,
                            "LastMs": 1.25, "MeanMs": 1.5, "P95Ms": 2, "P99Ms": 2.5,
@@ -80,6 +108,15 @@ class CoverTests(unittest.TestCase):
 
     def write_capture(self, path, metadata):
         Path(str(path) + ".json").write_text(json.dumps(metadata), encoding="utf-8")
+
+    def write_build_manifest(self, name, value):
+        (self.assembly_directory / name).write_text(json.dumps(value))
+        if name == "assets/web-atlases.json":
+            identity = cover.read_json(self.assembly_directory / "build-identity.json")
+            identity["files"][name] = cover.digest(self.assembly_directory / name).lower()
+            (self.assembly_directory / "build-identity.json").write_text(json.dumps(identity))
+        for manifest in ("assets/web-atlases.json", "build-identity.json"):
+            self.capture["BuildFiles"][manifest] = cover.digest(self.assembly_directory / manifest)
 
     def invoke_capture(self, output, metadata=None, returncode=0, dirty=False):
         def browser(command, **kwargs):
@@ -187,6 +224,9 @@ class CoverTests(unittest.TestCase):
                 cover.validate_counts({**self.capture, **changes})
 
     def test_capture_accepts_real_files_and_metadata(self):
+        for family in ("ships", "guns", "effects", "warp"):
+            for suffix in ("png", "json"):
+                self.assertNotIn(f"assets/{family}-atlas.{suffix}", self.capture["BuildFiles"])
         capture, pixels = cover.validate_capture(self.png, self.settings, self.assembly_directory)
         self.assertEqual(capture, self.capture)
         self.assertEqual(pixels, cover.validate_frame(self.png, self.settings))
@@ -210,7 +250,7 @@ class CoverTests(unittest.TestCase):
             cover.validate_capture(self.png, self.settings, self.assembly_directory)
 
     def test_capture_rejects_each_changed_binary(self):
-        for name in cover.BUILD_FILES:
+        for name in self.build_files:
             path = self.assembly_directory / name
             original = path.read_bytes()
             with self.subTest(binary=name):
@@ -218,6 +258,56 @@ class CoverTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "build mismatch"):
                     cover.validate_capture(self.png, self.settings, self.assembly_directory)
                 path.write_bytes(original)
+
+    def test_capture_requires_current_modules_manifests_and_each_generated_texture(self):
+        for name in self.build_files:
+            files = self.capture["BuildFiles"].copy()
+            del files[name]
+            with self.subTest(file=name), self.assertRaisesRegex(ValueError, "Missing captured"):
+                cover.validate_build_files(files)
+
+    def test_capture_rejects_atlas_filename_hash_mismatch_and_duplicate_slot(self):
+        name = "assets/" + self.bundle["atlases"]["ships"]["textures"][0]["file"]
+        files = self.capture["BuildFiles"].copy()
+        files[name] = "A" * 64
+        with self.assertRaisesRegex(ValueError, "filename/hash mismatch"):
+            cover.validate_build_files(files)
+        files = self.capture["BuildFiles"].copy()
+        files["assets/ships-team-0-" + "b" * 20 + ".png"] = "B" * 64
+        with self.assertRaisesRegex(ValueError, "Duplicate captured atlas"):
+            cover.validate_build_files(files)
+
+    def test_capture_rejects_build_identity_mismatches(self):
+        cases = [None, {**self.identity, "schema": 2}, {**self.identity, "contract": "old"},
+                 {**self.identity, "files": {}},
+                 {**self.identity, "files": {**self.identity["files"], "app.js": "a" * 64}},
+                 {**self.identity, "files": {**self.identity["files"], "unloaded.js": "a" * 64}}]
+        for identity in cases:
+            with self.subTest(identity=identity), self.assertRaisesRegex(ValueError, "identity"):
+                self.write_build_manifest("build-identity.json", identity)
+                cover.validate_build_files(self.capture["BuildFiles"], self.assembly_directory)
+
+    def test_capture_rejects_incomplete_or_mismatched_atlas_manifest(self):
+        cases = [None, {**self.bundle, "schema": 2}, {**self.bundle, "revision": "old"},
+                 {**self.bundle, "atlases": {}}]
+        for family in ("ships", "guns", "effects", "warp"):
+            bundle = copy.deepcopy(self.bundle)
+            bundle["atlases"][family]["textures"].pop()
+            cases.append(bundle)
+        for field, value in (("sha256", "bad"), ("sha256", "a" * 64), ("file", "../secret.png")):
+            bundle = copy.deepcopy(self.bundle)
+            bundle["atlases"]["ships"]["textures"][0][field] = value
+            cases.append(bundle)
+        bundle = copy.deepcopy(self.bundle)
+        bundle["atlases"]["ships"]["textures"][1] = bundle["atlases"]["ships"]["textures"][0].copy()
+        cases.append(bundle)
+        bundle = copy.deepcopy(self.bundle)
+        bundle["atlases"]["effects"], bundle["atlases"]["warp"] = bundle["atlases"]["warp"], bundle["atlases"]["effects"]
+        cases.append(bundle)
+        for bundle in cases:
+            with self.subTest(bundle=bundle), self.assertRaisesRegex(ValueError, "atlas|Atlas"):
+                self.write_build_manifest("assets/web-atlases.json", bundle)
+                cover.validate_build_files(self.capture["BuildFiles"], self.assembly_directory)
 
     def test_capture_rejects_unvalidated_counter(self):
         self.write_capture(self.png, {**self.capture, "DockedTurrets": 99, "CountsValid": True})
