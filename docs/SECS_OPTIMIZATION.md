@@ -2,7 +2,9 @@ English | [Русский](SECS_OPTIMIZATION.ru.md)
 
 # SECS Runtime Optimizations
 
-[Project overview](../README.md) | [Space Battle report](space-battle/REPORT.md)
+[Library guide](secs/README.md) · [Documentation map](README.md) · [Measurement methodology](benchmarks/optimization-methodology.md)
+
+Status: implemented in the current [CPU runtime](../SECS/World.cs). This guide describes APIs and their costs. Measured speedups belong to the linked benchmark reports; future SIMD, Fixed, and schedulers are separate [development plans](README.md#library-development).
 
 ## Existing API
 

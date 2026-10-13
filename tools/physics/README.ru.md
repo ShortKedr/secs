@@ -2,6 +2,8 @@
 
 # Локальное сравнение физики
 
+[Индекс исследований](../../docs/space-battle/RESEARCH.ru.md) | [Текущая кампания](../../docs/space-battle/REPORT.ru.md)
+
 Это отдельный инструмент сравнения, не реализация игровой физики.
 Полный сохраненный Aether-wrapper находится в `AetherReference.cs`, namespace
 `SpaceBattle.PhysicsStudy`. Приватный путь к исходникам baseline не нужен.
@@ -34,16 +36,17 @@ baseline; `--verify` дополнительно проверяет новый AP
 
 ## Разрешенное окно
 
-Сначала main должен закончить сборки и явно разрешить замеры без конкурирующей
-нагрузки CPU. Флаг только подтверждает это разрешение, не обнаруживает чужие сборки.
+Выделите свободное окно после завершения всех сборок и других измерений.
+Обязательный флаг подтверждает это условие и не обнаруживает конкурирующие нагрузки.
 Во время замера запускается готовая DLL, не `dotnet run`:
 
 ```powershell
 dotnet tools/physics/bin/Release/net8.0/PhysicsStudy.dll --approved-timing-window --run local-01 --seed 7331 --ticks 120 --warmup 20 --sweeps 1024 --repeats 3
 ```
 
-Для финального native окна main планирует DOTNET_TieredCompilation=0 и warmup=120:
-сначала собрать измененный tool, затем в разрешенном окне запустить готовую DLL.
+Для повторяемой native-диагностики используйте DOTNET_TieredCompilation=0 и warmup=120:
+этот протокол выбран после холодных tier-переходов в исходном исследовании.
+Сначала соберите tool, затем в свободном окне запускайте готовую DLL.
 После запуска восстановить предыдущее значение env в своей оболочке.
 
 ```powershell
@@ -54,12 +57,12 @@ dotnet tools/physics/bin/Release/net8.0/PhysicsStudy.dll --approved-timing-windo
 Manifest сохраняет DOTNET_TieredCompilation, DOTNET_TieredPGO, DOTNET_TC_QuickJit,
 DOTNET_TC_QuickJitForLoops и DOTNET_ReadyToRun; null означает unset, не disabled.
 circle-native-01 остается диагностическим evidence, не final-effect результатом.
-Минимум три свежих повтора сохраняется. Настройки сами по себе не разрешают окно.
+Минимум три свежих повтора сохраняется. Настройки не обнаруживают занятость машины.
 
 Все входы, raw-кадры, сравнения, manifest и копии исходников/бинарников сохраняются
 только в ignored `Benchmarks.Local/tmp/physics-study/<run>/`. Существующие каталоги
 не перезаписываются. Нет удалений, Git, публикации, перезапусков preview/host/browser.
-Текущее окно замеров остается неразрешенным до сообщения main.
+Синтетические native-сцены, browser workload и полная headless-кампания — отдельные измерения.
 
 ## Границы сравнения
 
@@ -131,10 +134,11 @@ Gameplay и эквивалентность compound/rectangle вне грани�
 
 ## Отдельное сравнение production WASM
 
-`tools/web/physics-study.mjs` сравнивает сохраненный Aether + текущий LightSwarm
-на localhost:8049 с новым production AOT на 8050. Серверы и сборки принадлежат main.
-Запускать замеры только после окончания нового AOT compile и явного разрешения
-окна замеров main. Скрипт не запускает серверы/сборки.
+`tools/web/physics-study.mjs` сравнивает сохранённый Aether + LightSwarm
+с отдельно подготовленной circle-kernel production AOT-сборкой. Порты 8049/8050 —
+примеры из исходного исследования, а не гарантированно работающие серверы.
+Подготовьте и проверьте обе сборки; закончите компиляцию и конкурирующие нагрузки
+до замера. Скрипт не запускает серверы или сборки.
 
 ```powershell
 node --check tools/web/physics-study.mjs

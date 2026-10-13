@@ -1,14 +1,13 @@
 English | [Русский](PHYSICS.ru.md)
 
-# Circle Physics Experiment
+# SpaceBattle physics
 
 [Desktop](../../SpaceBattle.Game/README.md) | [Web](../../SpaceBattle.Web/README.md) | [Local comparison tool](../../tools/physics/README.md)
 
 The shared C# simulation now uses `circle-kernel-v1`, not Aether. It is the same
 implementation in desktop and production Mono AOT WASM. AI, guns, artwork and
-the preceding LightSwarm changes are retained. Historical benchmark measurements,
-captures and reports still describe their original Aether workload and are not
-new measurements of this model.
+the preceding LightSwarm changes are retained. The [2026-10-11 benchmark](REPORT_2026-10-11.md) and its captures describe the
+original Aether workload. For current-source measurements see the [current report](REPORT.md).
 
 ## Observed Baseline
 

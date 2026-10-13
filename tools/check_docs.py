@@ -28,6 +28,11 @@ DOCUMENTS = [
     "docs/space-battle/DEPLOYMENT.md",
     "tools/space-battle/scenes/README.md",
     "Benchmarks.Local/README.md", "THIRD_PARTY_NOTICES.md",
+    "docs/README.md", "docs/secs/README.md",
+    "SpaceBattle.Game/DEVELOPMENT.md", "SpaceBattle.Web/DEVELOPMENT.md",
+    "docs/space-battle/RESEARCH.md", "docs/space-battle/BENCHMARK_METHOD_2026-10-11.md",
+    "docs/space-battle/REPORT_2026-10-11.md", "docs/benchmarks/current/REPORT.md",
+    "docs/space-battle/ARCHITECTURE.md",
 ]
 
 
@@ -188,6 +193,31 @@ def check(root=ROOT):
                         raw_evidence = target.name.endswith("-report-github.md") and target.parent.name == "results" and target.is_relative_to(ROOT / "Benchmarks.Local")
                         if not parsed.scheme and target != english and not original_license and not raw_evidence:
                             raise ValueError("Russian navigation leaves its locale: " + str(path.relative_to(ROOT)) + ": " + destination)
+    # Planning originals intentionally have no English translation. Check their
+    # navigation too, without imposing a bilingual template on specifications.
+    paired = {p for en in paths for p in (en, russian_path(en))}
+    single_paths = sorted(p for p in (ROOT / "docs/secs").rglob("*.md") if p not in paired)
+    single_paths.append(ROOT / "tools/space-battle/SCENE_SEARCH_PROMPT.ru.md")
+    for path in single_paths:
+        clean, _ = without_fences(path.read_text(encoding="utf-8-sig"))
+        html = HtmlLinks()
+        html.feed(clean)
+        for destination in [*inline_links(clean), *html.links]:
+            parsed = urlsplit(destination)
+            if parsed.scheme in ("https", "http", "mailto"):
+                continue
+            if parsed.scheme or parsed.netloc or destination.startswith(("/", "\\")):
+                raise ValueError("Non-portable Markdown link: " + str(path.relative_to(ROOT)) + ": " + destination)
+            lexical = Path(os.path.abspath(path.parent / unquote(parsed.path))) if parsed.path else path
+            resolved = lexical.resolve()
+            if not resolved.is_relative_to(ROOT) or not resolved.exists():
+                raise ValueError("Broken or external-project link: " + str(path.relative_to(ROOT)) + ": " + destination)
+            exact_case(lexical)
+            if parsed.fragment and resolved.suffix == ".md":
+                if unquote(parsed.fragment) not in anchors(resolved.read_text(encoding="utf-8-sig")):
+                    raise ValueError("Broken heading anchor: " + str(path.relative_to(ROOT)) + ": " + destination)
+            targets.add(resolved.relative_to(ROOT).as_posix())
+            count += 1
     git = Path.home() / ".cache/codex-runtimes/codex-primary-runtime/dependencies/native/git/cmd/git.exe"
     executable = str(git) if git.is_file() else "git"
     ignored = subprocess.run([executable, "check-ignore", "--stdin"], cwd=ROOT,
@@ -200,7 +230,7 @@ def check(root=ROOT):
         path = ROOT / target
         if path.is_file() and path.stat().st_size >= 100 * 1024 ** 2:
             raise ValueError("Linked file exceeds GitHub's normal file limit: " + target)
-    return len(paths) * 2, count, len(targets)
+    return len(paths) * 2 + len(single_paths), count, len(targets)
 
 
 def main():
@@ -209,7 +239,7 @@ def main():
     except (ValueError, OSError) as error:
         print("FAIL: " + str(error), file=sys.stderr)
         return 1
-    print(f"PASS: {documents} bilingual documents; {links} local links/anchors; {files} publishable targets; code and numeric-table parity")
+    print(f"PASS: {documents} documents; {links} local links/anchors; {files} publishable targets; bilingual code and numeric-table parity")
     return 0
 
 

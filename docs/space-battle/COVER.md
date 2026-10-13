@@ -2,7 +2,7 @@ English | [Русский](COVER.ru.md)
 
 # Current Gameplay Cover
 
-[Project](../../README.md) | [Report](REPORT.md) | [Benchmark methodology](README.md)
+[Project](../../README.md) | [Report](REPORT.md) | [SpaceBattle overview](README.md)
 
 `cover.png` illustrates current gameplay from the production AOT web frontend
 in headless Chromium. Only Canvas is captured; HTML controls and telemetry are

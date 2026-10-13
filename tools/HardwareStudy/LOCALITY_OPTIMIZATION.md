@@ -2,7 +2,9 @@ English | [Русский](LOCALITY_OPTIMIZATION.ru.md)
 
 # Portable Space Battle Locality
 
-Local study, 2026-10-12. The baseline is the current dirty workspace, including
+[Research index](../../docs/space-battle/RESEARCH.md) | [Current report](../../docs/space-battle/REPORT.md)
+
+Local study, 2026-10-12. The baseline was the dirty workspace frozen for this study, including
 the earlier circle-kernel and SECS mapping changes, not the historical published
 benchmark. Gameplay, balance, RNG, physics and AI decision rules are unchanged.
 Historical measurements are not replaced. No remote operation was performed.

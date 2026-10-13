@@ -2,7 +2,7 @@ English | [Русский](PERFORMANCE_INVESTIGATION.ru.md)
 
 # Space Battle Performance Investigation
 
-[Simulation report](REPORT.md)
+[Simulation report](REPORT_2026-10-11.md)
 
 Local diagnostic study, 2026-10-11. This is not a replacement for the published five-ECS benchmark. Only the SECS game port was measured. No original measurements, production gameplay sources, deployment settings or remote state were changed.
 

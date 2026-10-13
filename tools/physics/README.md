@@ -2,6 +2,8 @@ English | [Русский](README.ru.md)
 
 # Local Physics Study
 
+[Research index](../../docs/space-battle/RESEARCH.md) | [Current campaign](../../docs/space-battle/REPORT.md)
+
 Standalone native comparison tooling, not a runtime physics implementation.
 `AetherReference.cs` contains the complete preserved pre-experiment wrapper in
 `SpaceBattle.PhysicsStudy`; no private baseline path is required. Aether 2.2.0 is
@@ -38,17 +40,17 @@ loops are direct. Missing API fails explicitly instead of benchmarking old-vs-ol
 
 ## Timing Window
 
-Wait for the main agent to finish builds and explicitly approve an idle timing
-window. The flag acknowledges that external approval; it cannot detect overlapping
-builds or other CPU activity. No browser, AOT preview, host or server is restarted.
+Reserve an idle timing window after all builds and other measurement workloads
+have finished. The required flag acknowledges this precondition; it cannot detect
+overlapping builds or other CPU activity. No browser, AOT preview, host or server is restarted.
 
 ```powershell
 dotnet tools/physics/bin/Release/net8.0/PhysicsStudy.dll --approved-timing-window --run local-01 --seed 7331 --ticks 120 --warmup 20 --sweeps 1024 --repeats 3
 ```
 
-For the final native window, main plans `DOTNET_TieredCompilation=0` with
-`--warmup 120` to avoid cold tier transitions observed in the initial diagnostic
-run. Build the updated tool before the window, then set the environment for the
+For repeatable native diagnostics, use `DOTNET_TieredCompilation=0` with
+`--warmup 120`, the protocol chosen after cold tier transitions in the initial
+study. Build before the window, then set the environment for the
 DLL invocation (restore the previous value afterwards in your shell):
 
 ```powershell
@@ -60,7 +62,7 @@ The manifest records `DOTNET_TieredCompilation`, `DOTNET_TieredPGO`,
 `DOTNET_TC_QuickJit`, `DOTNET_TC_QuickJitForLoops`, and `DOTNET_ReadyToRun` exactly as
 provided; `null` means unset, not disabled. Existing `circle-native-01` is retained
 as diagnostic evidence, not a final-effect result. At least three fresh repeats
-remain required. This configuration does not itself authorize the timing window.
+remain required. This configuration does not detect whether the machine is idle.
 
 All generated inputs, source/binary snapshots, manifest, per-frame raw results and
 comparisons go exclusively under ignored
@@ -146,10 +148,11 @@ outside the native study.
 
 ## Production WASM Comparison
 
-`tools/web/physics-study.mjs` separately compares the preserved Aether + current
-LightSwarm preview at local port 8049 against the new production AOT site at 8050.
-Main owns both servers/builds. Wait for its **explicit** timing-window approval
-after the new AOT compilation finishes; this script starts no builds or servers.
+`tools/web/physics-study.mjs` compares a preserved Aether + LightSwarm site
+with a separately prepared circle-kernel production AOT site. Ports 8049/8050
+are example endpoints from the original study, not guaranteed running servers.
+Prepare and verify both sites, then finish compilation and competing workloads
+before timing; this script starts no builds or servers.
 
 ```powershell
 node --check tools/web/physics-study.mjs

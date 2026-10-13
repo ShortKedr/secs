@@ -42,99 +42,40 @@ Stress uses 256 base masks from eight optional four-byte components, 12-byte Pos
 
 Equivalent logical work does not mean identical layouts, queries, or optimal APIs. Allocation fields measure managed thread allocations, excluding native storage, not total memory. Error bars represent sample standard deviation, not confidence intervals. Results apply to the recorded machine/runtime/revisions, not Unity/IL2CPP or a universal framework ranking. SECS-only optimized creation/accessor experiments are separate and do not replace the shared API comparison.
 
-## Validation Catalogue
+## Current campaign
 
-| Entry point | Visible source and checks |
-| --- | --- |
-| Comparison `--validate` | [Program.cs](Program.cs), [Adapters.cs](Adapters.cs), [StaticAdapters.cs](StaticAdapters.cs): lifetime and data at both base entity counts for all five frameworks |
-| Comparison `--validate-stress` | [StressRunner.cs](StressRunner.cs), [StressWorkload.cs](../SECS.Benchmarks/StressWorkload.cs): 257/4,097 entities, seven scenarios repeated three times, payload round-trip and retired handles |
-| xUnit | [WorldTests](../SECS.Tests/WorldTests.cs), [DefaultWorldTests](../SECS.Tests/DefaultWorldTests.cs), [OptimizationTests](../SECS.Tests/OptimizationTests.cs), [AccessorSwapTests](../SECS.Tests/AccessorSwapTests.cs) |
-| Legacy `--validate` | [SECS.OtherBenchmarks/Program.cs](../SECS.OtherBenchmarks/Program.cs), [BenchmarkInfrastructure.cs](../SECS.OtherBenchmarks/BenchmarkInfrastructure.cs): creation/deletion fixture lifecycle regressions |
-| Headless `--validate-adapters` | [AdapterValidation.cs](../SpaceBattle.Adapters/AdapterValidation.cs): four competitor stores, component/query/ref semantics, mutation rejection, stale handles, 70,000 recycle iterations and StaticEcs lifetime/registration |
-| Headless `--validate` / `--validate-ports` | [Validation.cs](../SpaceBattle.Headless/Validation.cs): SECS gameplay/physics checks; all four ports compared to SECS at ten checkpoints over 3,000 ticks |
-| Report/document tests | [test_check_docs.py](../tools/test_check_docs.py), [test_report_locale.py](../tools/space-battle/test_report_locale.py), [test_composition_report.py](../tools/space-battle/test_composition_report.py) |
-| Source inventory/recovery tests | [test_check_vendor.py](../tools/test_check_vendor.py) checks integrity and licenses; [test_fetch.ps1](../tools/test_fetch.ps1) tests offline archive recovery and preserves changed files |
+The canonical [2026-10-13 report](../docs/benchmarks/current/REPORT.md) links [base raw samples](../docs/benchmarks/current/base.json), [stress raw samples](../docs/benchmarks/current/stress.json), [source/runtime metadata](../docs/benchmarks/current/campaign.json) and three charts. This is the complete fresh five-framework matrix. Files in the directory root and `docs/benchmarks/updated` are retained history; they are not the current ranking.
 
-These are repository workload/adapter checks, not complete upstream framework test suites. Assertions throw on failure; headless validation returns a nonzero exit code. Retained measurement JSON and BenchmarkDotNet smoke reports are not substitutes for a fresh test run.
+## Reproduce
 
-On 2026-10-11, a separate copy containing only publishable files built the full
-Release solution with no errors or warnings. All 16 xUnit tests, base and stress
-validation for all five frameworks, the legacy lifecycle checks, and all three
-headless validation modes passed. All five battle ports matched at ten replay
-checkpoints. Historical timings and measured binaries were left unchanged; this
-is a source-distribution validation, not a new performance campaign or legal certification.
-
-## Reproduce Locally
-
-Run PowerShell from the repository root. Prerequisites: Python for inventory checking, a .NET SDK supporting the projects' .NET 8 target/runtime, and available NuGet dependencies for xUnit, BenchmarkDotNet, and SpaceBattle physics. Plotting additionally needs Python with matplotlib and NumPy. Source vendors are included; package restore may still require network access or a populated local cache. Run restores/builds serially and measurements without competing workloads.
+Run from the repository root, with .NET 8 runtime, a suitable SDK and the existing local NuGet cache. This offline command builds Release, validates all adapters, records source/assembly hashes, and runs base then stress with one measurement process at a time:
 
 ```powershell
-python tools/check_vendor.py
-$env:DOTNET_CLI_HOME = "$PWD/Benchmarks.Local/.dotnet"
-$env:NUGET_PACKAGES = "$PWD/Benchmarks.Local/nuget-packages"
-$env:TEMP = "$PWD/Benchmarks.Local/tmp"
-$env:TMP = $env:TEMP
-New-Item -ItemType Directory -Force $env:TEMP | Out-Null
-dotnet build Benchmarks.Local/Comparison.csproj -c Release -p:GeneratePackageOnBuild=false -m:1
+./Benchmarks.Local/run_campaign.ps1 -OutputDirectory Benchmarks.Local/repro-campaign
+```
+
+Stop other benchmarks, game runtimes and builds before timing. `--no-restore` deliberately requires cached dependencies; if absent, populate them separately before measurement. `GeneratePackageOnBuild=false` avoids package generation. The script keeps .NET/NuGet/temp paths inside the project and disables tiering. `-SkipBuild` is intended only for a separately verified fresh Release build. Reproduction writes its own results and does not overwrite canonical published data.
+
+Plot after all measurement processes finish. The plotting scripts require Python with compatible matplotlib/NumPy installations; use the same Python version as compiled packages in the local cache (currently Python 3.12):
+
+```powershell
+$env:PYTHONPATH = "$PWD/Benchmarks.Local/python-packages"
+$env:MPLCONFIGDIR = "$PWD/Benchmarks.Local/matplotlib-cache"
+python Benchmarks.Local/plot.py Benchmarks.Local/repro-campaign/base.json -o Benchmarks.Local/repro-campaign/comparison.png
+python Benchmarks.Local/plot_stress.py Benchmarks.Local/repro-campaign/stress.json --output-dir Benchmarks.Local/repro-campaign
+```
+
+Standalone correctness checks after building:
+
+```powershell
 dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --validate
 dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --validate-stress
-dotnet test SECS.Tests/SECS.Tests.csproj -c Release --logger "trx;LogFileName=secs.trx" --results-directory Benchmarks.Local/test-results
-dotnet run -c Release --project SECS.OtherBenchmarks -- --validate
-dotnet build SpaceBattle.Headless/SpaceBattle.Headless.csproj -c Release -p:GeneratePackageOnBuild=false -m:1
-dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate-adapters
-dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate
-dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate-ports
 ```
 
-Stop on a nonzero exit code and investigate before timing. Fresh output names below preserve retained results; rerunning these examples overwrites their `repro-*` files.
+Base validation checks entity data and lifetime at both measured entity counts. Stress preflight uses 257/4,097 entities, seven scenarios repeated three times, payload round-trip and retired-handle checks. Every measured stress case also validates its full population after warmup and samples. These checks validate this repository's workload/adapter contract; they are not complete upstream test suites.
 
-To check the actual source distribution without changing measured build outputs,
-run [verify-source-distribution.ps1](../tools/verify-source-distribution.ps1).
-It copies only publishable files into an ignored project-local directory, builds
-the solution, and runs xUnit, both comparison validations, legacy validation,
-and all headless validation modes. It uses the project-local NuGet cache and may
-need network access to restore missing packages; it does not publish anything.
+## Retained experiments
 
-```powershell
-$env:DOTNET_TieredCompilation = '0'
-Remove-Item Env:SECS_BENCHMARK_SCENARIOS -ErrorAction SilentlyContinue
-dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll Benchmarks.Local/repro-base.json
-dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --stress Benchmarks.Local/repro-stress.json
-python Benchmarks.Local/plot.py Benchmarks.Local/repro-base.json -o Benchmarks.Local/repro-charts/comparison.png
-python Benchmarks.Local/plot_stress.py Benchmarks.Local/repro-stress.json --output-dir Benchmarks.Local/repro-charts
-```
+The [SECS optimization methodology](../docs/benchmarks/optimization-methodology.md) explains preserved baseline/optimized binaries and paired datasets. `results-all-updated.json` / `stress-all-updated.json` and `docs/benchmarks/updated` are the previous complete five-framework run. Other `results*.json`, storage/accessor experiments and BenchmarkDotNet smoke outputs retain their own metadata and scope. Do not mix competitor observations across campaigns or use Dry/smoke timings as a full performance ranking.
 
-`--secs-only` restricts either comparison to SECS; `SECS_BENCHMARK_SCENARIOS` is a comma-separated stress scenario filter. Clear it for the complete 70-case stress matrix. An optional `SECS_BENCHMARK_REVISION` label records provenance supplied by the caller; it does not verify a commit.
-
-Run all SECS BenchmarkDotNet classes, including the original iteration/churn, shared SECS fixtures, stress, and optimized APIs, then the legacy suite:
-
-```powershell
-Remove-Item Env:SECS_STRESS_EXTREME -ErrorAction SilentlyContinue
-dotnet run -c Release --project SECS.Benchmarks -- --filter '*' --artifacts Benchmarks.Local/repro-bdn
-dotnet run -c Release --project SECS.OtherBenchmarks -- --filter '*' --artifacts Benchmarks.Local/repro-legacy-bdn
-dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --optimized-api Benchmarks.Local/repro-optimized-api.json
-dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --storage Benchmarks.Local/repro-storage.json
-```
-
-The [optimized API runner](OptimizedApiRunner.cs) validates separate SECS creation/lookup experiments; the [storage diagnostic](StorageRunner.cs) is untimed and reports retained native columns, excluding allocator overhead and managed arrays. `SECS_STRESS_EXTREME=1` selects five million entities only in the BenchmarkDotNet stress suite, not the five-framework runner. Only DenseIteration has retained extreme smoke evidence; it is not a full extreme-suite result.
-
-SpaceBattle's [headless CLI](../SpaceBattle.Headless/Program.cs) accepts `--framework secs|lite|classic|morpeh|static`, `--ticks` or `--seconds`, `--warmup`, `--seed`, `--ships-per-team`, `--churn`, `--particles`, `--output`, and optional `--realtime`. A short sequential reproduction for every store:
-
-```powershell
-foreach ($framework in @('secs', 'lite', 'classic', 'morpeh', 'static')) {
-    dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --framework $framework --ticks 3600 --warmup 600 --seed 7331 --ships-per-team 96 --output "Benchmarks.Local/repro-space-$framework.json"
-    if ($LASTEXITCODE -ne 0) { throw "SpaceBattle failed: $framework" }
-}
-```
-
-This is a short run, not reproduction of every retained long profile. Headless output includes JSON and `.ticks.csv`; its timed Step includes systems, physics, and commits, so it is not an ECS-only microbenchmark. See the [SpaceBattle report](../docs/space-battle/REPORT.md) for profile configurations and measurement limits.
-
-## Retained Data Map
-
-- Five-framework base: [results-all-updated.json](results-all-updated.json); stress: [stress-all-updated.json](stress-all-updated.json), with [initial stress run](stress-all-updated-initial.json) retained separately. Older runs remain distinct: [results.json](results.json), [stress-results.json](stress-results.json), [results-initial.json](results-initial.json), [results-four-frameworks.json](results-four-frameworks.json).
-- Paired SECS history: [base baseline](results-baseline-repeat.json), [base optimized](results-optimized.json), [stress baseline](stress-baseline-repeat.json), [stress optimized](stress-results-optimized.json). [Methodology](../docs/benchmarks/optimization-methodology.md) explains the preserved-binary comparison; rebuilding current source does not recreate that historical binary. [plot_optimization.py](plot_optimization.py) consumes those paired inputs.
-- Separate API/storage experiments: [optimized-api-results.json](optimized-api-results.json), [storage-baseline.json](storage-baseline.json), [storage-optimized.json](storage-optimized.json); iteration checks: [baseline](iteration-baseline-check.json), [hoist](iteration-hoist-check.json), [optimized](iteration-optimized-check.json).
-- BenchmarkDotNet smoke evidence: [comparison report](bdn-smoke-inprocess/results/SECS.Benchmarks.ComparisonBenchmarks-report-github.md), [stress report](bdn-stress-smoke/results/SECS.Benchmarks.StressBenchmarks-report-github.md), [extreme report](bdn-extreme-smoke/results/SECS.Benchmarks.StressBenchmarks-report-github.md). Separate API reports: [creation](optimization-bdn-artifacts/results/SECS.Benchmarks.OptimizedApiCreationBenchmarks-report-github.md), [lookup](optimization-bdn-artifacts/results/SECS.Benchmarks.OptimizedApiLookupBenchmarks-report-github.md). These are not full-suite pass counts.
-- SpaceBattle: [raw per-framework JSON/CSV](../docs/space-battle/results/), [summary.csv](../docs/space-battle/summary.csv), [windows.csv](../docs/space-battle/windows.csv), [hardware metadata](../docs/space-battle/hardware.json), and [report](../docs/space-battle/REPORT.md).
-
-Inspect each result's metadata and completeness before comparing it. A filtered run, failed/smoke report, or older framework subset must not be presented as the complete current five-framework matrix.
+BenchmarkDotNet launch instructions are in [SECS.Benchmarks](../SECS.Benchmarks/README.md). The separate end-to-end simulation and its reproduction live in the [SpaceBattle report](../docs/space-battle/REPORT.md).

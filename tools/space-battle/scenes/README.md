@@ -2,6 +2,8 @@ English | [Русский](README.ru.md)
 
 # Scene Search And Video Capture
 
+[SpaceBattle overview](../../../docs/space-battle/README.md) | [Research index](../../../docs/space-battle/RESEARCH.md)
+
 Reusable tools for three real SpaceBattle moments: coordinated squad kills,
 lethal HeavyCannon hits, and corner warp arrivals followed by a dense two-sided
 battle. They use the current C# / SECS simulation, not scripted combat.
@@ -10,7 +12,7 @@ battle. They use the current C# / SECS simulation, not scripted combat.
 
 Run from the repository root in PowerShell 7. Requirements: the pinned .NET 8
 SDK with `wasm-tools`, Node.js, Chromium from `tools/web`'s pinned Playwright,
-and `ffmpeg` / `ffprobe` on PATH. Validation used SDK 8.0.425, Mono 8.0.31 and
+and `ffmpeg` / `ffprobe` on PATH. The original validation used SDK 8.0.425, Mono 8.0.31 and
 Chromium 151.0.7922.34. No SDK or browser is installed automatically.
 
 For a fresh dependency setup, keep caches inside the project:

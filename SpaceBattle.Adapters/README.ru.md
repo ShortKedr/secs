@@ -41,8 +41,8 @@ StaticEcs ссылается на `Benchmarks.Local/StaticLibrary.csproj` (1.2.0
 - Детерминированные игровые серийные номера остаются данными компонентов и не зависят от нативных ID.
 
 StaticEcs допускает ровно одно активное хранилище с фиксированным тегом мира.
-Освободите старый экземпляр перед созданием нового. Все 25 структур из
-`Components.cs` в Core регистрируются до инициализации. Дополнительные unmanaged-типы
+Освободите старый экземпляр перед созданием нового. Встроенные типы компонентов явно зарегистрированы в
+[StaticEcsStore](StaticEcsStore.cs) до инициализации. Дополнительные unmanaged-типы
 нужно регистрировать в callback конструктора, например:
 
 ```csharp
@@ -64,8 +64,8 @@ dotnet restore SpaceBattle.Adapters/SpaceBattle.Adapters.csproj
 dotnet build SpaceBattle.Adapters/SpaceBattle.Adapters.csproj -c Release --no-restore -m:1
 ```
 
-Зафиксированная Release-сборка адаптеров прошла без ошибок и предупреждений
-после переноса общего слоя идентификации.
+Успешная сборка не заменяет проверку поведения адаптеров. Проверочный запуск
+после сборки headless-host приведён ниже.
 
 Библиотека предоставляет `AdapterValidation.RunAll()` для существующего
 проверочного хоста; дополнительный исполняемый проект не вводится. Проверяются
@@ -81,7 +81,10 @@ dotnet build SpaceBattle.Adapters/SpaceBattle.Adapters.csproj -c Release --no-re
 после проверки. `RunAll` печатает имя каждого фреймворка перед проверкой для
 идентификации ошибок.
 
-Зафиксированная проверка через существующий Release headless-хост с `--validate-adapters`:
-все четыре адаптера прошли 70,000 итераций повторного использования и полный набор
-вспомогательных проверок. Release-сборка хоста также прошла без ошибок и
-предупреждений. Исходники headless-хоста не изменялись.
+После сборки headless-host запускайте проверку из корня проекта, вне замеров:
+
+```powershell
+dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate-adapters
+```
+
+Первоначальные результаты относятся к [журналу приёмки 2026-10-11](../docs/space-battle/PLAN.ru.md). Текущие parity и provenance см. в [отчёте](../docs/space-battle/REPORT.ru.md).

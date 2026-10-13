@@ -6,6 +6,10 @@ For the current CPU SECS, repeat runs and result comparisons across Windows, Lin
 
 Status as of October 12, 2026: implementation plan. The [workflow example](secs-determinism.example.yml) runs existing tests and is outside `.github/workflows`; it does not yet verify that traces match across machines. The replay runner, reference traces, and comparer described below still need to be implemented.
 
+[Documentation map](README.md) · [Current API](secs/README.md)
+
+Read in order: [current coverage](#what-is-already-tested), [proposed contract](#proposed-contract), [canonical state](#canonical-state-and-reference), [test suite](#test-suite), [CI design](#github-actions), and [implementation stages](#implementation-stages).
+
 ## What Is Already Tested
 
 [SECS](../SECS/SECS.csproj) and [SECS.Tests](../SECS.Tests/SECS.Tests.csproj) target `net8.0`. The library has no GPU backend or parallel scheduler. The current suite contains 16 `[Fact]` tests and no `[Theory]` tests:
@@ -17,7 +21,7 @@ Status as of October 12, 2026: implementation plan. The [workflow example](secs-
 | [DefaultWorldTests](../SECS.Tests/DefaultWorldTests.cs) | 1 | Default options and multiple chunks at capacity 256 |
 | [OptimizationTests](../SECS.Tests/OptimizationTests.cs) | 5 | Churn with seed 7319, chunk reuse, accessors, direct and batch creation |
 
-Local verification of this checkout: Release 16/16 and Debug 16/16, with no skips; Windows x64, SDK 10.0.204, target net8.0. TRX files are in `Benchmarks.Local/tmp/secs-determinism-plan/tests`. This verifies existing contracts on one machine. The suite does not yet compare independent processes, different operating systems, or architectures.
+Recorded local verification on October 12, 2026: Release 16/16 and Debug 16/16, with no skips; Windows x64, SDK 10.0.204, target net8.0. TRX files are in `Benchmarks.Local/tmp/secs-determinism-plan/tests`. This verifies existing contracts on one machine. The suite does not yet compare independent processes, different operating systems, or architectures.
 
 [SpaceBattle.Headless](../SpaceBattle.Headless/Validation.cs) repeats two battles in one process with a final checksum after 1800 ticks and compares five ECS adapters every 300 ticks through 3000. This is a useful integration layer. [Battle.Checksum](../SpaceBattle.Core/BattleInspection.cs) hashes selected fields, including float bits; it is not a complete snapshot of the ECS, physics solver, or all state that affects continuation of the simulation. The headless report also contains timing, memory, date, and machine name, so entire JSON files cannot be compared byte-for-byte.
 

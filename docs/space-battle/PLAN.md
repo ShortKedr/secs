@@ -1,55 +1,27 @@
 English | [Русский](PLAN.ru.md)
 
-[Report](REPORT.md) | [Project README](../../README.md)
+# Archived SpaceBattle Delivery Plan
 
-# Space Battle: Implementation, Acceptance, and Benchmark Plan
+Acceptance snapshot: **2026-10-11**, `predictive-neutral-v1` campaign. The original requirements, evidence ledger and validation boundaries follow. PASS entries refer to that revision and environment; unchecked items record that date, not a current backlog.
 
-Status snapshot: 2026-10-11. Core, headless runner, Silk.NET game, SECS store and
-four native adapters are implemented. Mechanics and short cross-backend checks
-have historical passing evidence. Main reports the old 15-case suite finished,
-but new aiming/friendly-fire rules invalidate it as current gameplay evidence.
-Main reports a fresh new-rule build with **0 errors / 0 warnings**, mechanics
-validation PASS and short five-backend parity PASS. Main now reports frontend
-profiling and a fresh visually inspected capture complete, with matching custom
-headless states. Main reports the replacement long suite **15/15 COMPLETE**, terminal
-exit `0` (session `17687`): 108,000 measured ticks/case, 600 warmup ticks/case,
-1,620,000 measured ticks total. All five ECS match 30 canonical checkpoints and
-counters within each of low, nominal and high profiles. Main reports central
-strict analysis PASS for the 15 runs/1.62 million ticks, 3,600 frontend CSV
-samples/statistics, current hashes, custom parity and hardware. The report is
-generated and action/timing-p99/native-memory/stage visuals were inspected by main.
-Main reports final central analyzer PASS again after legend/GC-scope fixes and
-final visual review. `REPORT.md` has the opening screenshot near the top after language navigation; key outcomes,
-metrics/data and caveats are complete. **Original R01-R16 delivery is COMPLETE
-in the reported verification scope**, including the new aiming/friendly-fire rules.
-Tick timings and Step allocations remain valid. Optional future experiments and
-separately unreported boundary regressions below are not claimed as performed.
-
-Evidence provenance: E1-E4 and E7-E12 below are supplied by the main implementation owner
-for this status update, not rerun by the documentation owner during timing.
-E5 metadata and the actual stage declaration were read locally; no build, test,
-image rendering, or benchmark was launched for this update. All remaining
-unchecked items are future acceptance work, not claims of missing implementation.
-This document does not authorize changes to other owners' files or remote state.
-No builds, tests or simulation/benchmark runs may be performed by this owner
-until approved. This update edits only `PLAN.md`.
+[Historical report](REPORT_2026-10-11.md) | [Current documentation](README.md) | [Current report](REPORT.md)
 
 ## Evidence Ledger
 
 | ID | Observed/reported evidence | Scope and limits |
 | --- | --- | --- |
-| E1 | Main reports Core `--validate` PASS: all 11 classes, plasma shield heat, live ship production/destruction, fragments, real structural churn and repeat determinism; forced docking/repair/undocking, overheating/cooling, shield regen delay, shield cell/heat sink use, and NaN hull rejection. | Mechanics validation, not a full 30-minute benchmark or proof of every boundary case. |
-| E2 | Main reports `SECS.Tests` Release 16/16 PASS after the `WorldOptions` default-value fix and added regression test. | SECS runtime regression evidence, not a substitute for five-port battle validation. |
-| E3 | Main reports 70,000 lifecycle cycles PASS for each of the four adapters. | Adapter lifecycle coverage; not 70,000 battle ticks and not long-run timing evidence. |
-| E4 | Main reports 3,000 battle ticks, ten checkpoints at 300-tick intervals, with all five backends matching final strong checksum `E4C28CD57C7E82EE`. | Current Core before the SECS query-cache optimization, reported semantically unchanged. Retain binary provenance; do not call this 30,000 ticks or 108,000-tick parity. |
+| E1 | Recorded: Core `--validate` PASS: all 11 classes, plasma shield heat, live ship production/destruction, fragments, real structural churn and repeat determinism; forced docking/repair/undocking, overheating/cooling, shield regen delay, shield cell/heat sink use, and NaN hull rejection. | Mechanics validation, not a full 30-minute benchmark or proof of every boundary case. |
+| E2 | Recorded: `SECS.Tests` Release 16/16 PASS after the `WorldOptions` default-value fix and added regression test. | SECS runtime regression evidence, not a substitute for five-port battle validation. |
+| E3 | Recorded: 70,000 lifecycle cycles PASS for each of the four adapters. | Adapter lifecycle coverage; not 70,000 battle ticks and not long-run timing evidence. |
+| E4 | Recorded: 3,000 battle ticks, ten checkpoints at 300-tick intervals, with all five backends matching final strong checksum `E4C28CD57C7E82EE`. | Current Core before the SECS query-cache optimization, reported semantically unchanged. Retain binary provenance; do not call this 30,000 ticks or 108,000-tick parity. |
 | E5 | Historical framebuffer metadata recorded earlier: tick 900, 256 escorts/team, 1600x1000, zoom 2; 61 rendered ships, 692 projectiles, 1,969 debris, 518 particles; atlas/nonblank true. | Historical Core SHA-256 `510CF8BA0AA3C31570B33A4E23A23546A50204A13981556680BF922ED6068745`, checksum `8846FF333324DF49`. `action.png` has since been refreshed (E9); its current file is not evidence for these historical values. Command-logic self-tests were not OS event injection. |
-| E6 | Main reports the old full suite completed: 15 cases = churn 0.5/1/2 x five ECS, seed 7331, 96 escorts/team, 600 warmup ticks, 108,000 measured ticks/case. | **SUPERSEDED for current gameplay** by predictive aiming, 25% deterministic spread and team-neutral projectile collisions. Historical files are not independently certified here and must not be relabeled as new-rule results. |
-| E7 | Main reports fresh new-rule build: 0 errors / 0 warnings. `--validate` PASS includes crossing/shooter-motion/stationary intercepts, linear fallbacks, deterministic 75/25 spread, actual enemy/friendly/self projectile damage, counters, burst inherited velocity and prior Core mechanics. `--validate-ports` PASS: all five match ten checkpoints over 3,000 ticks; final strong checksum `666A96DD2647E74D`. `SECS.Tests` 16/16 PASS in both Debug and Release; four adapters each PASS 70,000 lifecycle cycles. | Fresh reported correctness evidence, not rerun by documentation owner. New checkpoint checksum is revision/scenario-specific; old E4 is not an expected value. Short parity/build/test PASS is not 108,000-tick measurement or full report completion. |
-| E8 | Main reports [frontend.json](frontend.json) profiling complete: 3,600 measured frames, 120 warmup frames, 1440x900, 96 escorts/team, one simulation step/render, VSync off, hidden window. CPU frame p99 `4.1131 ms`, wall-frame p99 `4.2057 ms`, GPU timeline p99 `1.068448 ms`; 3,600 positive GPU samples, zero null samples/errors; zero reported budget misses. | Frontend-only timing under this configuration, not pure ECS ranking or 30-minute headless evidence. GPU timeline is labeled separately from CPU/wall time; zero misses is limited to this profile. Documentation owner has not independently reaggregated the file. |
-| E9 | Main reports refreshed [action.png](action.png) visually inspected: tick 900, 256 escorts/team; 101 snapshot ships, 94 rendered ships, 125 alive, 294 projectiles, 1,554 debris, 861 particles; checksum `76139FC912B8B3E7`. Core SHA-256 `C33F0C46BD5725E342233BF456E2EACF412FDDAD2EF91C43827E513D3E9D4120`; Game SHA-256 `1F00945060A72CEA5062DE90475E0A99E51745A06E9A7E7EC539E13011EC1296`. | Fresh new-rule actual framebuffer and main's visual inspection. Snapshot/rendered/alive counts are retained as distinct reported counters, not assumed identical. Do not attribute E5's old checksum/hash/object counts to this refreshed file. |
-| E10 | Main reports custom headless/frontend parity PASS: capture tick 900 with 256/team matches `76139FC912B8B3E7`; profile state at tick 4,620 with 96/team matches `D4DEA4EA08683883`. Files: [capture parity](custom/frontend-capture-parity.json), [profile parity](custom/frontend-profile-parity.json). | **Correctness-only custom runs without warmup**, not benchmark data. Their reported JIT-affected maxima of roughly 94-116 ms must be excluded from performance comparisons and realtime claims. Profile-state tick 4,620 is distinct from its 3,600 measured render frames; do not infer one tick per measured sample from that endpoint. |
-| E11 | Main reports replacement new-rule campaign 15/15 COMPLETE, terminal exit 0, session `17687`: five ECS x low/nominal/high, 108,000 measured ticks and 600 warmup ticks per case, 1,620,000 measured ticks total. All five match 30 canonical checkpoints and counters within each profile. | Full campaign execution and scoped suite parity PASS as reported. Supersedes the interim 12/15 status. Equality is within profiles, not across different churn workloads; not per-tick full-state, all-seed or cross-platform proof. No build/run/poll performed by this documentation owner. |
-| E12 | Main reports final central analyzer PASS again with corrected GC scopes: strict gates for 15 x 108,000 ticks, frontend CSV 3,600 samples/statistics, current hashes/custom parity/hardware. Current action/p99/native-memory/stage visuals inspected by main; legend outside, images nonblank/correct. [REPORT.md](REPORT.md) has the opening screenshot near the top after language navigation; key outcomes, metrics/data/caveats complete. New projects in `SECS.sln`, `dotnet sln list` valid, `git diff --check` PASS. | **FINAL REPORT GATE COMPLETE in reported scope.** Broad raw JSON GC counts and sampled CSV post-Step deltas explicitly separate, without first-tick/post-loop-exclusive misattribution. Tick timings/Step allocations valid. Source/binaries unchanged; no more build needed. Documentation owner did not rerun checks or inspect images; optional future experiments remain unperformed. |
+| E6 | Recorded: the old full suite completed: 15 cases = churn 0.5/1/2 x five ECS, seed 7331, 96 escorts/team, 600 warmup ticks, 108,000 measured ticks/case. | **SUPERSEDED for current gameplay** by predictive aiming, 25% deterministic spread and team-neutral projectile collisions. Historical files are not independently certified here and must not be relabeled as new-rule results. |
+| E7 | Recorded: fresh new-rule build: 0 errors / 0 warnings. `--validate` PASS includes crossing/shooter-motion/stationary intercepts, linear fallbacks, deterministic 75/25 spread, actual enemy/friendly/self projectile damage, counters, burst inherited velocity and prior Core mechanics. `--validate-ports` PASS: all five match ten checkpoints over 3,000 ticks; final strong checksum `666A96DD2647E74D`. `SECS.Tests` 16/16 PASS in both Debug and Release; four adapters each PASS 70,000 lifecycle cycles. | Fresh reported correctness evidence, not rerun by documentation owner. New checkpoint checksum is revision/scenario-specific; old E4 is not an expected value. Short parity/build/test PASS is not 108,000-tick measurement or full report completion. |
+| E8 | Recorded: [frontend.json](frontend.json) profiling complete: 3,600 measured frames, 120 warmup frames, 1440x900, 96 escorts/team, one simulation step/render, VSync off, hidden window. CPU frame p99 `4.1131 ms`, wall-frame p99 `4.2057 ms`, GPU timeline p99 `1.068448 ms`; 3,600 positive GPU samples, zero null samples/errors; zero reported budget misses. | Frontend-only timing under this configuration, not pure ECS ranking or 30-minute headless evidence. GPU timeline is labeled separately from CPU/wall time; zero misses is limited to this profile. Documentation owner has not independently reaggregated the file. |
+| E9 | Recorded: refreshed [action.png](action.png) visually inspected: tick 900, 256 escorts/team; 101 snapshot ships, 94 rendered ships, 125 alive, 294 projectiles, 1,554 debris, 861 particles; checksum `76139FC912B8B3E7`. Core SHA-256 `C33F0C46BD5725E342233BF456E2EACF412FDDAD2EF91C43827E513D3E9D4120`; Game SHA-256 `1F00945060A72CEA5062DE90475E0A99E51745A06E9A7E7EC539E13011EC1296`. | Fresh new-rule actual framebuffer and main's visual inspection. Snapshot/rendered/alive counts are retained as distinct reported counters, not assumed identical. Do not attribute E5's old checksum/hash/object counts to this refreshed file. |
+| E10 | Recorded: custom headless/frontend parity PASS: capture tick 900 with 256/team matches `76139FC912B8B3E7`; profile state at tick 4,620 with 96/team matches `D4DEA4EA08683883`. Files: [capture parity](custom/frontend-capture-parity.json), [profile parity](custom/frontend-profile-parity.json). | **Correctness-only custom runs without warmup**, not benchmark data. Their reported JIT-affected maxima of roughly 94-116 ms must be excluded from performance comparisons and realtime claims. Profile-state tick 4,620 is distinct from its 3,600 measured render frames; do not infer one tick per measured sample from that endpoint. |
+| E11 | Recorded: replacement new-rule campaign 15/15 COMPLETE, terminal exit 0, session `17687`: five ECS x low/nominal/high, 108,000 measured ticks and 600 warmup ticks per case, 1,620,000 measured ticks total. All five match 30 canonical checkpoints and counters within each profile. | Full campaign execution and scoped suite parity PASS as reported. Supersedes the interim 12/15 status. Equality is within profiles, not across different churn workloads; not per-tick full-state, all-seed or cross-platform proof. No build/run/poll performed by this documentation owner. |
+| E12 | Recorded: final central analyzer PASS again with corrected GC scopes: strict gates for 15 x 108,000 ticks, frontend CSV 3,600 samples/statistics, current hashes/custom parity/hardware. Current action/p99/native-memory/stage visuals inspected by main; legend outside, images nonblank/correct. [REPORT.md](REPORT_2026-10-11.md) has the opening screenshot near the top after language navigation; key outcomes, metrics/data/caveats complete. New projects in `SECS.sln`, `dotnet sln list` valid, `git diff --check` PASS. | **FINAL REPORT GATE COMPLETE in reported scope.** Broad raw JSON GC counts and sampled CSV post-Step deltas explicitly separate, without first-tick/post-loop-exclusive misattribution. Tick timings/Step allocations valid. Source/binaries unchanged; no more build needed. Documentation owner did not rerun checks or inspect images; optional future experiments remain unperformed. |
 
 E1/E4/E5 remain historical mechanics/parity/visual evidence for their recorded
 revision, not fresh validation of E7. E2/E3 retain runtime/adapter-test value but
@@ -365,7 +337,7 @@ specific reported PASS results. Neither does a reported PASS silently cover them
   Exclude setup, warmup, serialization, checksum generation, rendering and idle
   waits. Store timestamp frequency and convert using floating-point arithmetic.
 - [ ] **PENDING B6:** Capture every tick duration in preallocated buffers and
-  write after measurement. Main reports Headless records arrays and writes CSV
+  write after measurement. Recorded: Headless records arrays and writes CSV
   only after each run; no per-tick CSV formatting/writes should contaminate
   measured allocation/GC. This implementation statement is not final file proof.
   No per-tick formatted logging or growing lists.
@@ -433,7 +405,7 @@ series measures GC pause time. The legend/report must identify both scopes.
   experience as separate cases. Track frame percentiles, dropped presentation
   frames and simulation catch-up/backlog; never conceal slow simulation by
   dropping simulation ticks. Do not use frontend totals to rank pure ECS cost.
-- [x] **FRESH CAPTURE/PARITY E9-E10; report-first placement VERIFIED E12 F4:** Main reports
+- [x] **FRESH CAPTURE/PARITY E9-E10; report-first placement VERIFIED E12 F4:** Recorded:
   the new-rule framebuffer visually inspected at tick 900 and headless parity
   verified. Retain E9 executable hashes and E10 custom correctness artifacts.
   The report's opening screenshot must appear near the top after language
@@ -467,7 +439,7 @@ docs/space-battle/runs/<run-id>/REPORT.md
   validation matrix, full-run and 30-minute charts, stage costs, allocations/GC,
   managed/process/native memory distinctions, frontend CPU/GPU, and failures.
 - [x] **PASS final central strict analyzer rerun (reported E12) A3:**
-  Main reports all-run/frontend statistics and current hashes/custom parity/
+  Recorded: all-run/frontend statistics and current hashes/custom parity/
   hardware checks PASS. Required invariant: recalculation matches saved statistics, every
   duration sample count is 108,000, minute bins contain exactly 3,600 ticks, and
   screenshot metadata identifies an actual run state.

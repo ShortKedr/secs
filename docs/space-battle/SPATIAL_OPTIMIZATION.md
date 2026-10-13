@@ -2,9 +2,9 @@ English | [Русский](SPATIAL_OPTIMIZATION.ru.md)
 
 # Space Battle Spatial Optimization
 
-[Simulation report](REPORT.md) | [Earlier investigation](PERFORMANCE_INVESTIGATION.md)
+[Simulation report](REPORT_2026-10-11.md) | [Earlier investigation](PERFORMANCE_INVESTIGATION.md)
 
-Local study of the current mounted-armament simulation, 2026-10-12. This measures SECS before/after algorithm changes, not a new ranking of the five ECS frameworks. Frozen benchmark evidence and remote state are unchanged.
+Historical study, 2026-10-12, of mounted-armament gameplay with Aether before the circle-kernel replacement. This measures SECS before/after algorithm changes, not a new ranking of the five ECS frameworks. Frozen benchmark evidence and remote state are unchanged.
 
 ## What Was Wasteful
 

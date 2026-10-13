@@ -2,6 +2,8 @@ English | [Русский](MONO_COMPILER_STUDY.ru.md)
 
 # Stable Mono AOT Compiler Study
 
+[Research index](../../docs/space-battle/RESEARCH.md) | [Current report](../../docs/space-battle/REPORT.md)
+
 ## Decision
 
 2026-10-12: retain the original production configuration. No repeatable,
@@ -19,7 +21,7 @@ visible RAM; Chromium 151.0.7922.34, Playwright 1.62.1, Node 24.14.0.
 SDK **8.0.425**, Mono/runtime **8.0.31**, LLVM/Clang **16.0.5**, Emscripten
 **3.1.34**. No CoreCLR/R2R, NativeAOT-LLVM or .NET 10 experiment was used.
 
-The baseline is the current dirty workspace, not the published historical
+The baseline was the dirty workspace frozen on 2026-10-12, not the published historical
 benchmark or the live Pages version. Local HEAD: `2f3625a408625b74fa0b42edaac6a20a121ccca5`.
 81 source/config/asset files were frozen before comparison. Source manifest SHA256:
 `EAB44BC1B7D6B1B93C270E70267E4CBA8C0DF331E377526FCEAF5B2D30F876DB`.

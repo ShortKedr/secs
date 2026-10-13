@@ -1,13 +1,13 @@
 [English](PHYSICS.md) | Русский
 
-# Эксперимент с круговой физикой
+# Физика SpaceBattle
 
 [Desktop](../../SpaceBattle.Game/README.ru.md) | [Web](../../SpaceBattle.Web/README.ru.md) | [Локальное сравнение](../../tools/physics/README.ru.md)
 
 Общая C#-симуляция использует `circle-kernel-v1` вместо Aether. В desktop и
 production Mono AOT WASM работает одна реализация. AI, пушки, изображения и
-предыдущие изменения LightSwarm сохранены. Исторические измерения, кадры и
-отчёты по-прежнему относятся к своему исходному Aether-workload, не к новой модели.
+предыдущие изменения LightSwarm сохранены. [Бенчмарк 2026-10-11](REPORT_2026-10-11.ru.md) и его кадры описывают исходный
+Aether-workload. Замеры текущих исходников см. в [текущем отчёте](REPORT.ru.md).
 
 ## Что было раньше
 

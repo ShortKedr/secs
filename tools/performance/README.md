@@ -2,6 +2,10 @@ English | [Русский](README.ru.md)
 
 # Space Battle Diagnostic Tools
 
+The protocol below reproduces **2026-10-11** source snapshots (`6150700`, `c51390c`, `d853ae7`) with the earlier Aether physics. For current circle-kernel profiling use [HardwareStudy](../HardwareStudy/README.md) and the [physics tools](../physics/README.md).
+
+[Research index](../../docs/space-battle/RESEARCH.md) | [Current campaign](../../docs/space-battle/REPORT.md)
+
 These tools investigate simulation/front-end costs, independently of the frozen five-ECS results. See the [study](../../docs/space-battle/PERFORMANCE_INVESTIGATION.md).
 
 Run from the repository root. Keep archives, builds, caches and output inside `Benchmarks.Local/tmp/performance-study`. Do not rebuild into canonical `bin/Release` or overwrite report results. The [experimental patch](sweep-empty-space.patch) is publishable as a research/reproduction artifact, not as a production fix. Never apply it to the production project or deploy it with production; apply it only to an isolated archive for reproduction as described below.

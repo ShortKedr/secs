@@ -1,8 +1,8 @@
 English | [Русский](TACTICS.ru.md)
 
-[Methodology / README](README.md) | [Frozen report](REPORT.md)
+[Methodology / README](README.md) | [Frozen report](REPORT_2026-10-11.md)
 
-# Tactical AI
+# Tactical AI v2 (Historical)
 
 Current source uses [layered-squads-v3](TACTICS_V3.md). The v2 description below
 is retained as the earlier model, not the current formation/scoring algorithm.
@@ -13,7 +13,7 @@ budgets. Heavy hull weapons steer toward predicted intercept before firing.
 V6 reduces mount damage/rate in the shared catalog; kill-time estimates use
 those auxiliary values without changing the tactical algorithm.
 
-Tactical revision remains `tactical-lock-v2`: v5 changes only the catalog heavy
+At the V5 stage described here, tactical revision was `tactical-lock-v2`: v5 changes only the catalog heavy
 rate feeding AI estimated DPS, not target selection, leases, squads or movement.
 Heavy nominal cooldowns are 12/14/18/22/26 seconds in Frigate/Destroyer/
 LightCarrier/FleetCarrier/Foundry order; low doubles them, high halves them.

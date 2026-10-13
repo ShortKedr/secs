@@ -39,8 +39,8 @@ Morpeh references its existing vendor project. StaticEcs references
 - Deterministic game serials remain component data, independent of native IDs.
 
 StaticEcs allows exactly one active store with its fixed world tag. Dispose the
-old instance before constructing another. All 25 structs declared in Core's
-`Components.cs` are registered before initialization. Additional unmanaged types
+old instance before constructing another. The built-in component types are explicitly registered in
+[StaticEcsStore](StaticEcsStore.cs) before initialization. Additional unmanaged types
 must be registered in the constructor callback, for example:
 
 ```csharp
@@ -62,8 +62,12 @@ dotnet restore SpaceBattle.Adapters/SpaceBattle.Adapters.csproj
 dotnet build SpaceBattle.Adapters/SpaceBattle.Adapters.csproj -c Release --no-restore -m:1
 ```
 
-The recorded adapter Release build passed with zero errors and warnings after
-the shared identity-layer move.
+Build success alone does not validate adapter behavior. After building the
+headless host, run from the repository root, outside timing:
+
+```powershell
+dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate-adapters
+```
 
 The library provides `AdapterValidation.RunAll()` for the existing validation
 host; no additional executable is introduced. It validates all component types,
@@ -76,7 +80,4 @@ the four successful store names. `Validate(IEcsStore, int)` takes ownership of a
 empty store and disposes it after validation. `RunAll` prints each framework name
 before validation to identify failures.
 
-The recorded validation through the existing Release headless host with `--validate-adapters`:
-all four adapters passed 70,000 recycle iterations and the complete helper suite.
-The host Release build also passed with zero errors and warnings. No headless
-source files were changed.
+The original adapter validation is recorded in the [2026-10-11 acceptance ledger](../docs/space-battle/PLAN.md). For current campaign parity and provenance see the [current report](../docs/space-battle/REPORT.md).

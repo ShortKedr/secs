@@ -1,11 +1,12 @@
 English | [Русский](ARMAMENT.ru.md)
 
-[Current tactics](TACTICS.md) | [Historical benchmark](REPORT.md)
+[Current tactics](TACTICS_V3.md) | [Current benchmark](REPORT.md)
 
 # Mounted Armament
 
-Gameplay revision: `mounted-armament-v7`. Frozen benchmark measurements remain
-`predictive-neutral-v1`; they do not measure tactical AI or these guns.
+Gameplay revision: `mounted-armament-v7`. Current AI is [layered-squads-v3](TACTICS_V3.md).
+The [2026-10-11 measurements](REPORT_2026-10-11.md) used `predictive-neutral-v1`
+and do not measure these guns; see the [current report](REPORT.md) for current-source measurements.
 
 | Class | Turret entities | Main damage | Main cooldown, seconds | Main range |
 |---|---:|---:|---:|---:|
@@ -33,7 +34,7 @@ the actual churn-scaled cooldown. A local RNG derived from battle seed and ship
 serial is independent of the battle RNG and does not consume its draws. Readiness
 is relative to `birthTick`, including late-built and respawned ships: no free
 first heavy volley. Turrets start ready as before. Subsequent heavy shots use
-the full scaled cooldown. Tactical revision remains `tactical-lock-v2`; only
+the full scaled cooldown. At the V5 cadence change, tactical revision was `tactical-lock-v2`; only
 catalog rate changes its estimated DPS, not the tactical algorithm.
 
 ## Independent Guns

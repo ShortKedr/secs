@@ -2,6 +2,8 @@ English | [Русский](KERNEL_OPTIMIZATION.ru.md)
 
 # Circle Kernel Structural Study
 
+[Research index](../../docs/space-battle/RESEARCH.md) | [Current report](../../docs/space-battle/REPORT.md) | [Aether comparison](README.md)
+
 This harness compares the current circle kernel with preserved circle-kernel
 assemblies, not Aether. Historical physics results and published reports are not
 inputs or outputs. Run from the repository root. All new raw artifacts must be

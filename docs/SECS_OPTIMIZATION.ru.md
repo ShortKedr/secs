@@ -2,7 +2,9 @@
 
 # Оптимизации среды выполнения SECS
 
-[Обзор проекта](../README.ru.md) | [Отчёт Space Battle](space-battle/REPORT.ru.md)
+[Руководство библиотеки](secs/README.ru.md) · [Карта документации](README.ru.md) · [Методология замеров](benchmarks/optimization-methodology.ru.md)
+
+Статус: реализовано в текущем [CPU runtime](../SECS/World.cs). Этот документ описывает API и его стоимость. Измеренные ускорения относятся к связанным отчётам о бенчмарках; будущие SIMD, Fixed и scheduler описаны в отдельных [планах развития](README.ru.md#развитие-библиотеки).
 
 ## Существующий API
 

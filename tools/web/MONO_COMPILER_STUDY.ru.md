@@ -2,6 +2,8 @@
 
 # Проверка Компиляции Stable Mono AOT
 
+[Индекс исследований](../../docs/space-battle/RESEARCH.ru.md) | [Текущий отчёт](../../docs/space-battle/REPORT.ru.md)
+
 ## Решение
 
 2026-10-12: исходная production-конфигурация сохранена. Устойчивый общий выигрыш
@@ -18,7 +20,7 @@ Chromium151.0.7922.34, Playwright1.62.1, Node24.14.0. SDK **8.0.425**, Mono/runt
 **8.0.31**, LLVM/Clang **16.0.5**, Emscripten **3.1.34**. CoreCLR/R2R,
 NativeAOT-LLVM и .NET10 не использовались; desktop не мигрировал.
 
-Baseline - текущий dirty workspace, не опубликованный бенчмарк и не живая Pages.
+Baseline — dirty workspace, замороженный 2026-10-12, не опубликованный бенчмарк и не живая Pages.
 HEAD: `2f3625a408625b74fa0b42edaac6a20a121ccca5`. Заморожен81 файл исходников,
 конфигурации и ассетов. SHA256 manifest:
 `EAB44BC1B7D6B1B93C270E70267E4CBA8C0DF331E377526FCEAF5B2D30F876DB`.
