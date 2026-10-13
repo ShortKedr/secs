@@ -22,6 +22,7 @@ measurements named in the report.
 | Reproduce microbenchmarks | [Benchmark entrypoint](../SECS.Benchmarks/README.md), [local harness](../Benchmarks.Local/README.md) |
 | Before/after runtime optimizations | [Paired measurement methodology](benchmarks/optimization-methodology.md) |
 | Autonomous battle | [Space Battle report](space-battle/REPORT.md) |
+| Colour markers in reports and charts | [Shared comparison scale](benchmarks/COLORS.md) |
 
 Read the date, source revisions, hardware, and configuration before comparing
 results. A chart from an older runtime remains evidence for that runtime.

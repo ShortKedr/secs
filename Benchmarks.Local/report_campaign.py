@@ -4,8 +4,12 @@ import hashlib
 import math
 import statistics
 from pathlib import Path
+import sys
 from plot import validate as validate_base
 from plot_stress import validate as validate_stress
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+from benchmark_colors import Metric, compact_legend, shade_values
 
 root = Path(__file__).resolve().parents[1]
 out = root / 'docs/benchmarks/current'
@@ -29,31 +33,37 @@ for data, count in ((base, 20), (stress, 8)):
     require(data['metadata']['runtime'] == base['metadata']['runtime'], 'Mixed runtimes')
 date = manifest['started'][:10]
 frameworks = ('SECS', 'LeoECS Lite', 'LeoECS Classic', 'Morpeh', 'StaticEcs')
-def table(data):
+def table(data, language):
     indexed = {(r['scenario'], r['entityCount'], r['framework']): r for r in data['results']}
     cases = sorted({(r['entityCount'], r['scenario']) for r in data['results']})
     lines = ['| Scenario | N | ' + ' | '.join(frameworks) + ' |', '| --- | ---: | ' + ' | '.join('---:' for _ in frameworks) + ' |']
     for count, scenario in cases:
-        values = [indexed[scenario, count, f]['meanNs'] / 1e6 for f in frameworks]
-        best = min(values)
+        raw_values = [indexed[scenario, count, f]['meanNs'] for f in frameworks]
+        values = [value / 1e6 for value in raw_values]
         labels = [f'{v:.6f}' if v < 0.01 else f'{v:.4f}' if v < 1 else f'{v:.3f}' for v in values]
-        formatted = [f'**{label}**' if v == best else label for v, label in zip(values, labels)]
+        formatted = shade_values([Metric(label, comparison=value) for label, value in zip(labels, raw_values)],
+                                 language=language, asset_path='../heatmap')
         lines.append(f'| {scenario} | {count:,} | ' + ' | '.join(formatted) + ' |')
     return '\n'.join(lines)
-common_tables = table(base) + '\n\n' + table(stress)
+en_tables = table(base, 'en') + '\n\n' + table(stress, 'en')
+ru_tables = table(base, 'ru') + '\n\n' + table(stress, 'ru')
+en_legend = '\n'.join(compact_legend('en', '../heatmap', '../COLORS.md'))
+ru_legend = '\n'.join(compact_legend('ru', '../heatmap', '../COLORS.ru.md'))
 en = f'''English | [Русский](REPORT.ru.md)
 
 # ECS comparison — {date}
 
 [Benchmark overview](../../../SECS.Benchmarks/README.md) | [Harness and reproduction](../../../Benchmarks.Local/README.md)
 
-All five frameworks were measured afresh in one sequential campaign: 40 base cases and 70 stress cases. Each cell below is mean milliseconds per complete operation; lower is better. Bold marks the lowest recorded mean in that row, without claiming statistical significance.
+All five frameworks were measured afresh in one sequential campaign: 40 base cases and 70 stress cases. Each cell below is mean milliseconds per complete operation; lower is better. Markers show relative lag within each scenario and entity-count row; they describe effect size, not statistical significance.
 
 Environment: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} logical processors. Release, one thread, tiered compilation off. Source revision: `{manifest['sourceRevision']}`. [Campaign metadata](campaign.json) pins source and measured assembly hashes; [base raw samples](base.json) and [stress raw samples](stress.json) retain all observations.
 
 ## Recorded means
 
-{common_tables}
+{en_tables}
+
+{en_legend}
 
 ## Charts and interpretation
 
@@ -79,13 +89,15 @@ ru = f'''[English](REPORT.md) | Русский
 
 [Обзор бенчмарков](../../../SECS.Benchmarks/README.ru.md) | [Раннер и воспроизведение](../../../Benchmarks.Local/README.ru.md)
 
-Все пять фреймворков измерены заново в одной последовательной кампании: 40 базовых и 70 стресс-кейсов. Каждая ячейка ниже — среднее время полной операции в миллисекундах; меньше лучше. Жирным выделено минимальное измеренное среднее в строке, без утверждения о статистической значимости.
+Все пять фреймворков измерены заново в одной последовательной кампании: 40 базовых и 70 стресс-кейсов. Каждая ячейка ниже — среднее время полной операции в миллисекундах; меньше лучше. Маркеры показывают относительное отставание внутри строки сценария и числа сущностей; цвет описывает величину различия, а не статистическую значимость.
 
 Среда: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} логических процессоров. Release, один поток, tiered compilation отключён. Ревизия исходников: `{manifest['sourceRevision']}`. [Метаданные кампании](campaign.json) фиксируют хеши исходников и измеренных сборок; [базовые сырые замеры](base.json) и [стресс-замеры](stress.json) сохраняют все наблюдения.
 
 ## Измеренные средние
 
-{common_tables}
+{ru_tables}
+
+{ru_legend}
 
 ## Графики и интерпретация
 

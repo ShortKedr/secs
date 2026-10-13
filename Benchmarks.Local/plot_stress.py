@@ -16,8 +16,10 @@ matplotlib.use("Agg")
 from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullFormatter
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Patch
 
-from plot import COLORS, FRAMEWORKS, InputError, metadata_footer
+from plot import FRAMEWORKS, InputError, metadata_footer
+from benchmark_colors import EQUAL_COLOR, PALETTE, colors
 
 
 SCENARIOS = (
@@ -114,13 +116,14 @@ def render_count(metadata: dict[str, Any], results: dict[tuple[str, str, int], d
         ax = axes.flat[panel_index]
         ax.set_facecolor("white")
         values, errors = [], []
+        panel_colors = colors([results[(framework, scenario, count)]["meanNs"] for framework in FRAMEWORKS])
         for framework_index, framework in enumerate(FRAMEWORKS):
             result = results[(framework, scenario, count)]
             value = result["meanNs"] / 1_000_000
             error = result["stddevNs"] / 1_000_000
             values.append(value)
             errors.append(error)
-            ax.barh(framework_index, value, xerr=error, color=COLORS[framework], edgecolor="white", height=0.64,
+            ax.barh(framework_index, value, xerr=error, color=panel_colors[framework_index], edgecolor="white", height=0.64,
                     error_kw={"ecolor": "#30343B", "elinewidth": 1.1, "capsize": 3})
             label = f"{value:,.0f}" if value >= 1000 else f"{value:,.3g}"
             ax.annotate(label, (value + error, framework_index), xytext=(5, 0), textcoords="offset points",
@@ -160,8 +163,12 @@ def render_count(metadata: dict[str, Any], results: dict[tuple[str, str, int], d
     fig.suptitle(title, fontsize=16, fontweight="bold", y=0.98, color="#20252B")
     fig.text(0.5, 0.942, "Error bars: +/-1 SD   |   256 layouts   |   256-byte payload   |   1% hot entities   |   MixedFrames: 120 frames / operation",
              ha="center", va="top", fontsize=8.5, color="#4B5563")
+    fig.legend(handles=[Patch(color=dict(PALETTE)[name]) for name in ("best", "middle", "worst")]
+               + [Patch(color=EQUAL_COLOR)],
+               labels=("≤5% lag", "15% lag", "≥30% lag", "within 5% / neutral"),
+               loc="upper center", bbox_to_anchor=(0.5, 0.916), ncol=4, frameon=False, fontsize=8)
     fig.text(0.5, 0.026, metadata_footer(metadata), ha="center", va="bottom", fontsize=8, color="#4B5563", linespacing=1.4)
-    fig.subplots_adjust(left=0.16, right=0.985, top=0.88, bottom=0.17, wspace=0.30, hspace=0.36)
+    fig.subplots_adjust(left=0.16, right=0.985, top=0.86, bottom=0.17, wspace=0.30, hspace=0.36)
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=180, facecolor="white", bbox_inches="tight")
     plt.close(fig)

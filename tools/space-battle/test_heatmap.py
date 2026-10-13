@@ -93,7 +93,7 @@ class HeatmapTests(unittest.TestCase):
                     self.assert_markers(shade_values(values, direction), ["equal"] * len(values))
         self.assert_markers(shade_values([100, 105]), ["equal", "equal"])
         self.assert_markers(shade_values([95, 100], "higher"), ["equal", "equal"])
-        self.assert_markers(shade_values([100, Decimal("105.000001")]), ["best", "best"])
+        self.assert_markers(shade_values([100, Decimal("105.000001")]), ["best", "strong"])
 
     def test_ties_never_bold_numeric_extremes(self):
         self.assert_markers(shade_values([100, 100, 115, 130, 130]),

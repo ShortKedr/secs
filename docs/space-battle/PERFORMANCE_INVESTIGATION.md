@@ -2,6 +2,17 @@ English | [Русский](PERFORMANCE_INVESTIGATION.ru.md)
 
 # Space Battle Performance Investigation
 
+<!-- research-colors:start -->
+### Colour scale
+
+![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") up to 5% · ![Lag between 5% and 30%](../benchmarks/heatmap/middle.svg "Lag between 5% and 30%") 15% · ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") from 30% · ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") neutral.
+
+Colour shows lag from the best value in a comparable group: green → yellow → red. Groups entirely within 5% are grey. Colour describes effect size, not statistical significance. [Comparison rules](../benchmarks/COLORS.md).
+
+
+Only selected metrics within one scenario/window/environment are compared. Measured comparisons stay grey when neither the table nor its linked summary supplies independent-repeat envelopes. Stage shares and gameplay counters are not colored.
+<!-- research-colors:end -->
+
 [Simulation report](REPORT_2026-10-11.md)
 
 Local diagnostic study, 2026-10-11. This is not a replacement for the published five-ECS benchmark. Only the SECS game port was measured. No original measurements, production gameplay sources, deployment settings or remote state were changed.
@@ -38,9 +49,9 @@ All values are milliseconds per tick. Export includes capture, binary packing an
 
 | Revision | Native 1-600 | WASM 1-600 | WASM with export 1-600 | WASM 601-1200 |
 | --- | ---: | ---: | ---: | ---: |
-| Before tactics | 1.788 | 14.583 | 19.574 | 8.500 |
-| Tactical AI | 1.742 | 13.110 | 16.384 | 4.950 |
-| Live statistics | 1.716 | 12.477 | 15.625 | 4.777 |
+| Before tactics | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.788 | ![Lag between 5% and 30%](../benchmarks/heatmap/weak.svg "Lag between 5% and 30%") 14.583 | ![Lag between 5% and 30%](../benchmarks/heatmap/bad.svg "Lag between 5% and 30%") 19.574 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 8.500 |
+| Tactical AI | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.742 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 13.110 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 16.384 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 4.950 |
+| Live statistics | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.716 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 12.477 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 15.625 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 4.777 |
 
 Early WASM run-mean ranges: 14.149-14.796, 12.659-13.190 and 12.111-12.578 ms respectively. Native early ranges: 1.647-1.823, 1.722-1.784 and 1.649-1.735 ms. Do not attribute the small tactics/statistics timing difference to an optimization: their gameplay checksums match and the simulation algorithm is unchanged by statistics.
 
@@ -99,10 +110,10 @@ A conservative swept-AABB empty-space test was added **only to an archived copy*
 
 | Metric, ticks 1-600 | Original | Experimental |
 | --- | ---: | ---: |
-| Core mean, ms | 12.555 | 9.442 |
-| Hits mean, ms | 5.746 | 2.625 |
-| Core plus export mean, ms | 15.726 | 12.560 |
-| Core P95, ms | 26.8 | 20.0 |
+| Core mean, ms | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 12.555 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 9.442 |
+| Hits mean, ms | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.746 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.625 |
+| Core plus export mean, ms | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 15.726 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 12.560 |
+| Core P95, ms | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 26.8 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 20.0 |
 
 Core run-mean ranges: original 12.327-12.927 ms, experimental 9.200-9.625 ms. This is about 25% less core time and 54% less hits time. Later core means are 4.783 versus 3.910 ms. These are observed effects, not a statistical-significance claim or a guarantee for other scenes.
 

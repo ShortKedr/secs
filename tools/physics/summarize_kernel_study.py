@@ -3,6 +3,69 @@ import argparse
 import json
 import statistics as stats
 from pathlib import Path
+import os
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from benchmark_colors import Metric, compact_legend
+from colorize_research_reports import colorize_table, tables
+
+
+def comparison_metric(summary, table, row, column, text):
+    """Use the unrounded distribution while keeping its printed text intact."""
+    if table == 0:
+        scene = next(s for s in summary['kernel'] if s['scenario'] == row[0])
+        version = scene['versions'][row[1]]
+        value = version['hits']['meanMs'] if column == 5 else version['step'][{2: 'meanMs', 3: 'p95Ms', 4: 'p99Ms'}[column]]
+    elif table == 1:
+        entry = next(r for r in summary['browser'][row[0]]['rows'] if r['version'] == row[1] and r['endTick'] == int(row[2]))
+        value = entry['step'][{3: 'meanMs', 4: 'p95Ms', 5: 'p99Ms'}[column]] if column <= 5 else entry[{6: 'physics', 7: 'hits', 8: 'export'}[column]]
+    elif table == 2:
+        entry = next(r for r in summary['native'] if (r['version'], r['port'], r['endTick']) == (row[0], row[1], int(row[2])))
+        value = entry['step'][{3: 'MeanMs', 4: 'P95Ms', 5: 'P99Ms'}[column]] if column <= 5 else entry[{6: 'physics', 7: 'export'}[column]]
+    elif table == 3:
+        entry = next(r for r in summary['desktop'] if r['version'] == row[0])
+        value = entry['gpuRenderMs'] if row[1] == 'GPU render' else entry['phases'][row[1]][{2: 'Mean', 3: 'P95', 4: 'P99'}[column]]
+    else:
+        raise ValueError('No comparison metric for instrumented counters')
+    return Metric(text, comparison=value['median'], interval=(value['minimum'], value['maximum']))
+
+
+def colorize_markdown(text, output, summary):
+    """Compare revisions only within matching scene/profile/window/phase."""
+    project = Path(__file__).resolve().parents[2]
+    assets = Path(os.path.relpath(project / 'docs/benchmarks/heatmap', output.parent)).as_posix()
+    details = Path(os.path.relpath(project / 'docs/benchmarks/COLORS.md', output.parent)).as_posix()
+    rules = {
+        0: [('column', (2, 3, 4, 5), (0,))],
+        1: [('column', (3, 4, 5, 6, 7, 8), (0, 2))],
+        2: [('column', (3, 4, 5, 6, 7), (1, 2))],
+        3: [('column', (2,), (1,))],
+    }
+    lines, blocks = tables(text)
+    if len(blocks) != 5:
+        raise ValueError('Review physics table scopes after changing the generator')
+    for ordinal, (start, end) in reversed(list(enumerate(blocks))):
+        if ordinal not in rules:
+            continue
+        rows = [[v.strip() for v in line.strip().strip('|').split('|')] for line in lines[start + 2:end]]
+        resolver = lambda r, c, value, part: comparison_metric(summary, ordinal, rows[r], c, value)
+        colored = colorize_table(rows, rules[ordinal], 'en', assets, resolver=resolver, repeated=True)
+        # GPU render has no percentile columns. Other desktop phases can compare
+        # p95/p99 separately from means, never one percentile against another.
+        if ordinal == 3:
+            normal = [i for i, row in enumerate(rows) if row[1] != 'GPU render']
+            normal_rows = [rows[i] for i in normal]
+            resolver = lambda r, c, value, part: comparison_metric(summary, ordinal, normal_rows[r], c, value)
+            shaded = colorize_table(normal_rows, [('column', (3, 4), (1,))], 'en', assets, resolver=resolver, repeated=True)
+            for i, row in zip(normal, shaded):
+                colored[i][3:5] = row[3:5]
+        lines[start + 2:end] = ['| ' + ' | '.join(row) + ' |\n' for row in colored]
+    result = ''.join(lines)
+    first_break = result.index('\n') + 1
+    legend = '\n' + '\n'.join(compact_legend(language='en', asset_path=assets, details_link=details))
+    legend += '\n\nColors use unrounded independent-repeat summaries and envelopes. Input sizes, tick numbers and instrumented work counters are not quality scores.\n'
+    return result[:first_break] + legend + result[first_break:]
 
 
 def distribution(values):
@@ -168,7 +231,7 @@ def main():
               "Dense real contacts and outside-window exact fallback retain a quadratic worst case. Full velocity passes remain: an unchanged connected graph can still have residual updates. No warm starting or fewer iterations were used.",
               "Historical published data, AI, balance, artwork and frontend were not edited; no commit/push/publication or unrelated process termination."]
     with (root / f"RESULTS{suffix}.md").open("x", encoding="utf-8") as stream:
-        stream.write("\n".join(lines) + "\n")
+        stream.write(colorize_markdown("\n".join(lines) + "\n", root / f"RESULTS{suffix}.md", result))
     print(root / f"RESULTS{suffix}.md")
 
 

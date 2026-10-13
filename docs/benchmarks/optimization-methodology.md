@@ -2,6 +2,17 @@ English | [Русский](optimization-methodology.ru.md)
 
 # SECS Optimization Benchmark Methodology
 
+<!-- research-colors:start -->
+### Colour scale
+
+![Lag up to 5%](heatmap/best.svg "Lag up to 5%") up to 5% · ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 15% · ![Lag from 30%](heatmap/worst.svg "Lag from 30%") from 30% · ![Neutral or insufficient separation](heatmap/equal.svg "Neutral or insufficient separation") neutral.
+
+Colour shows lag from the best value in a comparable group: green → yellow → red. Groups entirely within 5% are grey. Colour describes effect size, not statistical significance. [Comparison rules](COLORS.md).
+
+
+Only selected metrics within one scenario/window/environment are compared. Measured comparisons stay grey when neither the table nor its linked summary supplies independent-repeat envelopes. Stage shares and gameplay counters are not colored.
+<!-- research-colors:end -->
+
 [Project overview](../../README.md) | [Space Battle report](../space-battle/REPORT.md)
 
 This report compares the original SECS benchmark results with the optimized
@@ -104,13 +115,13 @@ Stress results at 1,000,000 entities, milliseconds per complete operation:
 
 | Case | Original | Optimized | Original / Optimized |
 | --- | ---: | ---: | ---: |
-| DenseIteration | 2.672 | 2.414 | 1.11x |
-| SparseIteration | 0.012648 | 0.013787 | 0.92x |
-| WideIteration | 9.302 | 7.960 | 1.17x |
-| RandomLookup | 179.296 | 60.061 | 2.99x |
-| PayloadChurn | 1060.351 | 740.947 | 1.43x |
-| Recycle10Percent | 104.031 | 74.610 | 1.39x |
-| MixedFrames | 9445.567 | 5674.716 | 1.66x |
+| DenseIteration | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 2.672 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 2.414 | 1.11x |
+| SparseIteration | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.012648 | ![Lag between 5% and 30%](heatmap/good.svg "Lag between 5% and 30%") 0.013787 | 0.92x |
+| WideIteration | ![Lag between 5% and 30%](heatmap/middle.svg "Lag between 5% and 30%") 9.302 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 7.960 | 1.17x |
+| RandomLookup | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 179.296 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 60.061 | 2.99x |
+| PayloadChurn | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 1060.351 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 740.947 | 1.43x |
+| Recycle10Percent | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 104.031 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 74.610 | 1.39x |
+| MixedFrames | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 9445.567 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 5674.716 | 1.66x |
 
 MixedFrames includes all 120 frames, not one frame. Results are not uniformly
 faster: sparse iteration at one million and base destruction at one thousand
@@ -138,8 +149,8 @@ this fixture, not substitutions for the original RandomLookup measurements.
 
 | Entities | World.Get | Cached Accessor.Get | Original / Cached |
 | --- | ---: | ---: | ---: |
-| 100,000 | 0.870 ms | 0.487 ms | 1.79x |
-| 1,000,000 | 56.982 ms | 44.440 ms | 1.28x |
+| 100,000 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 0.870 ms | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 0.487 ms | 1.79x |
+| 1,000,000 | ![Lag between 5% and 30%](heatmap/bad.svg "Lag between 5% and 30%") 56.982 ms | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 44.440 ms | 1.28x |
 
 The million-entity lookup SDs are 9.250 and 11.044 ms respectively, so the
 accessor's benefit is not stable enough here to promise a fixed speedup. Its
@@ -156,9 +167,9 @@ reflection, allowing the executable to run against the original DLL.
 
 | Checkpoint | Original Chunks | Optimized Chunks | Original Native Bytes | Optimized Native Bytes |
 | --- | ---: | ---: | ---: | ---: |
-| Seeded | 393 | 393 | 2,405,377 | 2,405,377 |
-| After first pass | 1,174 | 784 | 32,828,417 | 30,432,257 |
-| After 20 passes | 15,994 | 784 | 609,504,257 | 30,432,257 |
+| Seeded | ![Neutral or insufficient separation](heatmap/equal.svg "Neutral or insufficient separation") 393 | ![Neutral or insufficient separation](heatmap/equal.svg "Neutral or insufficient separation") 393 | ![Neutral or insufficient separation](heatmap/equal.svg "Neutral or insufficient separation") 2,405,377 | ![Neutral or insufficient separation](heatmap/equal.svg "Neutral or insufficient separation") 2,405,377 |
+| After first pass | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 1,174 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 784 | ![Lag between 5% and 30%](heatmap/strong.svg "Lag between 5% and 30%") 32,828,417 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 30,432,257 |
+| After 20 passes | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 15,994 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 784 | ![Lag from 30%](heatmap/worst.svg "Lag from 30%") 609,504,257 | ![Lag up to 5%](heatmap/best.svg "Lag up to 5%") 30,432,257 |
 
 Optimized retained storage stops growing after the first pass in this fixture.
 This is not immediate reclamation: empty chunks remain retained for reuse.

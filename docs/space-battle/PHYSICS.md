@@ -2,6 +2,17 @@ English | [Русский](PHYSICS.ru.md)
 
 # SpaceBattle physics
 
+<!-- research-colors:start -->
+### Colour scale
+
+![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") up to 5% · ![Lag between 5% and 30%](../benchmarks/heatmap/middle.svg "Lag between 5% and 30%") 15% · ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") from 30% · ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") neutral.
+
+Colour shows lag from the best value in a comparable group: green → yellow → red. Groups entirely within 5% are grey. Colour describes effect size, not statistical significance. [Comparison rules](../benchmarks/COLORS.md).
+
+
+Only selected metrics within one scenario/window/environment are compared. Measured comparisons stay grey when neither the table nor its linked summary supplies independent-repeat envelopes. Stage shares and gameplay counters are not colored.
+<!-- research-colors:end -->
+
 [Desktop](../../SpaceBattle.Game/README.md) | [Web](../../SpaceBattle.Web/README.md) | [Local comparison tool](../../tools/physics/README.md)
 
 The shared C# simulation now uses `circle-kernel-v1`, not Aether. It is the same
@@ -143,16 +154,16 @@ state resets; Step and Hits are narrower scopes. Each slash means Aether / circl
 
 | Scene | Aether Total | Circle Total | Step A / C | Hits A / C |
 |---|---:|---:|---:|---:|
-| 198-dense-round | 2.859 | 2.723 | 0.276 / 2.268 | 2.557 / 0.453 |
+| 198-dense-round | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.859 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.723 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.276 / ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 2.268 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 2.557 / ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.453 |
 | 198-legacy-compound | 1.308 | 0.239 | 0.052 / 0.030 | 1.160 / 0.204 |
-| 198-mixed-round | 0.849 | 0.241 | 0.020 / 0.031 | 0.809 / 0.206 |
-| 198-moving-target-round | 0.856 | 0.448 | 0.025 / 0.190 | 0.819 / 0.256 |
-| 198-sparse-round | 0.828 | 0.224 | 0.020 / 0.029 | 0.788 / 0.191 |
-| 774-dense-round | 5.864 | 15.688 | 1.491 / 15.016 | 4.233 / 0.653 |
+| 198-mixed-round | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.849 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.241 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.020 / ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.031 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.809 / ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.206 |
+| 198-moving-target-round | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.856 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.448 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.025 / ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.190 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.819 / ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.256 |
+| 198-sparse-round | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.828 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.224 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.020 / ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.029 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.788 / ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.191 |
+| 774-dense-round | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 5.864 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 15.688 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 1.491 / ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 15.016 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 4.233 / ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.653 |
 | 774-legacy-compound | 3.154 | 0.402 | 0.191 / 0.120 | 2.558 / 0.268 |
-| 774-mixed-round | 1.595 | 0.429 | 0.083 / 0.130 | 1.427 / 0.283 |
-| 774-moving-target-round | 2.305 | 1.052 | 0.111 / 0.728 | 2.128 / 0.318 |
-| 774-sparse-round | 1.668 | 0.407 | 0.080 / 0.119 | 1.498 / 0.271 |
+| 774-mixed-round | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 1.595 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.429 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.083 / ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.130 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 1.427 / ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.283 |
+| 774-moving-target-round | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 2.305 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 1.052 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.111 / ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.728 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 2.128 / ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.318 |
+| 774-sparse-round | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 1.668 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.407 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.080 / ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.119 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 1.498 / ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.271 |
 
 Round scenes share collider geometry and prescribed inputs, not solver settings:
 Aether retains zero friction/default iterations; circles use the settings above.
@@ -171,10 +182,10 @@ Separate instrumented passes for the 774-body dense scene:
 
 | Phase | Aether | Circles |
 |---|---:|---:|
-| Contact search | 0.181 | 9.552 |
-| Solver | 1.365 | 5.329 |
-| Hit candidate rejection/search | 0.262 | 0.450 |
-| Hit narrow path | 4.093 | 0.208 |
+| Contact search | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.181 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 9.552 |
+| Solver | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 1.365 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 5.329 |
+| Hit candidate rejection/search | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.262 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.450 |
+| Hit narrow path | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 4.093 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.208 |
 
 Aether's search/solver are its actual exported internal labels. Its hit narrow
 path includes tree searches and five rays, not pure geometric arithmetic.

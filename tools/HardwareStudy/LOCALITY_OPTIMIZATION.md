@@ -2,6 +2,17 @@ English | [Русский](LOCALITY_OPTIMIZATION.ru.md)
 
 # Portable Space Battle Locality
 
+<!-- research-colors:start -->
+### Colour scale
+
+![Lag up to 5%](../../docs/benchmarks/heatmap/best.svg "Lag up to 5%") up to 5% · ![Lag between 5% and 30%](../../docs/benchmarks/heatmap/middle.svg "Lag between 5% and 30%") 15% · ![Lag from 30%](../../docs/benchmarks/heatmap/worst.svg "Lag from 30%") from 30% · ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") neutral.
+
+Colour shows lag from the best value in a comparable group: green → yellow → red. Groups entirely within 5% are grey. Colour describes effect size, not statistical significance. [Comparison rules](../../docs/benchmarks/COLORS.md).
+
+
+Only selected metrics within one scenario/window/environment are compared. Measured comparisons stay grey when neither the table nor its linked summary supplies independent-repeat envelopes. Stage shares and gameplay counters are not colored.
+<!-- research-colors:end -->
+
 [Research index](../../docs/space-battle/RESEARCH.md) | [Current report](../../docs/space-battle/REPORT.md)
 
 Local study, 2026-10-12. The baseline was the dirty workspace frozen for this study, including
@@ -62,16 +73,16 @@ p95/p99 are medians of the per-run fixed-window percentiles, not pooled ticks.
 
 | Profile | Before Step ms | Final Step ms | Observed reduction | Before p95 / p99 ms | Final p95 / p99 ms |
 |---|---:|---:|---:|---:|---:|
-| low | .4189 [.4163, .4432] | .4034 [.3984, .4147] | 3.7% | .7387 / 1.0077 | .7180 / .8995 |
-| nominal | .5570 [.5559, .5595] | .5373 [.5333, .5428] | 3.5% | .9972 / 1.2415 | .9738 / 1.2425 |
-| high | .6956 [.6930, .7196] | .6535 [.6286, .7197] | 6.0% | 1.2734 / 1.9038 | 1.1697 / 1.7747 |
+| low | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .4189 [.4163, .4432] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .4034 [.3984, .4147] | 3.7% | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .7387 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.0077 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .7180 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .8995 |
+| nominal | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .5570 [.5559, .5595] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .5373 [.5333, .5428] | 3.5% | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .9972 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.2415 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .9738 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.2425 |
+| high | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .6956 [.6930, .7196] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .6535 [.6286, .7197] | 6.0% | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.2734 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.9038 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.1697 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.7747 |
 
 | Native Stage | low Step ms | nominal Step ms | high Step ms |
 |---|---:|---:|---:|
-| Baseline | .4189 | .5570 | .6956 |
-| Component-only movement | .4152 | .5499 | .6765 |
-| Plus steering/damping | .4092 | .5260 | .6558 |
-| Plus AI locality | .4034 | .5373 | .6535 |
+| Baseline | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .4189 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .5570 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .6956 |
+| Component-only movement | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .4152 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .5499 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .6765 |
+| Plus steering/damping | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .4092 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .5260 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .6558 |
+| Plus AI locality | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .4034 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .5373 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") .6535 |
 
 The physics-labelled stage includes movement of transient objects, not just
 the contact solver. Baseline/final stage means: physics .0823/.0742,

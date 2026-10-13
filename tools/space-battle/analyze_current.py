@@ -12,6 +12,8 @@ import math
 from pathlib import Path
 import sys
 
+from heatmap import Metric, PALETTE, EQUAL_COLOR, TimingPolicy, colors, compact_legend, shade_columns, shade_rows
+
 ROOT = Path(__file__).resolve().parents[2]
 DOCS = ROOT / "docs/space-battle"
 PROFILES = {"low": 0.5, "nominal": 1, "high": 2}
@@ -177,18 +179,29 @@ def charts(runs, directory):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
     plt.rcParams.update({"font.size": 10})
+    policy = TimingPolicy.from_file(Path(__file__).with_name("heatmap_policy.json"))
+    policy_keys = {"MeanMs": "tick.mean_ms", "P99Ms": "tick.p99_ms"}
     for metric in ("MeanMs", "P99Ms"):
         fig, axes = plt.subplots(1, 3, figsize=(13, 4), sharey=True)
         for axis, profile in zip(axes, PROFILES):
-            axis.bar(range(5), [runs[profile, f]["Timing"][metric] for f in FRAMEWORKS],
-                     color=["#2878b5", "#e07a2d", "#42966a", "#9b5a9b", "#18afc1"])
+            values = [runs[profile, f]["Timing"][metric] for f in FRAMEWORKS]
+            bars = axis.bar(range(5), values, color=colors(values, absolute_threshold=policy.threshold(profile, policy_keys[metric])))
+            axis.bar_label(bars, labels=[f"{v:.4f}" for v in values], padding=3, fontsize=8)
+            axis.margins(y=.15)
             axis.set_xticks(range(5), ["SECS", "Lite", "Classic", "Morpeh", "Static"], rotation=25)
             axis.set_title(profile)
             axis.set_ylabel("Step time (ms)")
             axis.grid(axis="y", alpha=.2)
         fig.suptitle(f"SpaceBattle: {metric} — one run per case, 108,000 ticks")
-        fig.tight_layout()
+        palette = dict(PALETTE)
+        fig.legend(handles=[Patch(facecolor=palette["best"], label="Lag ≤5%"),
+                            Patch(facecolor=palette["middle"], label="Lag 15%"),
+                            Patch(facecolor=palette["worst"], label="Lag ≥30%"),
+                            Patch(facecolor=EQUAL_COLOR, label="Neutral / close group")],
+                   loc="lower center", ncol=4, frameon=False, fontsize=9)
+        fig.tight_layout(rect=(0, .10, 1, .93))
         fig.savefig(directory / f"{metric}.png", dpi=150)
         plt.close(fig)
 
@@ -206,9 +219,22 @@ def render(runs, manifest, hardware, directory, verify_ticks):
     m = first["Metadata"]
     cpus = hardware["Cpu"] if isinstance(hardware["Cpu"], list) else [hardware["Cpu"]]
     cpu = ", ".join(c["Name"].strip() for c in cpus)
+    policy = TimingPolicy.from_file(Path(__file__).with_name("heatmap_policy.json"))
+    metric_keys = {2: "tick.mean_ms", 3: "tick.p95_ms", 4: "tick.p99_ms", 5: "tick.max_ms"}
     for ru in (False, True):
         name = "REPORT.ru.md" if ru else "REPORT.md"
         suffix = ".ru" if ru else ""
+        language = "ru" if ru else "en"
+        asset_path = "../benchmarks/heatmap"
+        table_rows = []
+        for row, ((profile, _), run) in zip(rows, runs.items()):
+            table_rows.append([row[0], row[1], *[
+                Metric(row[column], comparison=run["Timing"][key])
+                for column, key in ((2, "MeanMs"), (3, "P95Ms"), (4, "P99Ms"), (5, "MaxMs"), (6, "BudgetMisses"))],
+                Metric(row[7], comparison=run["AllocatedBytes"]/108000)])
+        table_rows = shade_columns(table_rows, range(2, 8), group_by=(0,),
+            absolute_thresholds=lambda row, column: policy.threshold(row[0], metric_keys[column]) if column in metric_keys else None,
+            language=language, asset_path=asset_path)
         lines = [("[English](REPORT.md) | Русский" if ru else "English | [Русский](REPORT.ru.md)"), "",
                  "# " + ("Бенчмарки Space Battle" if ru else "Space Battle benchmarks"), "",
                  ("Актуальная кампания: " if ru else "Current campaign: ") + f"{manifest['StartedAt']} — {manifest['FinishedAt']}.", "",
@@ -224,10 +250,11 @@ def render(runs, manifest, hardware, directory, verify_ticks):
                   "Each case is one independent run of 108,000 ticks (30 simulated minutes), following a separate 600-tick warmup. Low/nominal/high change only churn: 0.5/1/2. Seed 7331, 96 escorts and 3 carriers per team, 60 ticks/s. Headless defaults use a uniform fleet, legacy random deployment and no endless reinforcements. The graphical game uses a different gameplay preset; see [client settings](../../SpaceBattle.Game/README.md)."), "",
                  ("Время Step включает игровые системы, физику и структурные commit. Рендеринг, начальное заполнение, snapshots и запись телеметрии не входят. Бюджет 16.67 ms относится к симуляции, а не к FPS. Показаны наблюдения этого компьютера; один прогон на случай не даёт устойчивого рейтинга и доверительного интервала. Аллокации — управляемые выделения потока внутри Step, без нативной памяти." if ru else
                   "Step time includes gameplay systems, physics and structural commits. Rendering, setup, snapshots and telemetry serialization are excluded. The 16.67 ms budget is a simulation budget, not FPS. These are observations on this machine; one run per case does not establish a stable ranking or confidence interval. Allocations count managed bytes on the Step thread and exclude native storage."), "",
+                 *compact_legend(language, asset_path, f"../benchmarks/COLORS{suffix}.md"),
                  "## " + ("Время тика" if ru else "Tick time"), "",
                  "| Profile | ECS | Mean ms | P95 ms | P99 ms | Max ms | >16.67 ms | Managed B/tick |",
                  "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
-        lines += ["| " + " | ".join(row) + " |" for row in rows]
+        lines += ["| " + " | ".join(map(str, row)) + " |" for row in table_rows]
         lines += ["", f"![Mean Step time]({relative}/MeanMs.png)", "", f"![P99 Step time]({relative}/P99Ms.png)", "",
                   "## " + ("Состояние симуляции и стадии" if ru else "Simulation state and stages"), "",
                   "| Profile | Checksum | Ships | Turrets | Shots | Hits | Created | Destroyed |",
@@ -236,9 +263,17 @@ def render(runs, manifest, hardware, directory, verify_ticks):
             r = runs[p, "secs"]
             w, c = r["Windows"][-1], r["Counters"]
             lines.append(f"| {p} | {r['Checksum']} | {w['Ships']} | {w['Turrets']} | {c['Shots']} | {c['Hits']} | {c['ShipsCreated']} | {c['ShipsDestroyed']} |")
-        lines += ["", ("Средние затраты стадий в nominal/SECS; полные данные всех портов находятся в JSON." if ru else
-                        "Mean stage costs for nominal/SECS; complete data for every port is in JSON."), "", "| Stage | Mean ms |", "| --- | ---: |"]
-        lines += [f"| {s['Name']} | {s['Timing']['MeanMs']:.4f} |" for s in first["Stages"]]
+        lines += ["", ("Среднее время стадий в nominal, ms. В каждой строке сравнивается одна стадия пяти портов; полные данные находятся в JSON." if ru else
+                        "Mean stage time in nominal, ms. Each row compares the same stage across five ports; complete data is in JSON."), "",
+                  "| Stage | SECS | Lite | Classic | Morpeh | StaticEcs |", "| --- | ---: | ---: | ---: | ---: | ---: |"]
+        stages = []
+        for i, stage in enumerate(first["Stages"]):
+            stages.append([stage["Name"], *[Metric(f"{runs['nominal', f]['Stages'][i]['Timing']['MeanMs']:.4f}",
+                 comparison=runs["nominal", f]["Stages"][i]["Timing"]["MeanMs"]) for f in FRAMEWORKS]])
+        stages = shade_rows(stages, range(1, 6),
+            absolute_thresholds=lambda row: policy.threshold("nominal", f"stage.{row[0]}.mean_ms"),
+            language=language, asset_path=asset_path)
+        lines += ["| " + " | ".join(map(str, row)) + " |" for row in stages]
         lines += ["", "## " + ("Происхождение данных" if ru else "Data provenance"), "",
                   f"- CPU: {cpu}; RAM: {hardware['TotalPhysicalMemoryBytes']/1024**3:.2f} GiB.",
                   f"- Runtime: {m['Runtime']}; OS: {m['Os']}; tiered compilation: `0`.",

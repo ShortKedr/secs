@@ -16,12 +16,13 @@ from matplotlib.ticker import FixedLocator, FuncFormatter, LogLocator, NullForma
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from benchmark_colors import EQUAL_COLOR, PALETTE, colors
 
 
 FRAMEWORKS = ("SECS", "LeoECS Lite", "LeoECS Classic", "Morpeh", "StaticEcs")
 SCENARIOS = ("Create", "Iterate", "Churn", "Destroy")
 ENTITY_COUNTS = (1000, 100000)
-COLORS = {"SECS": "#2878B5", "LeoECS Lite": "#E07A2D", "LeoECS Classic": "#42966A", "Morpeh": "#9B5A9B", "StaticEcs": "#18AFC1"}
 REQUIRED_FIELDS = ("framework", "scenario", "entityCount", "meanNs", "stddevNs", "samplesNs", "allocatedBytes")
 
 
@@ -112,6 +113,7 @@ def render(metadata: dict[str, Any], results: dict[tuple[str, str, int], dict[st
             ax = axes[row_index, col_index]
             ax.set_facecolor("white")
             values = []
+            panel_colors = colors([results[(framework, scenario, count)]["meanNs"] for framework in FRAMEWORKS])
             upper_bounds = []
             lower_bounds = []
             for framework_index, framework in enumerate(FRAMEWORKS):
@@ -125,7 +127,7 @@ def render(metadata: dict[str, Any], results: dict[tuple[str, str, int], dict[st
                     framework_index,
                     value,
                     xerr=error,
-                    color=COLORS[framework],
+                    color=panel_colors[framework_index],
                     edgecolor="white",
                     height=0.64,
                     error_kw={"ecolor": "#30343B", "elinewidth": 1.1, "capsize": 3},
@@ -156,10 +158,14 @@ def render(metadata: dict[str, Any], results: dict[tuple[str, str, int], dict[st
     fig.suptitle(title, fontsize=16, fontweight="bold", y=0.98, color="#20252B")
     fig.text(0.5, 0.942, "Error bars: +/-1 SD   |   Create: 2 components   |   Churn: add/remove third component",
              ha="center", va="top", fontsize=9, color="#4B5563")
+    fig.legend(handles=[plt.Rectangle((0, 0), 1, 1, color=dict(PALETTE)[name]) for name in ("best", "middle", "worst")]
+               + [plt.Rectangle((0, 0), 1, 1, color=EQUAL_COLOR)],
+               labels=("≤5% lag", "15% lag", "≥30% lag", "within 5% / neutral"),
+               loc="upper center", bbox_to_anchor=(0.5, 0.916), ncol=4, frameon=False, fontsize=8)
     fig.text(0.5, 0.045, metadata_footer(metadata), ha="center", va="bottom", fontsize=8, color="#4B5563", linespacing=1.4)
     fig.text(0.5, 0.012, "LeoECS Lite 2024.5.22 | Classic 2023.6.22 | Morpeh 2024.1.1 | StaticEcs 1.2.01",
              ha="center", va="bottom", fontsize=8, color="#4B5563")
-    fig.subplots_adjust(left=0.12, right=0.985, top=0.88, bottom=0.17, wspace=0.50, hspace=0.36)
+    fig.subplots_adjust(left=0.12, right=0.985, top=0.86, bottom=0.17, wspace=0.50, hspace=0.36)
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=180, facecolor="white", bbox_inches="tight")
     plt.close(fig)

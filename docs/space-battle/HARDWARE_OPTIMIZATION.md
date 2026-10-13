@@ -2,6 +2,17 @@ English | [Русский](HARDWARE_OPTIMIZATION.ru.md)
 
 # Behavior-Preserving Hardware Optimization
 
+<!-- research-colors:start -->
+### Colour scale
+
+![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") up to 5% · ![Lag between 5% and 30%](../benchmarks/heatmap/middle.svg "Lag between 5% and 30%") 15% · ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") from 30% · ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") neutral.
+
+Colour shows lag from the best value in a comparable group: green → yellow → red. Groups entirely within 5% are grey. Colour describes effect size, not statistical significance. [Comparison rules](../benchmarks/COLORS.md).
+
+
+Only selected metrics within one scenario/window/environment are compared. Measured comparisons stay grey when neither the table nor its linked summary supplies independent-repeat envelopes. Stage shares and gameplay counters are not colored.
+<!-- research-colors:end -->
+
 Local study, 2026-10-12. This is not a replacement for frozen five-ECS measurements. No remote changes or publication. [Harness and reproduction protocol](../../tools/HardwareStudy/README.md).
 
 ## Protocol
@@ -28,11 +39,11 @@ Initial window 1-300, Step ms. Stage 5 is the retained production implementation
 
 | Stage | Native SECS | Mono AOT |
 | --- | ---: | ---: |
-| Before | 0.999 [0.961,1.199] | 7.765 [7.662,8.053] |
-| 1 | 0.902 [0.889,0.937] | 7.742 [7.696,7.778] |
-| 2 | 0.849 [0.821,0.925] | 6.750 [6.747,6.799] |
-| 3/4 | 0.878 [0.808,0.889] | 6.738 [6.716,8.248] |
-| 5 | 0.725 [0.723,0.909] | 5.028 [5.008,6.239] |
+| Before | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 0.999 [0.961,1.199] | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 7.765 [7.662,8.053] |
+| 1 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.902 [0.889,0.937] | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 7.742 [7.696,7.778] |
+| 2 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.849 [0.821,0.925] | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 6.750 [6.747,6.799] |
+| 3/4 | ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.878 [0.808,0.889] | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 6.738 [6.716,8.248] |
+| 5 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.725 [0.723,0.909] | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 5.028 [5.008,6.239] |
 
 At stage 5, window 901-1200: native 0.761 → 0.604 ms; Mono 5.870 → 3.992 ms. Initial Mono physics stage 2.335 → 0.884 ms and collect 2.457 → 1.734 ms. AI stage 2 → 3/4: 0.494 → 0.397 ms, while total Step overlaps. Native phase-end Capture(false) 0.229 → 0.243 ms; Mono export 0.730 → 0.705 ms: no demonstrated export improvement.
 

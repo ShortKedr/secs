@@ -2,6 +2,17 @@ English | [Русский](MONO_COMPILER_STUDY.ru.md)
 
 # Stable Mono AOT Compiler Study
 
+<!-- research-colors:start -->
+### Colour scale
+
+![Lag up to 5%](../../docs/benchmarks/heatmap/best.svg "Lag up to 5%") up to 5% · ![Lag between 5% and 30%](../../docs/benchmarks/heatmap/middle.svg "Lag between 5% and 30%") 15% · ![Lag from 30%](../../docs/benchmarks/heatmap/worst.svg "Lag from 30%") from 30% · ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") neutral.
+
+Colour shows lag from the best value in a comparable group: green → yellow → red. Groups entirely within 5% are grey. Colour describes effect size, not statistical significance. [Comparison rules](../../docs/benchmarks/COLORS.md).
+
+
+Only selected metrics within one scenario/window/environment are compared. Measured comparisons stay grey when neither the table nor its linked summary supplies independent-repeat envelopes. Stage shares and gameplay counters are not colored.
+<!-- research-colors:end -->
+
 [Research index](../../docs/space-battle/RESEARCH.md) | [Current report](../../docs/space-battle/REPORT.md)
 
 ## Decision
@@ -36,10 +47,10 @@ exception/safety check was found.
 
 | Variant | Native C files | AOT bitcode / final link | WASM MB | Brotli MB | Build seconds |
 |---|---|---|---:|---:|---:|
-| A | -Oz | -O2 | 9.847 | 2.295 | 75.6 |
-| B | -Oz | -O3 | 10.287 | 2.324 | 117.6 |
-| C | -O3 | -O3 | 10.272 | 2.312 | 114.0 |
-| D | -O3, -flto | -O3, -flto | 10.262 | 2.311 | 144.9 |
+| A | -Oz | -O2 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 9.847 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.295 | ![Lag up to 5%](../../docs/benchmarks/heatmap/best.svg "Lag up to 5%") 75.6 |
+| B | -Oz | -O3 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 10.287 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.324 | ![Lag from 30%](../../docs/benchmarks/heatmap/worst.svg "Lag from 30%") 117.6 |
+| C | -O3 | -O3 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 10.272 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.312 | ![Lag from 30%](../../docs/benchmarks/heatmap/worst.svg "Lag from 30%") 114.0 |
+| D | -O3, -flto | -O3, -flto | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 10.262 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.311 | ![Lag from 30%](../../docs/benchmarks/heatmap/worst.svg "Lag from 30%") 144.9 |
 
 MB is decimal. Build durations are single observations, not independent speed
 benchmarks. Link optimization also controls emcc compilation of AOT bitcode;
@@ -96,25 +107,25 @@ milliseconds. p95/p99 are medians of each run's percentiles over the identical
 
 | Profile | Variant | Step mean [range] | Step p95 / p99 | Export mean |
 |---|---|---:|---:|---:|
-| low | A | 2.416 [2.379-2.920] | 4.4 / 5.5 | 0.528 |
-| low | B | 2.794 [2.392-2.818] | 5.3 / 6.1 | 0.621 |
-| low | C | 2.595 [2.360-2.836] | 5.2 / 6.1 | 0.587 |
-| low | D | 2.315 [2.241-2.797] | 4.0 / 4.5 | 0.511 |
-| nominal | A | 3.147 [3.142-3.278] | 6.2 / 7.4 | 0.751 |
-| nominal | B | 3.129 [3.089-3.162] | 6.0 / 7.0 | 0.781 |
-| nominal | C | 3.085 [3.060-3.578] | 5.9 / 6.7 | 0.760 |
-| nominal | D | 3.083 [2.984-3.134] | 5.9 / 6.4 | 0.740 |
-| high | A | 4.703 [4.488-4.717] | 9.6 / 13.8 | 1.202 |
-| high | B | 4.492 [4.285-5.165] | 9.1 / 11.2 | 1.184 |
-| high | C | 4.304 [4.246-5.248] | 9.3 / 11.9 | 1.143 |
-| high | D | 4.312 [4.259-4.456] | 8.7 / 12.4 | 1.127 |
+| low | A | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.416 [2.379-2.920] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.4 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.5 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.528 |
+| low | B | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.794 [2.392-2.818] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.3 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.1 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.621 |
+| low | C | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.595 [2.360-2.836] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.2 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.1 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.587 |
+| low | D | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.315 [2.241-2.797] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.0 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.5 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.511 |
+| nominal | A | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 3.147 [3.142-3.278] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.2 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 7.4 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.751 |
+| nominal | B | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 3.129 [3.089-3.162] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.0 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 7.0 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.781 |
+| nominal | C | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 3.085 [3.060-3.578] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.9 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.7 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.760 |
+| nominal | D | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 3.083 [2.984-3.134] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.9 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.4 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 0.740 |
+| high | A | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.703 [4.488-4.717] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 9.6 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 13.8 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.202 |
+| high | B | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.492 [4.285-5.165] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 9.1 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 11.2 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.184 |
+| high | C | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.304 [4.246-5.248] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 9.3 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 11.9 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.143 |
+| high | D | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.312 [4.259-4.456] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 8.7 / ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 12.4 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 1.127 |
 
 | Variant | Client low [range] | Client nominal [range] | Client high [range] |
 |---|---:|---:|---:|
-| A | 6.555 [6.525-7.126] | 5.626 [5.073-6.469] | 7.567 [7.547-8.153] |
-| B | 6.617 [6.505-6.681] | 5.387 [5.144-6.673] | 7.396 [7.299-8.189] |
-| C | 6.562 [6.450-6.700] | 5.316 [5.260-5.406] | 7.639 [7.314-7.668] |
-| D | 6.806 [6.646-7.154] | 5.402 [5.357-6.428] | 8.762 [7.568-9.130] |
+| A | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.555 [6.525-7.126] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.626 [5.073-6.469] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 7.567 [7.547-8.153] |
+| B | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.617 [6.505-6.681] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.387 [5.144-6.673] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 7.396 [7.299-8.189] |
+| C | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.562 [6.450-6.700] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.316 [5.260-5.406] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 7.639 [7.314-7.668] |
+| D | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.806 [6.646-7.154] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.402 [5.357-6.428] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 8.762 [7.568-9.130] |
 
 Primary core runtime-ready medians: A335-344ms, B348-350ms, C343-367ms,
 D343-356ms across profile groups; app-ready respectively536-541,544-559,
@@ -125,8 +136,8 @@ p95/p99 and memory telemetry remain in the ignored JSON results.
 
 | Confirmation | A Step [range] | C Step [range] | D Step [range] |
 |---|---:|---:|---:|
-| low1-2400 | 3.147 [3.043-3.200] | 2.998 [2.987-3.151] | 2.997 [2.958-3.042] |
-| high1-2400 | 4.200 [3.952-5.007] | 4.018 [3.967-4.952] | 4.185 [3.872-4.943] |
+| low1-2400 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 3.147 [3.043-3.200] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.998 [2.987-3.151] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.997 [2.958-3.042] |
+| high1-2400 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.200 [3.952-5.007] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.018 [3.967-4.952] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.185 [3.872-4.943] |
 
 D's primary high8.3% observed reduction becomes **0.35%** in confirmation,
 with broad range overlap. C's confirmation reductions are4.7% low /4.3% high,

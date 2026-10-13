@@ -16,6 +16,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
 import numpy as np
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from benchmark_colors import EQUAL_COLOR, PALETTE, colors
 
 
 BASE_SCENARIOS = ("Create", "Iterate", "Churn", "Destroy")
@@ -30,8 +32,6 @@ STRESS_SCENARIOS = (
 )
 BASE_COUNTS = (1_000, 100_000)
 STRESS_COUNTS = (100_000, 1_000_000)
-OLD_COLOR = "#64748B"
-NEW_COLOR = "#16836B"
 REQUIRED_FIELDS = ("framework", "scenario", "entityCount", "meanNs")
 
 
@@ -98,12 +98,13 @@ def plot_pair(ax: Any, old: dict[str, float], new: dict[str, float], *, stress: 
     old_error = old.get("stddevNs", 0.0) / factor
     new_error = new.get("stddevNs", 0.0) / factor
     speedup = old["meanNs"] / new["meanNs"]
+    pair_colors = colors([old["meanNs"], new["meanNs"]])
 
     ax.set_xscale("log")
     ax.set_xlim(min(old_value, new_value) * 0.42, max(old_value, new_value) * 3.8)
-    ax.barh(1, old_value, xerr=old_error, color=OLD_COLOR, height=0.48, label="Original",
+    ax.barh(1, old_value, xerr=old_error, color=pair_colors[0], height=0.48, label="Original",
             error_kw={"ecolor": "#30343B", "elinewidth": 1, "capsize": 2})
-    ax.barh(0, new_value, xerr=new_error, color=NEW_COLOR, height=0.48, label="Optimized",
+    ax.barh(0, new_value, xerr=new_error, color=pair_colors[1], height=0.48, label="Optimized",
             error_kw={"ecolor": "#30343B", "elinewidth": 1, "capsize": 2})
     ax.set_yticks((1, 0), ("Original", "Optimized"))
     ax.set_ylim(-0.55, 1.55)
@@ -111,7 +112,7 @@ def plot_pair(ax: Any, old: dict[str, float], new: dict[str, float], *, stress: 
     ax.annotate(number_label(old_value), (old_value, 1), xytext=(5, 0),
                 textcoords="offset points", va="center", fontsize=8, color="#334155", clip_on=False)
     ax.annotate(number_label(new_value), (new_value, 0), xytext=(5, 0),
-                textcoords="offset points", va="center", fontsize=8, color="#146C58", clip_on=False)
+                textcoords="offset points", va="center", fontsize=8, color="#334155", clip_on=False)
     callout = f"{speedup:.2f}x speedup" if speedup >= 1 else f"{1 / speedup:.2f}x slower"
     ax.text(0.98, 0.96, f"old / new  {speedup:.2f}x\n{callout}", transform=ax.transAxes,
             ha="right", va="top", fontsize=8, color="#20252B",
@@ -154,9 +155,14 @@ def render(old_results: dict[tuple[str, int], dict[str, float]],
     fig.text(0.055, 0.986,
              f"{matched} matched cases  |  labels show mean time  |  whiskers show +/-1 SD when present  |  lower time is better",
              ha="left", va="top", fontsize=9, color="#475569")
+    from matplotlib.patches import Patch
+    fig.legend(handles=[Patch(color=dict(PALETTE)[name]) for name in ("best", "middle", "worst")]
+               + [Patch(color=EQUAL_COLOR)],
+               labels=("≤5% lag", "15% lag", "≥30% lag", "within 5% / neutral"),
+               loc="upper left", bbox_to_anchor=(0.055, 0.974), ncol=4, frameon=False, fontsize=8)
     fig.text(0.055, 0.974, ".NET 8.0.31 x64 | native SECS | original 872e0df vs optimized working tree | 20 base / 8 stress samples",
              ha="left", va="top", fontsize=8, color="#475569")
-    fig.subplots_adjust(left=0.19, right=0.97, top=0.958, bottom=0.025, hspace=0.92)
+    fig.subplots_adjust(left=0.19, right=0.97, top=0.945, bottom=0.025, hspace=0.92)
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, dpi=180, facecolor="white", bbox_inches="tight")
     plt.close(fig)

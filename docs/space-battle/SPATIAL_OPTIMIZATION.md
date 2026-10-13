@@ -2,6 +2,17 @@ English | [Русский](SPATIAL_OPTIMIZATION.ru.md)
 
 # Space Battle Spatial Optimization
 
+<!-- research-colors:start -->
+### Colour scale
+
+![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") up to 5% · ![Lag between 5% and 30%](../benchmarks/heatmap/middle.svg "Lag between 5% and 30%") 15% · ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") from 30% · ![Neutral or insufficient separation](../benchmarks/heatmap/equal.svg "Neutral or insufficient separation") neutral.
+
+Colour shows lag from the best value in a comparable group: green → yellow → red. Groups entirely within 5% are grey. Colour describes effect size, not statistical significance. [Comparison rules](../benchmarks/COLORS.md).
+
+
+Only selected metrics within one scenario/window/environment are compared. Measured comparisons stay grey when neither the table nor its linked summary supplies independent-repeat envelopes. Stage shares and gameplay counters are not colored.
+<!-- research-colors:end -->
+
 [Simulation report](REPORT_2026-10-11.md) | [Earlier investigation](PERFORMANCE_INVESTIGATION.md)
 
 Historical study, 2026-10-12, of mounted-armament gameplay with Aether before the circle-kernel replacement. This measures SECS before/after algorithm changes, not a new ranking of the five ECS frameworks. Frozen benchmark evidence and remote state are unchanged.
@@ -40,12 +51,12 @@ Milliseconds per tick/call; reduction is CPU time saved, not an FPS claim.
 
 | Scenario | Before | After | Time Reduction |
 | --- | ---: | ---: | ---: |
-| Native, 96 escorts/team, ticks 1-600 | 1.704 | 1.025 | 40% |
-| WASM core, ticks 1-600 | 10.173 | 6.053 | 40% |
-| WASM core + binary export, ticks 1-600 | 12.875 | 6.925 | 46% |
-| WASM export + interop only, ticks 1-600 | 2.702 | 0.871 | 68% |
-| WASM core, ticks 601-1200 | 5.458 | 3.225 | 41% |
-| Native stress, 384 escorts/team, ticks 1-600 | 8.952 | 5.963 | 33% |
+| Native, 96 escorts/team, ticks 1-600 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 1.704 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 1.025 | 40% |
+| WASM core, ticks 1-600 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 10.173 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 6.053 | 40% |
+| WASM core + binary export, ticks 1-600 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 12.875 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 6.925 | 46% |
+| WASM export + interop only, ticks 1-600 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 2.702 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 0.871 | 68% |
+| WASM core, ticks 601-1200 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 5.458 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 3.225 | 41% |
+| Native stress, 384 escorts/team, ticks 1-600 | ![Lag from 30%](../benchmarks/heatmap/worst.svg "Lag from 30%") 8.952 | ![Lag up to 5%](../benchmarks/heatmap/best.svg "Lag up to 5%") 5.963 | 33% |
 
 Run-mean ranges: native standard 1.695-1.712 -> 1.006-1.025 ms; WASM standard 10.105-10.241 -> 6.020-6.083 ms; native stress 8.490-9.658 -> 5.926-6.021 ms. These are observed effects, not a formal significance test. Native standard hit processing drops from 0.955 to 0.442 ms and lifecycle from 0.216 to 0.038 ms. AI does not get cheaper in every small-population window: index construction has overhead.
 
