@@ -113,7 +113,7 @@ test("CLI accepts exactly --site with a value", () => {
 
 async function withFixture(run) {
   const temporary = path.join(projectRoot, "Benchmarks.Local", "tmp");
-  execFileSync("git", ["check-ignore", "--quiet", "--", temporary], { cwd: projectRoot, stdio: "pipe" });
+  execFileSync("git", ["check-ignore", "--quiet", "--", `${temporary}/`], { cwd: projectRoot, stdio: "pipe" });
   // Validate existing ancestors before creating any missing fixture directory.
   for (const directory of [projectRoot, path.dirname(temporary), temporary]) {
     let stat;
@@ -193,11 +193,17 @@ test("site restriction rejects outside/source/traversal paths and directory junc
       await assert.rejects(validateSiteDirectory(target));
     const linked = path.join(root, "linked");
     await fs.symlink(site, linked, process.platform === "win32" ? "junction" : "dir");
-    await assert.rejects(finalize(path.join(linked, "wwwroot")), /symlink\/junction|ENOENT/);
+    const before = await snapshot(site), names = (await fs.readdir(site)).sort();
+    await assert.rejects(finalize(path.join(linked, "wwwroot")), /symlink\/junction/);
+    assert.deepEqual(await snapshot(site), before);
+    assert.deepEqual((await fs.readdir(site)).sort(), names);
+    await assert.rejects(fs.lstat(path.join(site, "wwwroot")), { code: "ENOENT" });
     const backup = path.join(root, "original-app.js");
     await fs.link(path.join(site, "app.js"), backup);
     await assert.rejects(finalize(site), /linked\/non-file/);
     assert.deepEqual(await fs.readFile(backup), fixtureSources().get("app.js"));
+    assert.deepEqual(await snapshot(site), before);
+    assert.deepEqual((await fs.readdir(site)).sort(), names);
   });
 });
 

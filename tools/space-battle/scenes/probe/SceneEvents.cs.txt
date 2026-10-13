@@ -1,0 +1,117 @@
+using System.Numerics;
+using System.Text.Json.Serialization;
+
+namespace SpaceBattle;
+
+public sealed record SceneEvent
+{
+    public string Type { get; init; } = "";
+    public int Tick { get; init; }
+    public long Order { get; init; }
+    public int Projectile { get; init; } = -1;
+    public int Owner { get; init; } = -1;
+    public int Target { get; init; } = -1;
+    public int Kind { get; init; } = -1;
+    public int Team { get; init; } = -1;
+    public int TargetTeam { get; init; } = -1;
+    public int OwnerClass { get; init; } = -1;
+    public int TargetClass { get; init; } = -1;
+    public int Leader { get; init; } = -1;
+    public int Members { get; init; }
+    public int EntityId { get; init; } = -1;
+    public int EntityGeneration { get; init; }
+    public int OwnerId { get; init; } = -1;
+    public int OwnerGeneration { get; init; }
+    public int TargetId { get; init; } = -1;
+    public int TargetGeneration { get; init; }
+    public int ExpiresTick { get; init; }
+    public int Wave { get; init; }
+    public int Corner { get; init; }
+    public int ArrivalTick { get; init; }
+    public float X { get; init; }
+    public float Y { get; init; }
+    public float GateX { get; init; }
+    public float GateY { get; init; }
+    public float Damage { get; init; }
+    public float ShieldBefore { get; init; }
+    public float ShieldAfter { get; init; }
+    public float HullBefore { get; init; }
+    public float HullAfter { get; init; }
+}
+
+public sealed record SceneTactic(int Serial, int Team, int Class, int Leader, int Target, int Members);
+public sealed record ScenePacket(int Schema, int Tick, List<SceneEvent> Events, List<SceneTactic> Tactics, BattleConfig? Config);
+[JsonSerializable(typeof(ScenePacket))]
+public partial class SceneJsonContext : JsonSerializerContext { }
+
+public sealed partial class Battle<TStore>
+{
+    private readonly List<SceneEvent> sceneEvents = new();
+    private readonly List<SceneTactic> sceneTactics = new();
+    private long sceneOrder;
+    private void SceneBeginTick() { sceneEvents.Clear(); sceneTactics.Clear(); }
+    private void SceneAdd(SceneEvent e)
+    {
+        if (sceneEvents.Count >= 65536) throw new InvalidOperationException("Scene event budget exhausted");
+        sceneEvents.Add(e with { Tick = Tick, Order = sceneOrder++ });
+    }
+    private int SceneSerial(EntityKey e) => Store.Alive(e) && Store.Has<Identity>(e) ? Store.Get<Identity>(e).Serial : -1;
+    private void SceneCaptureTactics()
+    {
+        foreach (var row in ships)
+        {
+            if (!AliveShip(row.Entity) || row.Identity.Class > ShipClass.Gunship || Store.Has<Docked>(row.Entity)) continue;
+            var b = Store.Get<Brain>(row.Entity);
+            sceneTactics.Add(new(row.Identity.Serial, row.Identity.Team, (int)row.Identity.Class,
+                SceneSerial(b.SquadLeader), SceneSerial(b.Target), b.SquadSize));
+        }
+    }
+    public ScenePacket SceneCapture() => new(1, Tick, sceneEvents, sceneTactics, Tick == 0 ? Config : null);
+
+    private void SceneSpawn(EntityKey e)
+    {
+        var id = Store.Get<Identity>(e); var p = Store.Get<Transform>(e).Position;
+        SceneAdd(new() { Type = "spawn", Target = id.Serial, TargetId = e.Id, TargetGeneration = e.Generation,
+            Team = id.Team, TargetTeam = id.Team, TargetClass = (int)id.Class, X = p.X, Y = p.Y });
+    }
+    private void SceneShot(EntityKey e, int number, in ShotRequest shot, Vector2 position)
+    {
+        var owner = Store.Get<Identity>(shot.Owner); var target = Store.Get<Identity>(shot.Target);
+        var brain = Store.Get<Brain>(shot.Owner); var p = Store.Get<Projectile>(e);
+        SceneAdd(new() { Type = "shot", Projectile = number, EntityId = e.Id, EntityGeneration = e.Generation,
+            Owner = owner.Serial, OwnerId = shot.Owner.Id, OwnerGeneration = shot.Owner.Generation,
+            Target = target.Serial, TargetId = shot.Target.Id, TargetGeneration = shot.Target.Generation,
+            Kind = (int)p.Kind, Team = owner.Team, TargetTeam = target.Team, OwnerClass = (int)owner.Class,
+            TargetClass = (int)target.Class, Leader = SceneSerial(brain.SquadLeader), Members = brain.SquadSize,
+            X = position.X, Y = position.Y, Damage = p.Damage, ExpiresTick = p.ExpiresTick });
+    }
+    private void SceneHit(EntityKey e, in Projectile p, EntityKey target, Vector2 impact, float shield, float hull)
+    {
+        var victim = Store.Get<Identity>(target); var owner = SceneSerial(p.Owner);
+        var id = owner < 0 ? default : Store.Get<Identity>(p.Owner);
+        var b = owner < 0 ? default : Store.Get<Brain>(p.Owner);
+        SceneAdd(new() { Type = "hit", Projectile = p.Serial, EntityId = e.Id, EntityGeneration = e.Generation,
+            Owner = owner, OwnerId = p.Owner.Id, OwnerGeneration = p.Owner.Generation,
+            Target = victim.Serial, TargetId = target.Id, TargetGeneration = target.Generation,
+            Kind = (int)p.Kind, Team = owner < 0 ? -1 : id.Team, TargetTeam = victim.Team,
+            OwnerClass = owner < 0 ? -1 : (int)id.Class, TargetClass = (int)victim.Class,
+            Leader = SceneSerial(b.SquadLeader), Members = b.SquadSize, X = impact.X, Y = impact.Y,
+            Damage = p.Damage, ShieldBefore = shield, HullBefore = hull,
+            ShieldAfter = Store.Get<Shield>(target).Current, HullAfter = Store.Get<Hull>(target).Current });
+    }
+    private void SceneDestroyed(EntityKey e)
+    {
+        var id = Store.Get<Identity>(e); var p = Store.Get<Transform>(e).Position;
+        SceneAdd(new() { Type = "destroy", Target = id.Serial, TargetId = e.Id, TargetGeneration = e.Generation,
+            TargetTeam = id.Team, TargetClass = (int)id.Class, X = p.X, Y = p.Y });
+    }
+    private void SceneWarpOpen(int team, WarpWave wave) => SceneAdd(new() { Type = "warp-open", Team = team,
+        Wave = wave.Number, Corner = wave.Corner, ArrivalTick = wave.ArrivalTick, GateX = wave.Position.X, GateY = wave.Position.Y });
+    private void SceneWarpArrival(EntityKey e, int team, WarpWave wave)
+    {
+        var id = Store.Get<Identity>(e); var p = Store.Get<Transform>(e).Position;
+        SceneAdd(new() { Type = "warp-arrival", Team = team, Wave = wave.Number, Corner = wave.Corner,
+            ArrivalTick = wave.ArrivalTick, GateX = wave.Position.X, GateY = wave.Position.Y,
+            Target = id.Serial, TargetId = e.Id, TargetGeneration = e.Generation, TargetClass = (int)id.Class, X = p.X, Y = p.Y });
+    }
+}

@@ -132,8 +132,8 @@ async function checkDirectory(directory) {
   assert.equal(path.relative(directory, await fs.realpath(directory)), "", `Site realpath escaped: ${directory}`);
 }
 
-function checkIgnored(target) {
-  execFileSync("git", ["check-ignore", "--quiet", "--", target], { cwd: projectRoot, stdio: "pipe" });
+function checkIgnored(target, directory = false) {
+  execFileSync("git", ["check-ignore", "--quiet", "--", target + (directory ? path.sep : "")], { cwd: projectRoot, stdio: "pipe" });
 }
 
 export async function validateSiteDirectory(siteDirectory) {
@@ -141,7 +141,6 @@ export async function validateSiteDirectory(siteDirectory) {
   const site = path.resolve(projectRoot, siteDirectory);
   assert.ok(inside(path.join(projectRoot, "Benchmarks.Local", "tmp"), site) && path.basename(site) === "wwwroot",
     "Site must be an existing wwwroot inside this project's ignored Benchmarks.Local/tmp");
-  checkIgnored(site);
   await checkDirectory(projectRoot);
   let directory = projectRoot;
   for (const component of path.relative(projectRoot, site).split(path.sep)) {
@@ -149,6 +148,7 @@ export async function validateSiteDirectory(siteDirectory) {
     directory = path.join(directory, component);
     await checkDirectory(directory);
   }
+  checkIgnored(site, true);
   return site;
 }
 
@@ -161,8 +161,10 @@ async function checkSiteFile(site, filename, optional = false) {
     await checkDirectory(directory);
   }
   const target = path.join(site, filename);
-  checkIgnored(target);
   const stat = await statIfPresent(target);
+  assert.ok(!stat || stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1,
+    `Missing or linked/non-file site file: ${filename}`);
+  checkIgnored(target);
   if (!stat && optional) return null;
   assert.ok(stat && stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1,
     `Missing or linked/non-file site file: ${filename}`);

@@ -26,6 +26,7 @@ DOCUMENTS = [
     "docs/space-battle/TACTICS_V3.md",
     "docs/space-battle/IOS_WEB.md",
     "docs/space-battle/DEPLOYMENT.md",
+    "tools/space-battle/scenes/README.md",
     "Benchmarks.Local/README.md", "THIRD_PARTY_NOTICES.md",
 ]
 

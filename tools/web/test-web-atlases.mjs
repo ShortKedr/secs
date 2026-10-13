@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import childProcess, { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
+import { syncBuiltinESMExports } from "node:module";
 import path from "node:path";
 import { test } from "node:test";
 import {
@@ -171,6 +172,31 @@ async function withFixture(run) {
   }
 }
 
+test("nonexistent output trees are checked as directories against directory-only ignore patterns", async t => {
+  await withFixture(async ({ input, output }) => {
+    const target = path.join(output, "not-created", "assets");
+    await assert.rejects(fs.lstat(output), { code: "ENOENT" });
+    const queries = [], original = childProcess.execFileSync;
+    // Existing ignored ancestors can mask a missing slash; observe the actual Git query.
+    const spy = t.mock.method(childProcess, "execFileSync", (command, args, options) => {
+      if (command === "git" && args[0] === "check-ignore") queries.push(args.at(-1));
+      return original(command, args, options);
+    });
+    syncBuiltinESMExports();
+    try {
+      assert.equal((await validateOutputDirectory(input, target)).output, target);
+      assert.ok(queries.includes(`${target}${path.sep}`), "Git must receive a directory path even when it does not exist");
+      assert.ok(!queries.includes(target), "A bare nonexistent directory does not match a directory-only ignore rule");
+      await assert.rejects(fs.lstat(output), { code: "ENOENT" });
+    } finally {
+      spy.mock.restore();
+      syncBuiltinESMExports();
+    }
+    await prepare(input, target);
+    assert.ok((await fs.stat(path.join(target, "web-atlases.json"))).isFile());
+  });
+});
+
 test("prepare accepts published originals, reuses identical output, preserves source bytes and rejects collisions", async () => {
   await withFixture(async ({ input, output, sources }) => {
     await fs.mkdir(output);
@@ -204,13 +230,23 @@ test("safe output rejects project/source roots, traversal and linked directories
     assert.equal((await validateOutputDirectory(input, relative)).output, output);
     const link = path.join(root, "junction");
     await fs.symlink(input, link, process.platform === "win32" ? "junction" : "dir");
+    const names = (await fs.readdir(input)).sort(), before = new Map();
+    for (const name of names) before.set(name, await fs.readFile(path.join(input, name)));
     await assert.rejects(prepare(input, path.join(link, "nested")), /symlink\/junction/);
+    await assert.rejects(fs.lstat(path.join(input, "nested")), { code: "ENOENT" });
+    assert.deepEqual((await fs.readdir(input)).sort(), names);
+    for (const [name, bytes] of before) assert.deepEqual(await fs.readFile(path.join(input, name)), bytes);
     const manifest = await prepare(input, output);
     const file = path.join(output, manifest.atlases.guns.textures[0].file);
     await fs.unlink(file);
     await fs.link(path.join(input, "guns-atlas.png"), file);
+    const outputNames = (await fs.readdir(output)).sort(), outputBefore = new Map();
+    for (const name of outputNames) outputBefore.set(name, await fs.readFile(path.join(output, name)));
     await assert.rejects(prepare(input, output), /linked\/non-file/);
     assert.equal((await fs.stat(path.join(input, "guns-atlas.png"))).nlink, 2);
+    assert.deepEqual((await fs.readdir(output)).sort(), outputNames);
+    for (const [name, bytes] of outputBefore) assert.deepEqual(await fs.readFile(path.join(output, name)), bytes);
+    for (const [name, bytes] of before) assert.deepEqual(await fs.readFile(path.join(input, name)), bytes);
   });
 });
 

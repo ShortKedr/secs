@@ -11,6 +11,7 @@ on:
       - "SpaceBattle.Game/Assets/**"
       - "tools/build-space-battle-web.ps1"
       - "tools/web/**"
+      - "tools/space-battle/**"
       - ".github/workflows/space-battle-pages.yml"
   pull_request:
     paths:
@@ -21,6 +22,7 @@ on:
       - "SpaceBattle.Game/Assets/**"
       - "tools/build-space-battle-web.ps1"
       - "tools/web/**"
+      - "tools/space-battle/**"
       - ".github/workflows/space-battle-pages.yml"
   workflow_dispatch:
 
@@ -58,8 +60,8 @@ jobs:
       - name: Install browser and offline PNG preparation dependencies
         working-directory: tools/web
         run: npm ci
-      - name: Test offline atlas preparation and cache identity
-        run: node --test tools/web/test-web-atlases.mjs tools/web/test-web-atlas-loader.mjs tools/web/test-finalize-web-site.mjs tools/web/test-ios-diagnostics.mjs
+      - name: Test offline atlases, cache identity and scene capture
+        run: node --test tools/web/test-web-atlases.mjs tools/web/test-web-atlas-loader.mjs tools/web/test-finalize-web-site.mjs tools/web/test-ios-diagnostics.mjs tools/space-battle/scenes/test-*.mjs
       - name: Publish shared C# simulation to WebAssembly
         shell: pwsh
         run: ./tools/build-space-battle-web.ps1 -BasePath /secs/

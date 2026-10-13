@@ -155,8 +155,9 @@ async function checkDirectory(directory) {
   assert.equal(path.relative(directory, await fs.realpath(directory)), "", `Output realpath escaped: ${directory}`);
 }
 
-function checkIgnored(target) {
-  execFileSync("git", ["check-ignore", "--quiet", "--", target], { cwd: projectRoot, stdio: "pipe" });
+function checkIgnored(target, directory = false) {
+  // A missing directory needs the trailing separator for directory-only ignore rules.
+  execFileSync("git", ["check-ignore", "--quiet", "--", target + (directory ? path.sep : "")], { cwd: projectRoot, stdio: "pipe" });
 }
 
 export async function validateOutputDirectory(inputDirectory, outputDirectory) {
@@ -165,7 +166,6 @@ export async function validateOutputDirectory(inputDirectory, outputDirectory) {
   assert.ok(inside(path.join(projectRoot, "Benchmarks.Local", "tmp"), output),
     "Output must be inside this project's ignored Benchmarks.Local/tmp (not its root)");
   assert.ok(output !== input && !inside(input, output) && !inside(output, input), "Output must not overlap source assets");
-  checkIgnored(output);
   await checkDirectory(projectRoot);
   let directory = projectRoot;
   const directories = [];
@@ -175,17 +175,18 @@ export async function validateOutputDirectory(inputDirectory, outputDirectory) {
     directories.push(directory);
     if (await statIfPresent(directory)) await checkDirectory(directory);
   }
+  checkIgnored(output, true);
   return { output, directories };
 }
 
 async function checkOutputFile(output, filename, bytes) {
   assert.ok(/^[a-z0-9][a-z0-9.-]*$/.test(filename) && inside(output, path.join(output, filename)), "Unsafe output filename");
   const target = path.join(output, filename);
-  checkIgnored(target);
   const stat = await statIfPresent(target);
-  if (!stat) return false;
-  assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1,
+  assert.ok(!stat || stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1,
     `Refusing linked/non-file output: ${target}`);
+  checkIgnored(target);
+  if (!stat) return false;
   assert.ok((await fs.readFile(target)).equals(bytes), `Refusing to overwrite different existing bytes: ${target}; use a fresh output directory`);
   return true;
 }
