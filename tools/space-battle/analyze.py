@@ -1,4 +1,7 @@
-"""Offline analysis of the PascalCase SpaceBattle.Headless JSON contract."""
+"""Rebuild the archived predictive-neutral-v1 report (2026-10-11).
+
+For the current gameplay campaign use analyze_current.py instead.
+"""
 
 import argparse
 import csv
@@ -874,15 +877,15 @@ def main():
         write_csv(runs, gc_samples)
         english, russian = report_versions(report(runs, capture, charts, frontend, hardware, gc_samples, heat_policy),
                                            DOCS, extra_phrases=heat_policy.phrases)
-        (DOCS / "REPORT.md").write_text(english, encoding="utf-8")
-        (DOCS / "REPORT.ru.md").write_text(russian, encoding="utf-8")
+        (DOCS / "REPORT_2026-10-11.md").write_text(english.replace("REPORT.ru.md", "REPORT_2026-10-11.ru.md", 1), encoding="utf-8")
+        (DOCS / "REPORT_2026-10-11.ru.md").write_text(russian.replace("(REPORT.md)", "(REPORT_2026-10-11.md)", 1), encoding="utf-8")
     except Exception as error:
         message = "FAIL: analysis/comparison incomplete\n" + str(error)
-        (DOCS / "REPORT.ru.md").write_text("[English](REPORT.md) | Русский\n\n![Обложка текущего геймплея](cover.png)\n\n"
+        (DOCS / "REPORT_2026-10-11.ru.md").write_text("[English](REPORT_2026-10-11.md) | Русский\n\n![Обложка текущего геймплея](cover.png)\n\n"
             "Обложка: текущий геймплей, а не зафиксированный измеренный прогон. [Процесс захвата](COVER.ru.md).\n\n# FAIL: анализ не завершён\n\n"
             "Сопоставимость и завершение не подтверждены. Существующие графики/CSV могут быть устаревшими и не являются данными этой неудачной попытки.\n\n```text\n"
             + message + "\n```\n", encoding="utf-8")
-        (DOCS / "REPORT.md").write_text("English | [Русский](REPORT.ru.md)\n\n![Current gameplay cover](cover.png)\n\n"
+        (DOCS / "REPORT_2026-10-11.md").write_text("English | [Русский](REPORT_2026-10-11.ru.md)\n\n![Current gameplay cover](cover.png)\n\n"
             "Cover: current gameplay, not the frozen measured run. [Capture workflow](COVER.md).\n\n# FAIL: Analysis Incomplete\n\n"
             "Comparability and completion are not confirmed. Existing charts/CSVs may be stale and are not evidence for this failed attempt.\n\n```text\n"
             + message + "\n```\n", encoding="utf-8")

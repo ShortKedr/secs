@@ -8,13 +8,13 @@ import re
 
 HISTORICAL_NOTICE_EN = (
     "> **Historical measurements:** the tables, charts and frozen benchmark captures below use `predictive-neutral-v1`. "
-    "Current source uses `tactical-lock-v2` ([tactical AI](TACTICS.md)); no timing campaign for that revision has been run. "
-    "The recorded results do not measure the new AI or its current browser build.\n\n"
+    "They use the old Aether physics and do not describe current performance. "
+    "See the [current campaign](REPORT.md) and [tactical AI history](TACTICS.md).\n\n"
 )
 HISTORICAL_NOTICE_RU = (
     "> **Исторические измерения:** таблицы, графики и зафиксированные захваты бенчмарка ниже относятся к `predictive-neutral-v1`. "
-    "Текущие исходники используют `tactical-lock-v2` ([тактический AI](TACTICS.ru.md)); серия замеров для этой версии не запускалась. "
-    "Записанные результаты не измеряют новый AI или его текущую браузерную сборку.\n\n"
+    "Они используют старую физику Aether и не описывают текущую производительность. "
+    "См. [актуальную кампанию](REPORT.ru.md) и [историю тактического AI](TACTICS.ru.md).\n\n"
 )
 
 
@@ -235,21 +235,21 @@ def report_versions(markdown, docs, extra_phrases=None):
     russian = re.sub(r"(?<=\]\()([^()]+?)(\.md)(?=\))",
                      lambda m: m[1] + ("" if m[1].endswith(".ru") else ".ru") + m[2], markdown)
     en_nav = ("English | [Русский](REPORT.ru.md)\n\n"
-              "[Repository](../../README.md) | [Methodology](README.md) | [Systems](SYSTEMS.md)\n\n"
+              "[Repository](../../README.md) | [Methodology](BENCHMARK_METHOD_2026-10-11.md) | [Systems](SYSTEMS.md)\n\n"
               "[Key results](#key-results) | [Entity composition](#measured-entity-composition) | "
               "[Tick timing](#tick-timing) | [Frontend](#separate-frontend-profile)\n\n"
               "**[Run the live .NET WASM demo](https://shortkedr.github.io/secs/)** |\n"
               "[Web source and local reproduction](../../SpaceBattle.Web/README.md)\n\n"
-              "The browser runs shared Core + SECS + Aether, not the full five-framework comparison.\n"
+              "The archived browser replay ran Core + SECS + Aether; the live demo may use a newer build.\n"
               "Browser timings are not the desktop benchmark results below; cross-platform\n"
               "checksum equality is not promised.\n\n")
     ru_nav = ("[English](REPORT.md) | Русский\n\n"
-              "[Репозиторий](../../README.ru.md) | [Методика](README.ru.md) | [Системы](SYSTEMS.ru.md)\n\n"
+              "[Репозиторий](../../README.ru.md) | [Методика](BENCHMARK_METHOD_2026-10-11.ru.md) | [Системы](SYSTEMS.ru.md)\n\n"
               "[Ключевые результаты](#ключевые-результаты) | [Состав сущностей](#измеренный-состав-сущностей) | "
               "[Время тика](#время-тика) | [Фронтенд](#отдельный-профиль-фронтенда)\n\n"
               "**[Запустить демо .NET WASM в браузере](https://shortkedr.github.io/secs/?lang=ru)** |\n"
               "[Исходники Web и локальное воспроизведение](../../SpaceBattle.Web/README.ru.md)\n\n"
-              "Браузер выполняет общую симуляцию Core + SECS + Aether, а не полное сравнение пяти фреймворков.\n"
+              "Архивный браузерный replay выполнял Core + SECS + Aether; живое демо может использовать более новую сборку.\n"
               "Браузерные тайминги не являются результатами настольных бенчмарков ниже;\n"
               "равенство checksum между платформами не обещается.\n\n")
     return en_nav + HISTORICAL_NOTICE_EN + english, ru_nav + HISTORICAL_NOTICE_RU + russian

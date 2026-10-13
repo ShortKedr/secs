@@ -36,6 +36,9 @@ __pycache__/
 /Benchmarks.Local/test-results/
 /Benchmarks.Local/repro-*/
 
+# Current SpaceBattle report publishes JSON, summaries and tick-CSV hashes.
+/docs/space-battle/current/*.ticks.csv
+
 # Retain generated measurement tables, not the generated benchmark executables.
 !/Benchmarks.Local/bdn-*/
 /Benchmarks.Local/bdn-*/**
