@@ -1,6 +1,7 @@
 param(
     [int]$Ticks = 108000,
     [int]$Warmup = 600,
+    [ValidateSet('benchmark', 'game')][string]$Preset = 'benchmark',
     [string]$OutputDirectory = 'docs/space-battle/current',
     [switch]$SkipBuild
 )
@@ -47,7 +48,8 @@ $manifest = [ordered]@{
     Ticks = $Ticks
     WarmupTicks = $Warmup
     TieredCompilation = '0'
-    Command = "tools/space-battle/run-suite.ps1 -Ticks $Ticks -Warmup $Warmup -OutputDirectory $OutputDirectory"
+    Preset = $Preset
+    Command = "tools/space-battle/run-suite.ps1 -Ticks $Ticks -Warmup $Warmup -Preset $Preset -OutputDirectory $OutputDirectory"
     CsvPolicy = 'Tick CSVs are validated locally; their SHA256 hashes are published in manifest.json, not another copy of all raw tick rows.'
 }
 $manifestPath = Join-Path $target 'manifest.json'
@@ -63,7 +65,7 @@ foreach ($profile in $profiles) {
     foreach ($framework in $profile.Frameworks) {
         $output = Join-Path $target "$($profile.Name)-$framework.json"
         Write-Host "Starting $($profile.Name) / $framework : $Ticks ticks"
-        dotnet $dll --framework $framework --ticks $Ticks --warmup $Warmup --seed 7331 --ships-per-team 96 --churn $profile.Churn --output $output
+        dotnet $dll --framework $framework --ticks $Ticks --warmup $Warmup --preset $Preset --seed 7331 --ships-per-team 96 --churn $profile.Churn --output $output
         if ($LASTEXITCODE -ne 0) { throw "Simulation failed: $output" }
         $result = Get-Content -Raw -LiteralPath $output | ConvertFrom-Json
         $signature = @{
@@ -72,6 +74,7 @@ foreach ($profile in $profiles) {
             Counters = $result.Counters
             Tactics = $result.Tactics
             Windows = @($result.Windows | Select-Object StartTick, EndTick, Ships, Projectiles, Debris, Particles, Turrets, Counters)
+            HudWindows = @($result.HudWindows | Select-Object StartTick, EndTick, MeanShips, MeanProjectiles, MeanDebris, MeanParticles, MeanTurrets)
         } | ConvertTo-Json -Depth 10 -Compress
         if ($null -eq $baseline) { $baseline = $signature }
         elseif ($signature -cne $baseline) { throw "Port divergence: $output" }

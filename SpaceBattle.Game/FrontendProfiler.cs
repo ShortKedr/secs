@@ -13,6 +13,8 @@ internal sealed class FrontendProfiler : IDisposable
     private const int QueryRingSize = 32;
     private readonly GL gl;
     private readonly Sample[] samples;
+    private readonly double[] hudSamples;
+    private readonly double[][] stageSamples;
     private readonly uint[] queries = new uint[QueryRingSize];
     private readonly int[] pendingSamples = new int[QueryRingSize];
     private readonly uint[] errors = new uint[64];
@@ -43,6 +45,8 @@ internal sealed class FrontendProfiler : IDisposable
     {
         this.gl = gl; this.warmup = warmup; this.output = output; this.csv = csv;
         samples = new Sample[count];
+        hudSamples = new double[count];
+        stageSamples = Battle<SecsStore>.StageNames.Select(_ => new double[count]).ToArray();
         Array.Fill(pendingSamples, -2);
         vendor = gl.GetStringS(StringName.Vendor);
         device = gl.GetStringS(StringName.Renderer);
@@ -124,7 +128,8 @@ internal sealed class FrontendProfiler : IDisposable
         activeSlot = -1;
     }
 
-    public void Record(double simulation, double snapshot, double render, double total, BattleFrame frame)
+    public void Record(double simulation, double snapshot, double render, double total, BattleFrame frame,
+        double hudTickMs, ReadOnlySpan<double> stages)
     {
         int index = SampleIndex;
         if (index >= 0)
@@ -135,6 +140,8 @@ internal sealed class FrontendProfiler : IDisposable
             sample.Tick = frame.Tick; sample.Ships = frame.Ships.Count;
             sample.Projectiles = frame.Projectiles.Count; sample.Debris = frame.Debris.Count; sample.Particles = frame.Particles.Count;
             sample.Turrets = frame.Turrets.Count;
+            hudSamples[index] = hudTickMs;
+            for (var stage = 0; stage < stageSamples.Length; stage++) stageSamples[stage][index] = stages[stage];
         }
         frames++;
     }
@@ -192,6 +199,8 @@ internal sealed class FrontendProfiler : IDisposable
             Width = width, Height = height, Zoom = zoom, Hidden = hidden, Atlas = hasAtlas,
             VSync = false, FrameRateCap = 0, UpdateRateCap = 0, ControlsVerified = controlsVerified,
             battle.Config, Framework = battle.Framework,
+            Date = DateTimeOffset.Now, Runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+            TieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
             GameplayRevision = ArmamentRules.Revision,
             Driver = new { Vendor = vendor, Renderer = device, Version = version },
             CoreDllSha256 = AssemblyHash(typeof(Battle<>).Assembly), GameDllSha256 = AssemblyHash(typeof(FrontendProfiler).Assembly),
@@ -201,6 +210,7 @@ internal sealed class FrontendProfiler : IDisposable
             Definitions = new
             {
                 SimulationCPU = "Step wrapper; live rolling statistics are disabled in replay profiling; no snapshot or render",
+                HudTick = "Battle.LastTickMs, the same internal Step timer used by the live HUD; consecutive 600-tick windows (live HUD rolls at every tick)",
                 SnapshotCaptureCPU = "Battle.Capture only",
                 RenderSubmissionCPU = "Scene/HUD generation, telemetry queries, window title and GL clear/upload/draw submission; no Step, Capture or timer-query bookkeeping",
                 TotalCPUFrame = "Render callback entry through post-draw query/error bookkeeping, before sample storage and callback return; includes query polling but excludes auto-present",
@@ -213,6 +223,17 @@ internal sealed class FrontendProfiler : IDisposable
             },
             PresentCpuMs = (double?)null, PresentWaitMs = (double?)null,
             SimulationCpuMs = Statistics(samples.Select(s => s.SimulationCpuMs)),
+            HudTickMs = Statistics(hudSamples),
+            Stages = Battle<SecsStore>.StageNames.Select((name, stage) => new { Name = name, Timing = Statistics(stageSamples[stage]) }).ToArray(),
+            HudWindows = Enumerable.Range(0, (samples.Length + SimulationStatistics.WindowCapacity - 1) / SimulationStatistics.WindowCapacity)
+                .Select(window =>
+                {
+                    var begin = window * SimulationStatistics.WindowCapacity;
+                    var count = Math.Min(SimulationStatistics.WindowCapacity, samples.Length - begin);
+                    return new { StartTick = samples[begin].Tick, EndTick = samples[begin + count - 1].Tick,
+                        Timing = Statistics(hudSamples.Skip(begin).Take(count)),
+                        Stages = Battle<SecsStore>.StageNames.Select((name, stage) => new { Name = name, Timing = Statistics(stageSamples[stage].Skip(begin).Take(count)) }).ToArray() };
+                }).ToArray(),
             SnapshotCaptureCpuMs = Statistics(samples.Select(s => s.SnapshotCaptureCpuMs)),
             RenderSubmissionCpuMs = Statistics(samples.Select(s => s.RenderSubmissionCpuMs)),
             TotalCpuFrameMs = Statistics(samples.Select(s => s.TotalCpuFrameMs)),
@@ -242,13 +263,13 @@ internal sealed class FrontendProfiler : IDisposable
     {
         Directory.CreateDirectory(Path.GetDirectoryName(csv!)!);
         using var writer = new StreamWriter(csv!);
-        writer.WriteLine("frame,tick,simulation_cpu_ms,snapshot_capture_cpu_ms,render_submission_cpu_ms,total_cpu_frame_ms,wall_frame_interval_ms,replay_wall_fps,wall_16_67ms_miss,cpu_16_67ms_miss,gpu_render_ms,present_cpu_ms,present_wait_ms,ships,projectiles,debris,particles,turrets");
+        writer.WriteLine("frame,tick,simulation_cpu_ms,snapshot_capture_cpu_ms,render_submission_cpu_ms,total_cpu_frame_ms,wall_frame_interval_ms,replay_wall_fps,wall_16_67ms_miss,cpu_16_67ms_miss,gpu_render_ms,present_cpu_ms,present_wait_ms,ships,projectiles,debris,particles,turrets,hud_ms," + string.Join(',', Battle<SecsStore>.StageNames));
         for (int i = 0; i < samples.Length; i++)
         {
             var s = samples[i];
             string gpu = s.GpuRenderMs?.ToString("R", CultureInfo.InvariantCulture) ?? "";
             string fps = s.WallFrameIntervalMs > 0 ? (1000 / s.WallFrameIntervalMs).ToString("R", CultureInfo.InvariantCulture) : "";
-            writer.WriteLine(FormattableString.Invariant($"{i},{s.Tick},{s.SimulationCpuMs:R},{s.SnapshotCaptureCpuMs:R},{s.RenderSubmissionCpuMs:R},{s.TotalCpuFrameMs:R},{s.WallFrameIntervalMs:R},{fps},{(s.WallFrameIntervalMs > FrameBudgetMs ? 1 : 0)},{(s.TotalCpuFrameMs > FrameBudgetMs ? 1 : 0)},{gpu},,,{s.Ships},{s.Projectiles},{s.Debris},{s.Particles},{s.Turrets}"));
+            writer.WriteLine(FormattableString.Invariant($"{i},{s.Tick},{s.SimulationCpuMs:R},{s.SnapshotCaptureCpuMs:R},{s.RenderSubmissionCpuMs:R},{s.TotalCpuFrameMs:R},{s.WallFrameIntervalMs:R},{fps},{(s.WallFrameIntervalMs > FrameBudgetMs ? 1 : 0)},{(s.TotalCpuFrameMs > FrameBudgetMs ? 1 : 0)},{gpu},,,{s.Ships},{s.Projectiles},{s.Debris},{s.Particles},{s.Turrets},{hudSamples[i]:R},") + string.Join(',', stageSamples.Select(stage => stage[i].ToString("R", CultureInfo.InvariantCulture))));
         }
     }
 

@@ -404,7 +404,7 @@ internal sealed class BattleApp : IDisposable
         profile.EndGpu();profile.CollectErrors(profile.SampleIndex);
         long totalEnd=FrontendProfiler.Timestamp();
         profile.Record(FrontendProfiler.Milliseconds(simulationStart,simulationEnd),FrontendProfiler.Milliseconds(simulationEnd,snapshotEnd),
-            FrontendProfiler.Milliseconds(renderStart,renderEnd),FrontendProfiler.Milliseconds(start,totalEnd),frame);
+            FrontendProfiler.Milliseconds(renderStart,renderEnd),FrontendProfiler.Milliseconds(start,totalEnd),frame,battle.LastTickMs,battle.LastStageMs);
     }
     private (int RenderedShips,TeamPopulation Population) RenderScene()
     {

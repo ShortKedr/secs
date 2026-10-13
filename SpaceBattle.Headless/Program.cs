@@ -45,7 +45,7 @@ try
 }
 catch (Exception exception) { Console.Error.WriteLine(exception); return 1; }
 
-internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, BattleConfig Config, bool Realtime)
+internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, BattleConfig Config, bool Realtime, string Preset)
 {
     public static RunOptions Parse(string[] args)
     {
@@ -60,17 +60,23 @@ internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, Bat
         var ticks = int.Parse(Value("--ticks", ((int)(seconds * 60)).ToString()));
         var warmup = int.Parse(Value("--warmup", "600"));
         if (ticks < 1 || warmup < 0) throw new ArgumentOutOfRangeException(nameof(ticks));
+        var preset = Value("--preset", "benchmark");
+        if (preset is not ("benchmark" or "game")) throw new ArgumentException("--preset must be benchmark or game");
+        var game = preset == "game";
         var config = new BattleConfig
         {
             Seed = uint.Parse(Value("--seed", "7331")), ShipsPerTeam = int.Parse(Value("--ships-per-team", "96")),
-            ChurnMultiplier = float.Parse(Value("--churn", "1")), ParticleMultiplier = int.Parse(Value("--particles", "1"))
+            ChurnMultiplier = float.Parse(Value("--churn", "1")), ParticleMultiplier = int.Parse(Value("--particles", "1")),
+            FleetComposition = game ? FleetComposition.LightSwarm : FleetComposition.Uniform,
+            Deployment = game ? FleetDeployment.Tactical : FleetDeployment.LegacyRandom,
+            EndlessReinforcements = game, ReplenishCarriers = !game
         };
         config.Validate();
         var output = Path.GetFullPath(Value("--output", "Benchmarks.Local/tmp/circle-kernel/secs.json"));
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../")).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         if (!output.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Output must stay inside the current project.");
-        return new(output, ticks, warmup, config, args.Contains("--realtime"));
+        return new(output, ticks, warmup, config, args.Contains("--realtime"), preset);
     }
 }
 
@@ -84,12 +90,12 @@ internal static class Runner
             for (var i = 0; i < options.WarmupTicks; i++) warmup.Step();
         var fresh = factory();
         using var battle = new Battle<T>(fresh, options.Config);
-        var timing = new double[options.Ticks]; var allocation = new long[options.Ticks];
+        var timing = new double[options.Ticks]; var hudTiming = new double[options.Ticks]; var allocation = new long[options.Ticks];
         var stages = Battle<T>.StageNames.Select(_ => new double[options.Ticks]).ToArray();
         var entityCounts = new (int Ships, int Projectiles, int Debris, int Particles, int Turrets)[options.Ticks];
         var structuralCounts = new (long Adds, long Removes)[options.Ticks];
         var collections = new (int Gen0, int Gen1, int Gen2)[options.Ticks];
-        var windows = new List<object>(); var checkpoints = new List<object>();
+        var windows = new List<object>(); var hudWindows = new List<object>(); var checkpoints = new List<object>();
         using var process = Process.GetCurrentProcess();
         Directory.CreateDirectory(Path.GetDirectoryName(options.Output)!);
         var csvPath = Path.ChangeExtension(options.Output, ".ticks.csv");
@@ -101,11 +107,27 @@ internal static class Runner
             var before = GC.GetAllocatedBytesForCurrentThread();
             var start = Stopwatch.GetTimestamp(); battle.Step();
             timing[i] = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
+            hudTiming[i] = battle.LastTickMs;
             allocation[i] = GC.GetAllocatedBytesForCurrentThread() - before;
             for (var stage = 0; stage < stages.Length; stage++) stages[stage][i] = battle.LastStageMs[stage];
             entityCounts[i] = (battle.ShipCount, battle.ProjectileCount, battle.DebrisCount, battle.ParticleCount, battle.TurretCount);
             structuralCounts[i] = (battle.Counters.StructuralAdds, battle.Counters.StructuralRemoves);
             collections[i] = (GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2));
+            if ((i + 1) % SimulationStatistics.WindowCapacity == 0 || i == options.Ticks - 1)
+            {
+                var begin = i / SimulationStatistics.WindowCapacity * SimulationStatistics.WindowCapacity;
+                var count = i - begin + 1;
+                var sums = new long[5];
+                for (var tick = begin; tick <= i; tick++)
+                {
+                    var c = entityCounts[tick];
+                    sums[0] += c.Ships; sums[1] += c.Projectiles; sums[2] += c.Debris; sums[3] += c.Particles; sums[4] += c.Turrets;
+                }
+                hudWindows.Add(new { StartTick = begin + 1, EndTick = i + 1, Timing = Stats(hudTiming.AsSpan(begin, count)),
+                    Stages = Battle<T>.StageNames.Select((name, s) => new { Name = name, Timing = Stats(stages[s].AsSpan(begin, count)) }).ToArray(),
+                    MeanShips = (double)sums[0] / count, MeanProjectiles = (double)sums[1] / count,
+                    MeanDebris = (double)sums[2] / count, MeanParticles = (double)sums[3] / count, MeanTurrets = (double)sums[4] / count });
+            }
             if ((i + 1) % 3600 == 0 || i == options.Ticks - 1)
             {
                 process.Refresh();
@@ -136,8 +158,9 @@ internal static class Runner
             Metadata = new { Framework = fresh.Name, Runtime = RuntimeInformation.FrameworkDescription, Os = RuntimeInformation.OSDescription,
                 Machine = Environment.MachineName, Date = DateTimeOffset.Now, TieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
                 TargetTickRate = 60, BudgetMs = 1000.0 / 60, options.Ticks, options.WarmupTicks, Realtime = options.Realtime,
-                SimulatedSeconds = options.Ticks / 60.0, WallSeconds = elapsed, Options = options.Config,
+                SimulatedSeconds = options.Ticks / 60.0, WallSeconds = elapsed, Options = options.Config, options.Preset,
                 TimingScope = "Step includes all systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
+                HudTimingScope = "Battle.LastTickMs as displayed by desktop HUD; consecutive 600-tick windows, excluding outer call timer overhead",
                 MemoryScope = "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
                 Collision = "circle-kernel-v1; homogeneous disk ships; relative-motion analytic disk/rectangle projectile CCD",
                 GameplayRules = new { Revision = ArmamentRules.Revision, TacticalRevision = TacticalRules.Revision, PhysicsRevision = PhysicsSettings.Revision,
@@ -160,15 +183,16 @@ internal static class Runner
             HarnessAndSimulationAllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocationStart,
             GcCollections = Enumerable.Range(0, 3).Select(g => GC.CollectionCount(g) - initialCollections[g]).ToArray(),
             Stages = Battle<T>.StageNames.Select((name, i) => new { Name = name, Timing = Stats(stages[i]) }).ToArray(),
+            HudTiming = Stats(hudTiming), HudWindows = hudWindows,
             Windows = windows, Checkpoints = checkpoints, Counters = battle.Counters.Copy(), Tactics = battle.Tactics, Checksum = battle.Checksum().ToString("X16")
         };
         File.WriteAllText(options.Output, JsonSerializer.Serialize(report, JsonOptions));
         using var csv = new StreamWriter(csvPath);
-        csv.WriteLine("tick,simulationSeconds,tickMs,allocatedBytes,gen0,gen1,gen2,ships,projectiles,debris,particles,adds,removes,turrets");
+        csv.WriteLine("tick,simulationSeconds,tickMs,allocatedBytes,gen0,gen1,gen2,ships,projectiles,debris,particles,adds,removes,turrets,hudMs," + string.Join(',', Battle<T>.StageNames));
         for (var i = 0; i < options.Ticks; i++)
         {
             var c = entityCounts[i]; var s = structuralCounts[i]; var g = collections[i];
-            csv.WriteLine($"{i + 1},{(i + 1) / 60.0:R},{timing[i]:R},{allocation[i]},{g.Gen0},{g.Gen1},{g.Gen2},{c.Ships},{c.Projectiles},{c.Debris},{c.Particles},{s.Adds},{s.Removes},{c.Turrets}");
+            csv.WriteLine($"{i + 1},{(i + 1) / 60.0:R},{timing[i]:R},{allocation[i]},{g.Gen0},{g.Gen1},{g.Gen2},{c.Ships},{c.Projectiles},{c.Debris},{c.Particles},{s.Adds},{s.Removes},{c.Turrets},{hudTiming[i]:R}," + string.Join(',', stages.Select(stage => stage[i].ToString("R", CultureInfo.InvariantCulture))));
         }
         Console.WriteLine($"Wrote {options.Output} and {csvPath}");
     }
