@@ -74,6 +74,10 @@ dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --validate-stress
 
 Базовая проверка проверяет данные и жизненный цикл при обоих измеряемых размерах популяции. Стресс-проверка использует 257/4,097 сущностей, семь сценариев по три повтора, добавление/удаление payload и устаревшие handles. Каждый измеренный стресс-кейс также проверяет всю популяцию после прогрева и замеров. Эти проверки подтверждают контракт нагрузки/адаптеров в этом репозитории; они не являются полными upstream-наборами тестов.
 
+## Все наборы SECS
+
+[Дополнительная кампания](../docs/benchmarks/current/SUPPLEMENT.ru.md) покрывает все стандартные кейсы BenchmarkDotNet SECS, legacy-набор и диагностику прямых API/storage. Запуск: `./Benchmarks.Local/run_supplement.ps1`, затем `python Benchmarks.Local/report_supplement.py docs/benchmarks/current`. Раннер использует локальные каталоги cache/temp проекта и выполняет нагрузки последовательно; `supplement.json` фиксирует хеши исходников и входных данных.
+
 ## Сохранённые эксперименты
 
 [Методология оптимизации SECS](../docs/benchmarks/optimization-methodology.ru.md) описывает сохранённые бинарники baseline/optimized и парные данные. `results-all-updated.json` / `stress-all-updated.json` и `docs/benchmarks/updated` — предыдущий полный прогон пяти фреймворков. Остальные `results*.json`, эксперименты storage/accessor и BenchmarkDotNet smoke сохраняют свои метаданные и границы применимости. Не смешивайте наблюдения конкурентов из разных кампаний и не используйте времена Dry/smoke как полный рейтинг производительности.

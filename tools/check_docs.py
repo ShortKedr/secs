@@ -34,6 +34,8 @@ DOCUMENTS = [
     "docs/space-battle/REPORT_2026-10-11.md", "docs/benchmarks/current/REPORT.md",
     "docs/space-battle/ARCHITECTURE.md",
     "docs/benchmarks/COLORS.md",
+    "docs/benchmarks/current/SUPPLEMENT.md",
+    "docs/space-battle/GAME_REPORT.md", "docs/space-battle/DESKTOP_TIMING.md",
 ]
 
 

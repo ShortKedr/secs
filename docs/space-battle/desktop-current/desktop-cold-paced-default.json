@@ -1,0 +1,638 @@
+{
+  "SchemaVersion": 1,
+  "Mode": "paced fixed replay: one simulation Step per rendered frame, 60 frames/s cap, VSync off",
+  "RealTimeGameplayFpsMeasured": false,
+  "SampleFrames": 1200,
+  "WarmupFrames": 0,
+  "StepsPerFrame": 1,
+  "ReplayStartTick": 0,
+  "FirstMeasuredTick": 1,
+  "LastMeasuredTick": 1200,
+  "Width": 1440,
+  "Height": 900,
+  "Zoom": 1,
+  "Hidden": true,
+  "Atlas": true,
+  "VSync": false,
+  "FrameRateCap": 60,
+  "UpdateRateCap": 0,
+  "ControlsVerified": false,
+  "Config": {
+    "Seed": 7331,
+    "ShipsPerTeam": 96,
+    "CarriersPerTeam": 3,
+    "FleetComposition": 1,
+    "Deployment": 1,
+    "ArenaHalfSize": 210,
+    "ChurnMultiplier": 1,
+    "TickRate": 60,
+    "ReplenishCarriers": false,
+    "EndlessReinforcements": true,
+    "ReinforcementThresholdFraction": 0.25,
+    "ReinforcementWaveFraction": 0.65,
+    "ReinforcementCheckIntervalTicks": 60,
+    "ReinforcementWarmupTicks": 90,
+    "ReinforcementSpawnIntervalTicks": 4,
+    "ReinforcementCooldownTicks": 600,
+    "ParticleMultiplier": 1,
+    "MaxProjectiles": 24000,
+    "MaxDebris": 16000,
+    "MaxParticles": 32000,
+    "Physics": {
+      "Restitution": 0.1,
+      "Friction": 0.08,
+      "RestitutionThreshold": 10,
+      "VelocityIterations": 8,
+      "PositionIterations": 8,
+      "MaximumSubsteps": 8,
+      "MaximumContactPairs": 32768,
+      "PositionSlop": 0.01,
+      "CorrectionFraction": 0.8,
+      "MaximumCorrection": 0.5,
+      "CollectTimings": false,
+      "CollectDiagnostics": false,
+      "ContactCellSize": 48,
+      "CacheContactCandidates": true,
+      "ContactCandidateMargin": 4,
+      "MaximumCandidatePairs": 262144
+    },
+    "Damage": {
+      "Plasma": {
+        "ShieldMultiplier": 1.5,
+        "HullMultiplier": 1,
+        "ShieldHeatPerDamage": 1.8
+      },
+      "Kinetic": {
+        "ShieldMultiplier": 1,
+        "HullMultiplier": 1.5,
+        "ShieldHeatPerDamage": 0
+      },
+      "Missile": {
+        "ShieldMultiplier": 1,
+        "HullMultiplier": 1,
+        "ShieldHeatPerDamage": 0
+      }
+    },
+    "Tactics": {
+      "FormationReviewTicks": 120,
+      "MinimumSpeedRatio": 0.45,
+      "MinimumRangeRatio": 0.35,
+      "MaximumJoinDelaySeconds": 2.5,
+      "RegroupImprovement": 0.2,
+      "MaximumEngageSeconds": 8,
+      "ScoringHorizonSeconds": 6,
+      "MaximumSuppressionBenefit": 0.25,
+      "ThreatWeight": 0.25,
+      "IncomingHitConfidence": 0.35,
+      "LocalTargetCandidates": 16,
+      "GlobalTargetProbes": 8,
+      "FormationTargetCandidates": 6,
+      "MemberCandidates": 16,
+      "MaximumSpatialWorkPerTick": 16384,
+      "MaximumScoreEvaluationsPerTick": 8192,
+      "MaximumFormationEvaluationsPerReview": 2048,
+      "MaximumIntentProjectiles": 4096
+    }
+  },
+  "Framework": "SECS",
+  "Date": "2026-10-14T02:51:39.3632772+05:00",
+  "Machine": "NIKOLAY-PC",
+  "Runtime": ".NET 8.0.31",
+  "TieredCompilation": null,
+  "GameplayRevision": "mounted-armament-v7",
+  "Driver": {
+    "Vendor": "NVIDIA Corporation",
+    "Renderer": "NVIDIA GeForce RTX 5070 Ti/PCIe/SSE2",
+    "Version": "3.3.0 NVIDIA 596.36"
+  },
+  "CoreDllSha256": "B327B7D145180A8DC19C9E385D37C8A78C772CE01C48C290F568C2E504431CC5",
+  "GameDllSha256": "AA367CA2467256056F3547FDEF7DDF6122BFCA20F7C497FBE3AE3054B277B04A",
+  "SecsAdapterDllSha256": "41BAF097F7374F2E53CDE415DFF57CF0049EC82FA5DC27F60D9D64372C934E53",
+  "SecsDllSha256": "0D8D8709B20A72D23C35E15CCBE6EA2A294CA1F7EE55142251C9224AC5326535",
+  "FinalBattleChecksum": "4876EB52A0D4AFC3",
+  "Counters": {
+    "ShipsCreated": 353,
+    "ShipsDestroyed": 255,
+    "Shots": 11759,
+    "Hits": 9876,
+    "PlasmaShieldHits": 329,
+    "ShieldBreaks": 461,
+    "Overheats": 25,
+    "Dockings": 7,
+    "Repairs": 1722,
+    "Builds": 25,
+    "ItemUses": 417,
+    "DebrisHits": 6897,
+    "Explosions": 255,
+    "StructuralAdds": 268947,
+    "StructuralRemoves": 256807,
+    "AimDecisions": 6585,
+    "ImpreciseAimDecisions": 1650,
+    "FriendlyFireHits": 3645,
+    "SelfHits": 0,
+    "HeavyShots": 11,
+    "TurretShots": 718,
+    "ReinforcementWaves": 2,
+    "ReinforcementShips": 130,
+    "ReinforcementPlacementChecks": 188
+  },
+  "Tactics": {
+    "TargetSwitches": 2896,
+    "TargetRetentions": 3735,
+    "GroupOrders": 673,
+    "CoverOrders": 189,
+    "GroupChanges": 693,
+    "FormationReviews": 248,
+    "CompatibilityChecks": 26890,
+    "ScoreEvaluations": 137621,
+    "SpatialWork": 500081,
+    "BudgetFallbacks": 59,
+    "IntentProjectiles": 581934
+  },
+  "StopwatchFrequencyHz": 10000000,
+  "FirstMeasuredStartTimestamp": 1400095891045,
+  "LastMeasuredBoundaryTimestamp": 1400296310387,
+  "Definitions": {
+    "SimulationCPU": "Step wrapper; live rolling statistics are disabled in replay profiling; no snapshot or render",
+    "HudTick": "Battle.LastTickMs, the same internal Step timer used by the live HUD; consecutive 600-tick windows (live HUD rolls at every tick)",
+    "SnapshotCaptureCPU": "Battle.Capture only",
+    "RenderSubmissionCPU": "Scene/HUD generation, telemetry queries, window title and GL clear/upload/draw submission; no Step, Capture or timer-query bookkeeping",
+    "TotalCPUFrame": "Render callback entry through post-draw query/error bookkeeping, before sample storage and callback return; includes query polling but excludes auto-present",
+    "WallFrameInterval": "Render callback entry to next callback entry, including auto-present, event loop and callback bookkeeping; final interval collected without an extra Step",
+    "GPU": "GL_TIME_ELAPSED around clear through final scene/HUD draw; elapsed GPU timeline, can include idle gaps while CPU generates geometry; not pure device busy utilization",
+    "Present": "Unavailable: Silk auto-present follows Render callback. No CPU/GPU subtraction is used to infer present or VSync wait",
+    "Percentiles": "Nearest-rank; milliseconds unless metric name specifies frames per second",
+    "EntityCounts": "FinalEntities and CSV count captured render rows; docked ships and their mounts are excluded. FinalAliveEntities includes docked entities",
+    "Excluded": "Initial fast-forward, warmup, GL.Finish query-tail drain, framebuffer readback, checkpoint/hash calculation, aggregation and file writing"
+  },
+  "PresentCpuMs": null,
+  "PresentWaitMs": null,
+  "SimulationCpuMs": {
+    "Count": 1200,
+    "Min": 0.3528,
+    "Mean": 1.0338289166666663,
+    "P50": 0.8472,
+    "P95": 1.8972,
+    "P99": 3.4648,
+    "Max": 43.2324
+  },
+  "HudTickMs": {
+    "Count": 1200,
+    "Min": 0.3526,
+    "Mean": 1.0330390833333336,
+    "P50": 0.8466,
+    "P95": 1.8968,
+    "P99": 3.4644,
+    "Max": 42.8144
+  },
+  "Stages": [
+    {
+      "Name": "collect",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0483,
+        "Mean": 0.24169666666666653,
+        "P50": 0.2194,
+        "P95": 0.4233,
+        "P99": 0.7751,
+        "Max": 2.3964
+      }
+    },
+    {
+      "Name": "ai",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0445,
+        "Mean": 0.21662291666666667,
+        "P50": 0.1326,
+        "P95": 0.5126,
+        "P99": 0.7584,
+        "Max": 20.6968
+      }
+    },
+    {
+      "Name": "thermal-inventory",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0055,
+        "Mean": 0.02218808333333334,
+        "P50": 0.0127,
+        "P95": 0.0845,
+        "P99": 0.1209,
+        "Max": 1.8907
+      }
+    },
+    {
+      "Name": "steering",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0119,
+        "Mean": 0.06230608333333332,
+        "P50": 0.0326,
+        "P95": 0.2894,
+        "P99": 0.3805,
+        "Max": 2.3696
+      }
+    },
+    {
+      "Name": "weapons",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0148,
+        "Mean": 0.05376116666666667,
+        "P50": 0.0316,
+        "P95": 0.133,
+        "P99": 0.3094,
+        "Max": 6.8673
+      }
+    },
+    {
+      "Name": "carriers",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0007,
+        "Mean": 0.004433833333333336,
+        "P50": 0.0025,
+        "P95": 0.0054,
+        "P99": 0.0089,
+        "Max": 1.1035
+      }
+    },
+    {
+      "Name": "physics",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0323,
+        "Mean": 0.14702975000000013,
+        "P50": 0.0893,
+        "P95": 0.4809,
+        "P99": 0.6398,
+        "Max": 5.0444
+      }
+    },
+    {
+      "Name": "hits",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0254,
+        "Mean": 0.22193658333333333,
+        "P50": 0.2155,
+        "P95": 0.3737,
+        "P99": 0.5388,
+        "Max": 2.3993
+      }
+    },
+    {
+      "Name": "lifecycle",
+      "Timing": {
+        "Count": 1200,
+        "Min": 0.0137,
+        "Mean": 0.06303941666666663,
+        "P50": 0.0475,
+        "P95": 0.1147,
+        "P99": 0.2918,
+        "Max": 3.1886
+      }
+    }
+  ],
+  "HudWindows": [
+    {
+      "StartTick": 1,
+      "EndTick": 600,
+      "Timing": {
+        "Count": 600,
+        "Min": 0.4064,
+        "Mean": 1.2652931666666674,
+        "P50": 0.9738,
+        "P95": 2.3875,
+        "P99": 4.5196,
+        "Max": 42.8144
+      },
+      "Stages": [
+        {
+          "Name": "collect",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0483,
+            "Mean": 0.25588716666666644,
+            "P50": 0.2232,
+            "P95": 0.5864,
+            "P99": 1.0124,
+            "Max": 2.3964
+          }
+        },
+        {
+          "Name": "ai",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0487,
+            "Mean": 0.2770708333333333,
+            "P50": 0.1775,
+            "P95": 0.5586,
+            "P99": 1.5644,
+            "Max": 20.6968
+          }
+        },
+        {
+          "Name": "thermal-inventory",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0061,
+            "Mean": 0.032017500000000004,
+            "P50": 0.0144,
+            "P95": 0.1071,
+            "P99": 0.1643,
+            "Max": 1.8907
+          }
+        },
+        {
+          "Name": "steering",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0145,
+            "Mean": 0.09499316666666668,
+            "P50": 0.0359,
+            "P95": 0.3621,
+            "P99": 0.3938,
+            "Max": 2.3696
+          }
+        },
+        {
+          "Name": "weapons",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0166,
+            "Mean": 0.07642866666666666,
+            "P50": 0.0347,
+            "P95": 0.1648,
+            "P99": 0.4457,
+            "Max": 6.8673
+          }
+        },
+        {
+          "Name": "carriers",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0007,
+            "Mean": 0.005844666666666665,
+            "P50": 0.0023,
+            "P95": 0.0054,
+            "P99": 0.0098,
+            "Max": 1.1035
+          }
+        },
+        {
+          "Name": "physics",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0363,
+            "Mean": 0.21167833333333338,
+            "P50": 0.1013,
+            "P95": 0.5457,
+            "P99": 2.1528,
+            "Max": 5.0444
+          }
+        },
+        {
+          "Name": "hits",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0254,
+            "Mean": 0.23203633333333323,
+            "P50": 0.2244,
+            "P95": 0.439,
+            "P99": 0.6046,
+            "Max": 2.3993
+          }
+        },
+        {
+          "Name": "lifecycle",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0186,
+            "Mean": 0.079306,
+            "P50": 0.0544,
+            "P95": 0.1354,
+            "P99": 0.681,
+            "Max": 3.1886
+          }
+        }
+      ]
+    },
+    {
+      "StartTick": 601,
+      "EndTick": 1200,
+      "Timing": {
+        "Count": 600,
+        "Min": 0.3526,
+        "Mean": 0.800785,
+        "P50": 0.7577,
+        "P95": 1.3041,
+        "P99": 1.5724,
+        "Max": 1.6793
+      },
+      "Stages": [
+        {
+          "Name": "collect",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.1088,
+            "Mean": 0.22750616666666645,
+            "P50": 0.2164,
+            "P95": 0.3661,
+            "P99": 0.4956,
+            "Max": 0.8847
+          }
+        },
+        {
+          "Name": "ai",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0445,
+            "Mean": 0.15617500000000004,
+            "P50": 0.1084,
+            "P95": 0.446,
+            "P99": 0.6049,
+            "Max": 0.7584
+          }
+        },
+        {
+          "Name": "thermal-inventory",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0055,
+            "Mean": 0.012358666666666657,
+            "P50": 0.0115,
+            "P95": 0.0187,
+            "P99": 0.0243,
+            "Max": 0.1
+          }
+        },
+        {
+          "Name": "steering",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0119,
+            "Mean": 0.029618999999999975,
+            "P50": 0.0309,
+            "P95": 0.0432,
+            "P99": 0.0499,
+            "Max": 0.0791
+          }
+        },
+        {
+          "Name": "weapons",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0148,
+            "Mean": 0.03109366666666667,
+            "P50": 0.0296,
+            "P95": 0.0464,
+            "P99": 0.0596,
+            "Max": 0.1084
+          }
+        },
+        {
+          "Name": "carriers",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0007,
+            "Mean": 0.0030229999999999975,
+            "P50": 0.0026,
+            "P95": 0.0053,
+            "P99": 0.0076,
+            "Max": 0.0671
+          }
+        },
+        {
+          "Name": "physics",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0323,
+            "Mean": 0.08238116666666674,
+            "P50": 0.0823,
+            "P95": 0.1321,
+            "P99": 0.2228,
+            "Max": 0.2639
+          }
+        },
+        {
+          "Name": "hits",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.107,
+            "Mean": 0.21183683333333328,
+            "P50": 0.2086,
+            "P95": 0.3099,
+            "P99": 0.4474,
+            "Max": 0.6341
+          }
+        },
+        {
+          "Name": "lifecycle",
+          "Timing": {
+            "Count": 600,
+            "Min": 0.0137,
+            "Mean": 0.04677283333333329,
+            "P50": 0.0427,
+            "P95": 0.0846,
+            "P99": 0.1519,
+            "Max": 0.5008
+          }
+        }
+      ]
+    }
+  ],
+  "SnapshotCaptureCpuMs": {
+    "Count": 1200,
+    "Min": 0.0383,
+    "Mean": 0.12094316666666657,
+    "P50": 0.1083,
+    "P95": 0.1846,
+    "P99": 0.255,
+    "Max": 2.2661
+  },
+  "RenderSubmissionCpuMs": {
+    "Count": 1200,
+    "Min": 0.6001,
+    "Mean": 0.9145634166666664,
+    "P50": 0.8785,
+    "P95": 1.1715,
+    "P99": 1.4195,
+    "Max": 11.9978
+  },
+  "TotalCpuFrameMs": {
+    "Count": 1200,
+    "Min": 1.6857,
+    "Mean": 2.7450705833333324,
+    "P50": 2.5832,
+    "P95": 3.8441,
+    "P99": 5.6926,
+    "Max": 56.1786
+  },
+  "WallFrameIntervalMs": {
+    "Count": 1200,
+    "Min": 16.6633,
+    "Mean": 16.70161183333333,
+    "P50": 16.6676,
+    "P95": 16.6697,
+    "P99": 16.6774,
+    "Max": 56.5602
+  },
+  "ReplayWallFramesPerSecond": {
+    "Count": 1200,
+    "Min": 17.680276943858047,
+    "Mean": 59.958628777198356,
+    "P50": 59.99664018814946,
+    "P95": 59.99844004055894,
+    "P99": 59.998800023999515,
+    "Max": 60.012122448734644
+  },
+  "ReplayWallThroughputFramesPerSecond": 59.87446061967417,
+  "MeasuredWallDurationMs": 20041.934199999985,
+  "Budget": {
+    "ThresholdMs": 16.67,
+    "CpuFrameMisses": 1,
+    "WallIntervalMisses": 52,
+    "WallIntervalMissPercent": 4.333333333333333
+  },
+  "Gpu": {
+    "Supported": true,
+    "UnavailableReason": null,
+    "CounterBits": 64,
+    "QueryRingSize": 32,
+    "QueryRingExhaustedFrames": 0,
+    "Samples": 1200,
+    "NullCount": 0,
+    "ZeroSamples": 0,
+    "RenderMs": {
+      "Count": 1200,
+      "Min": 0.040896,
+      "Mean": 1.0294714933333347,
+      "P50": 1.069216,
+      "P95": 1.66864,
+      "P99": 2.854784,
+      "Max": 12.128896
+    }
+  },
+  "GlErrors": [],
+  "GlErrorOverflow": 0,
+  "GpuDataValid": true,
+  "ValidationPass": true,
+  "FinalEntities": {
+    "Ships": 97,
+    "Projectiles": 640,
+    "Debris": 1338,
+    "Particles": 1561,
+    "Turrets": 52
+  },
+  "FinalAliveEntities": {
+    "Ships": 98,
+    "Projectiles": 640,
+    "Debris": 1338,
+    "Particles": 1561,
+    "Turrets": 52,
+    "Total": 3689
+  },
+  "RawCsvPath": "C:\\Workspace\\_VibeCodeProjects\\ecs\\docs\\space-battle\\desktop-current\\desktop-cold-paced-default.ticks.csv"
+}

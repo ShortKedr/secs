@@ -1,0 +1,240 @@
+{
+  "metadata": {
+    "runtime": ".NET 8.0.31",
+    "os": "Microsoft Windows 10.0.26200",
+    "architecture": "X64",
+    "machine": "NIKOLAY-PC",
+    "date": "2026-10-14T02:52:33.1576857\u002B05:00",
+    "stopwatchFrequency": 10000000,
+    "tieredCompilation": "0",
+    "sampleCount": 8,
+    "targetSampleNs": 30000000,
+    "warmupMinimumMs": 300,
+    "maximumRepetitions": 16,
+    "footer": "Release; tiering off; exactly 8 samples; creation setup/disposal/forced GC excluded; warmup duration accumulates timed creation operations only; validation outside timer; creation templates prewarmed for every method; lookup seed 2052513957 is paired within this benchmark, not claimed to match StressWorkload.RandomLookup",
+    "layouts": 256,
+    "accessorBufferBytesNote": "Exact managed accessor array payload bytes from StorageStatistics; excludes array headers and other managed storage.",
+    "creationComponents": {
+      "position": {
+        "X": 17,
+        "Y": -23,
+        "Z": 41
+      },
+      "velocity": {
+        "X": 1,
+        "Y": -1,
+        "Z": 2
+      }
+    }
+  },
+  "results": [
+    {
+      "operation": "Create",
+      "method": "EmptyAddAdd",
+      "entityCount": 100000,
+      "meanNs": 10028995.833333336,
+      "stddevNs": 265086.6581504344,
+      "samplesNs": [
+        9686300,
+        10050033.333333334,
+        9906233.333333334,
+        10314433.333333334,
+        10036933.333333334,
+        10461633.333333334,
+        10047233.333333334,
+        9729166.666666666
+      ],
+      "allocatedBytes": 7159680,
+      "storageNativeBytes": 2405377,
+      "repetitions": 3
+    },
+    {
+      "operation": "Create",
+      "method": "CreateEntityComponents",
+      "entityCount": 100000,
+      "meanNs": 6136314.583333333,
+      "stddevNs": 115392.74152487652,
+      "samplesNs": [
+        6098333.333333333,
+        6024916.666666667,
+        6083900,
+        6259283.333333333,
+        6059000,
+        6348600,
+        6174833.333333333,
+        6041650
+      ],
+      "allocatedBytes": 7154080,
+      "storageNativeBytes": 2402304,
+      "repetitions": 6
+    },
+    {
+      "operation": "Create",
+      "method": "PreparedFactoryBatch",
+      "entityCount": 100000,
+      "meanNs": 5011137.500000001,
+      "stddevNs": 132789.96775251624,
+      "samplesNs": [
+        5163566.666666667,
+        5057900,
+        4885016.666666667,
+        5104483.333333333,
+        4984666.666666667,
+        5126750,
+        4998833.333333333,
+        4767883.333333333
+      ],
+      "allocatedBytes": 7154080,
+      "storageNativeBytes": 2402304,
+      "repetitions": 6
+    },
+    {
+      "operation": "Create",
+      "method": "EmptyAddAdd",
+      "entityCount": 1000000,
+      "meanNs": 105423487.5,
+      "stddevNs": 5135592.199385856,
+      "samplesNs": [
+        101248600,
+        97017800,
+        107341600,
+        111815200,
+        106038800,
+        108821000,
+        110027200,
+        101077700
+      ],
+      "allocatedBytes": 58939656,
+      "storageNativeBytes": 24007681,
+      "repetitions": 1
+    },
+    {
+      "operation": "Create",
+      "method": "CreateEntityComponents",
+      "entityCount": 1000000,
+      "meanNs": 57320200,
+      "stddevNs": 812470.0504370255,
+      "samplesNs": [
+        57822300,
+        56988200,
+        56387700,
+        58288800,
+        56057600,
+        58044300,
+        57858500,
+        57114200
+      ],
+      "allocatedBytes": 58933783,
+      "storageNativeBytes": 24004608,
+      "repetitions": 1
+    },
+    {
+      "operation": "Create",
+      "method": "PreparedFactoryBatch",
+      "entityCount": 1000000,
+      "meanNs": 43720437.5,
+      "stddevNs": 632809.9126402133,
+      "samplesNs": [
+        43816200,
+        43901700,
+        44009000,
+        44817400,
+        43375500,
+        43321600,
+        42638800,
+        43883300
+      ],
+      "allocatedBytes": 58934685,
+      "storageNativeBytes": 24004608,
+      "repetitions": 1
+    },
+    {
+      "operation": "Lookup",
+      "method": "WorldGet",
+      "entityCount": 100000,
+      "meanNs": 873818.75,
+      "stddevNs": 15940.529473976525,
+      "samplesNs": [
+        855375,
+        882887.5,
+        879518.75,
+        899087.5,
+        871962.5,
+        852550,
+        863900,
+        885268.75
+      ],
+      "allocatedBytes": 0,
+      "checksum": 4999950000,
+      "repetitions": 16,
+      "storageNativeBytes": 5245953,
+      "accessorBufferBytes": 1572864
+    },
+    {
+      "operation": "Lookup",
+      "method": "CachedAccessorGet",
+      "entityCount": 100000,
+      "meanNs": 402610.15625,
+      "stddevNs": 7931.561992554876,
+      "samplesNs": [
+        408756.25,
+        416243.75,
+        399281.25,
+        406600,
+        397237.5,
+        405012.5,
+        394987.5,
+        392762.5
+      ],
+      "allocatedBytes": 0,
+      "checksum": 4999950000,
+      "repetitions": 16,
+      "storageNativeBytes": 5245953,
+      "accessorBufferBytes": 1572864
+    },
+    {
+      "operation": "Lookup",
+      "method": "WorldGet",
+      "entityCount": 1000000,
+      "meanNs": 44408600,
+      "stddevNs": 4387377.474723857,
+      "samplesNs": [
+        39183800,
+        46256700,
+        43714000,
+        52463800,
+        46065200,
+        46494400,
+        39618600,
+        41472300
+      ],
+      "allocatedBytes": 0,
+      "checksum": 499999500000,
+      "repetitions": 1,
+      "storageNativeBytes": 41946113,
+      "accessorBufferBytes": 12582912
+    },
+    {
+      "operation": "Lookup",
+      "method": "CachedAccessorGet",
+      "entityCount": 1000000,
+      "meanNs": 19960550,
+      "stddevNs": 1547487.4326745644,
+      "samplesNs": [
+        21913100,
+        18781850,
+        21438650,
+        18151000,
+        18803800,
+        20358450,
+        18609550,
+        21628000
+      ],
+      "allocatedBytes": 0,
+      "checksum": 499999500000,
+      "repetitions": 2,
+      "storageNativeBytes": 41946113,
+      "accessorBufferBytes": 12582912
+    }
+  ]
+}

@@ -3,11 +3,163 @@ import math
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import analyze_current as report
 
 
+def summary(mean=1):
+    return {"MeanMs": mean, "StddevMs": 0, "MedianMs": mean, "P95Ms": mean,
+            "P99Ms": mean, "MaxMs": mean, "BudgetMisses": 0, "BudgetMissPercent": 0}
+
+
+def sample_run(preset=None, mean=1, hud=False):
+    metadata = {"Ticks": report.TICKS, "Runtime": "test runtime", "Os": "test OS",
+                "Options": {**report.PRESETS[preset or "benchmark"]}}
+    if preset is not None:
+        metadata["Preset"] = preset
+    stages = [{"Name": name, "Timing": summary(mean/20)} for name in report.STAGE_NAMES]
+    result = {"Metadata": metadata, "Timing": summary(mean), "Stages": stages,
+              "AllocatedBytes": 0, "Checksum": "A"*16,
+              "Counters": {"Shots": 1, "Hits": 1, "ShipsCreated": 1, "ShipsDestroyed": 1},
+              "Windows": [{"Ships": 1, "Turrets": 2}]}
+    if hud:
+        result["HudTiming"] = summary(mean/2)
+        result["HudWindows"] = [{"StartTick": i*report.HUD_WINDOW+1, "EndTick": (i+1)*report.HUD_WINDOW,
+            "Timing": summary(mean/2), "Stages": stages,
+            **{"Mean" + key: 3.5 for key in report.COUNTS}} for i in range(report.TICKS//report.HUD_WINDOW)]
+    return result
+
+
 class CurrentCampaignTests(unittest.TestCase):
+    def test_campaign_preset_is_known_and_matches_requested_input(self):
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
+            path = Path(directory)
+            manifest = {"Completed": True, "Ticks": 108000, "WarmupTicks": 600, "Preset": "typo"}
+            (path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Unknown campaign preset"):
+                report.validate(path, False)
+            manifest["Preset"] = "benchmark"
+            (path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Unexpected campaign preset"):
+                report.validate(path, False, "game")
+
+    def test_preset_validation_keeps_legacy_benchmark_and_rejects_mixed_options(self):
+        legacy = sample_run()["Metadata"]
+        report.validate_preset(legacy, "benchmark", "legacy")
+        with self.assertRaisesRegex(ValueError, "Preset"):
+            report.validate_preset(legacy, "game", "legacy")
+        game = sample_run("game")["Metadata"]
+        report.validate_preset(game, "game", "game")
+        game["Options"]["EndlessReinforcements"] = False
+        with self.assertRaisesRegex(ValueError, "EndlessReinforcements"):
+            report.validate_preset(game, "game", "game")
+
+    def test_preset_booleans_are_not_accepted_as_enum_integers(self):
+        metadata = sample_run()["Metadata"]
+        metadata["Options"]["FleetComposition"] = False
+        with self.assertRaisesRegex(ValueError, "FleetComposition"):
+            report.validate_preset(metadata, "benchmark", "legacy")
+
+    def test_hud_requires_complete_contiguous_samples_and_consistent_stage_means(self):
+        run = sample_run("game", hud=True)
+        report.validate_hud(run, "game")
+        run["HudWindows"][1]["StartTick"] += 1
+        with self.assertRaisesRegex(ValueError, "noncontiguous"):
+            report.validate_hud(run, "game")
+        run["HudWindows"][1]["StartTick"] -= 1
+        removed = run["HudWindows"].pop()
+        with self.assertRaisesRegex(ValueError, "incomplete HudWindows"):
+            report.validate_hud(run, "game")
+        run["HudWindows"].append(removed)
+        run["Stages"] = [{"Name": stage["Name"], "Timing": summary(2)} for stage in run["Stages"]]
+        with self.assertRaisesRegex(ValueError, "HUD stage mean"):
+            report.validate_hud(run, "game")
+
+    def test_hud_missing_is_legacy_only_and_nonfinite_count_fails(self):
+        report.validate_hud(sample_run(), "legacy")
+        with self.assertRaisesRegex(ValueError, "requires HudWindows"):
+            report.validate_hud(sample_run("benchmark"), "fresh")
+        run = sample_run("game", hud=True)
+        run["HudWindows"][0]["MeanShips"] = float("nan")
+        with self.assertRaisesRegex(ValueError, "MeanShips"):
+            report.validate_hud(run, "game")
+
+    def test_stage_names_and_published_summary_bounds_are_validated(self):
+        run = sample_run()
+        report.validate_stages(run["Stages"], report.TICKS, "stages")
+        run["Stages"][1]["Name"] = "collect"
+        with self.assertRaisesRegex(ValueError, "stages"):
+            report.validate_stages(run["Stages"], report.TICKS, "stages")
+        stats = summary()
+        stats["P99Ms"] = 2
+        with self.assertRaisesRegex(ValueError, "inconsistent"):
+            report.validate_summary(stats, report.TICKS, "timing")
+
+    def test_common_worst_hud_window_compares_same_phase_across_ecs(self):
+        runs = {("nominal", f): sample_run("game", hud=True) for f in report.FRAMEWORKS}
+        runs["nominal", "secs"]["HudWindows"][4]["Timing"] = summary(5)
+        runs["nominal", "lite"]["HudWindows"][9]["Timing"] = summary(6)
+        self.assertEqual(report.hud_selection(runs, "nominal"), [("first", 0), ("second", 1), ("worst", 9)])
+
+    def test_hud_count_trajectory_is_canonical_but_timing_is_not(self):
+        run = {**sample_run("game", hud=True), "Checkpoints": [], "Tactics": {},
+               "Windows": []}
+        canonical = report.canonical(run)
+        run["HudWindows"][0]["Timing"] = summary(99)
+        self.assertEqual(report.canonical(run), canonical)
+        run["HudWindows"][0]["MeanShips"] = 2
+        self.assertNotEqual(report.canonical(run), canonical)
+
+    def test_total_step_uses_measured_mean_and_all_profiles_show_every_stage(self):
+        runs = {(p, f): sample_run(mean=.2) for p in report.PROFILES for f in report.FRAMEWORKS}
+        runs["nominal", "secs"]["Metadata"]["WallSeconds"] = 999
+        self.assertAlmostEqual(report.total_step_seconds(runs["nominal", "secs"]), 21.6)
+        for profile in report.PROFILES:
+            rows = report.stage_table(runs, profile, report.TimingPolicy())
+            self.assertEqual([row[0] for row in rows], [*report.STAGE_NAMES, "Total Step"])
+            self.assertTrue(all("0.2000" in str(value) for value in rows[-1][1:]))
+
+    def test_stage_colors_keep_unrounded_values(self):
+        # Both print 0.0001, but their raw difference exceeds the 5% threshold.
+        runs = {("nominal", f): sample_run(mean=1) for f in report.FRAMEWORKS}
+        for f in report.FRAMEWORKS:
+            runs["nominal", f]["Stages"][0]["Timing"] = summary(.0001049)
+        runs["nominal", "secs"]["Stages"][0]["Timing"] = summary(.0000999)
+        rows = report.stage_table(runs, "nominal", report.TimingPolicy())
+        self.assertIn("/best.svg", str(rows[0][1]))
+        self.assertIn("0.0001", str(rows[0][1]))
+        self.assertNotIn("/best.svg", str(rows[0][2]))
+        self.assertIn("0.0001", str(rows[0][2]))
+
+    def test_fresh_csv_requires_raw_hud_and_stage_columns(self):
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
+            path = Path(directory)
+            (path / "nominal-secs.ticks.csv").write_text("tick,tickMs\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "missing HUD/stage samples"):
+                report.validate_ticks(path, "nominal", "secs", sample_run("game", hud=True))
+
+    def test_game_report_defaults_to_its_own_bilingual_names(self):
+        runs = {(p, f): sample_run("game", hud=True) for p in report.PROFILES for f in report.FRAMEWORKS}
+        manifest = {"Preset": "game", "StartedAt": "start", "FinishedAt": "finish", "SourceRevision": "test"}
+        hardware = {"Cpu": {"Name": "test CPU"}, "TotalPhysicalMemoryBytes": 1024**3}
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
+            root = Path(directory)
+            data = root / "game-current"
+            data.mkdir()
+            with patch.object(report, "DOCS", root):
+                report.render(runs, manifest, hardware, data, False)
+            self.assertFalse((root / "REPORT.md").exists())
+            english = (root / "GAME_REPORT.md").read_text(encoding="utf-8")
+            russian = (root / "GAME_REPORT.ru.md").read_text(encoding="utf-8")
+            self.assertIn("[Русский](GAME_REPORT.ru.md)", english)
+            self.assertIn("[English](GAME_REPORT.md)", russian)
+            self.assertIn("Total Step s", english)
+            self.assertEqual(english.count("| Total Step |"), 3)
+            self.assertIn("Game preset: LightSwarm", english)
+            self.assertIn("--data-dir docs/space-battle/game-current --preset game --report-base GAME_REPORT", english)
+            self.assertIn("worst / 1–600", english)
+
     def test_recomputes_quantiles_and_budget_misses(self):
         values = [0, 1, 2, 3, 20]
         stats = {"MeanMs": 5.2, "StddevMs": math.sqrt(69.7),

@@ -27,7 +27,14 @@ dotnet build SECS.Benchmarks/SECS.Benchmarks.csproj -c Release --no-restore -p:G
 dotnet SECS.Benchmarks/bin/Release/net8.0/SECS.Benchmarks.dll --filter '*ComparisonBenchmarks.Iterate*' --job Dry --inProcess --artifacts Benchmarks.Local/repro-bdn-smoke
 ```
 
-A Dry job checks launch and workload execution; its timings are not a performance ranking. The custom comparison campaign already covers the complete five-framework workload matrix. A full BenchmarkDotNet run is optional and should run separately from any other measurement process.
+A Dry job checks launch and workload execution. The [supplemental report](../docs/benchmarks/current/SUPPLEMENT.md) contains fresh timings for all 34 default cases here and 51 legacy cases, measured with Short/InProcess, three warmup and eight actual iterations. It also includes the ten direct-creation/accessor cases and retained-native-storage diagnostics. Reproduce these sequentially, separately from the five-framework and SpaceBattle campaigns:
+
+```powershell
+./Benchmarks.Local/run_supplement.ps1
+python Benchmarks.Local/report_supplement.py docs/benchmarks/current
+```
+
+The opt-in `SECS_STRESS_EXTREME=1` matrix at five million entities is separate from the default suite. InProcess avoids generated child-project restores; its process isolation differs from the default BenchmarkDotNet toolchain.
 
 ## Historical experiments
 

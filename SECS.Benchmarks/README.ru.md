@@ -27,7 +27,14 @@ dotnet build SECS.Benchmarks/SECS.Benchmarks.csproj -c Release --no-restore -p:G
 dotnet SECS.Benchmarks/bin/Release/net8.0/SECS.Benchmarks.dll --filter '*ComparisonBenchmarks.Iterate*' --job Dry --inProcess --artifacts Benchmarks.Local/repro-bdn-smoke
 ```
 
-Dry job проверяет запуск и выполнение нагрузки; его времена не являются рейтингом производительности. Сравнительная custom-кампания уже покрывает полную матрицу нагрузки пяти фреймворков. Полный BenchmarkDotNet-прогон необязателен и должен выполняться отдельно от любых других измерений.
+Dry job проверяет запуск и выполнение нагрузки. В [дополнительном отчёте](../docs/benchmarks/current/SUPPLEMENT.ru.md) — свежие замеры всех 34 стандартных кейсов этого набора и 51 legacy-кейса: Short/InProcess, три прогревочные и восемь измеряемых итераций. Там же десять кейсов прямого создания/аксессоров и диагностика сохранённого нативного хранилища. Воспроизводите их последовательно, отдельно от сравнения пяти ECS и SpaceBattle:
+
+```powershell
+./Benchmarks.Local/run_supplement.ps1
+python Benchmarks.Local/report_supplement.py docs/benchmarks/current
+```
+
+Режим `SECS_STRESS_EXTREME=1` с пятью миллионами сущностей — отдельная необязательная матрица. InProcess не требует restore сгенерированных дочерних проектов; изоляция процесса отличается от стандартного toolchain BenchmarkDotNet.
 
 ## Исторические эксперименты
 

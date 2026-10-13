@@ -126,6 +126,10 @@ OpenGL; соседний JSON содержит количество сущнос
 
 ## Профилирование Клиента
 
+Для сравнения HUD и headless есть [исследование desktop-таймингов](../docs/space-battle/DESKTOP_TIMING.ru.md): пять свежих процессов с одинаковыми сборками, конфигурацией и итоговой checksum. Воспроизведение: `./tools/space-battle/run-desktop-study.ps1`, затем `python tools/space-battle/analyze_desktop.py`. Запускайте отдельно от ECS-бенчмарков и длинных серий SpaceBattle.
+
+`--profile-paced` ограничивает replay до 60 отрисованных кадров/с: один Step на кадр, VSync выключен. `--profile-warmup 0` записывает холодный старт с тика 1; обычный прогрев продвигает тот же бой. JSON и необязательный CSV сохраняют внутренний HUD-таймер Step и все девять стадий отдельно от wrapper/snapshot/render/total CPU.
+
 После сборки запускайте из корня репозитория:
 
 ```powershell

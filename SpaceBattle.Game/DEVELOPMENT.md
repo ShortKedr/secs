@@ -140,6 +140,10 @@ logic before replay starts, outside timing. Frame/warmup counts are bounded to
 one million, measured count must be positive. `--profile-csv PATH` is optional.
 All output paths must remain under the current project directory.
 
+`--profile-paced` caps replay at 60 rendered frames/s, with one Step/frame and VSync off. This separates pacing effects from an uncapped run while keeping the tick trajectory fixed. `--profile-warmup 0` records cold startup from tick 1; the default warmup advances the same battle. JSON and optional CSV retain the HUD's internal Step timer and all nine stages, separately from wrapper/snapshot/render/total CPU timers.
+
+The [desktop timing study](../docs/space-battle/DESKTOP_TIMING.md) compares five fresh processes with matched assemblies, configuration and final checksum. Reproduce it with `./tools/space-battle/run-desktop-study.ps1`, then `python tools/space-battle/analyze_desktop.py`. Run separately from the ECS and long SpaceBattle suites.
+
 CPU phase values are host elapsed Stopwatch timings, not hardware CPU-cycle
 counters. SimulationCPU covers Step (live statistics are excluded in profiling); SnapshotCaptureCPU
 covers only Battle.Capture. RenderSubmissionCPU covers scene/HUD generation,

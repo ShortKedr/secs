@@ -55,6 +55,8 @@ en = f'''English | [Русский](REPORT.ru.md)
 
 [Benchmark overview](../../../SECS.Benchmarks/README.md) | [Harness and reproduction](../../../Benchmarks.Local/README.md)
 
+[Complete SECS suites and API measurements](SUPPLEMENT.md) include 34 current and 51 legacy BenchmarkDotNet cases, plus creation/accessor and retained-storage diagnostics.
+
 All five frameworks were measured afresh in one sequential campaign: 40 base cases and 70 stress cases. Each cell below is mean milliseconds per complete operation; lower is better. Markers show relative lag within each scenario and entity-count row; they describe effect size, not statistical significance.
 
 Environment: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} logical processors. Release, one thread, tiered compilation off. Source revision: `{manifest['sourceRevision']}`. [Campaign metadata](campaign.json) pins source and measured assembly hashes; [base raw samples](base.json) and [stress raw samples](stress.json) retain all observations.
@@ -88,6 +90,8 @@ ru = f'''[English](REPORT.md) | Русский
 # Сравнение ECS — {date}
 
 [Обзор бенчмарков](../../../SECS.Benchmarks/README.ru.md) | [Раннер и воспроизведение](../../../Benchmarks.Local/README.ru.md)
+
+[Полные наборы SECS и замеры API](SUPPLEMENT.ru.md): 34 актуальных и 51 legacy-кейс BenchmarkDotNet, создание/аксессоры и диагностика сохранённого хранилища.
 
 Все пять фреймворков измерены заново в одной последовательной кампании: 40 базовых и 70 стресс-кейсов. Каждая ячейка ниже — среднее время полной операции в миллисекундах; меньше лучше. Маркеры показывают относительное отставание внутри строки сценария и числа сущностей; цвет описывает величину различия, а не статистическую значимость.
 

@@ -1,5 +1,6 @@
-param([string]$OutputDirectory = 'docs/benchmarks/current', [switch]$SkipBuild)
+param([string]$OutputDirectory = 'docs/benchmarks/current', [switch]$SkipBuild, [string]$ResumeArtifacts)
 $ErrorActionPreference = 'Stop'
+if ($ResumeArtifacts -and !$SkipBuild) { throw 'Resume original binaries with -SkipBuild, or start a fresh campaign.' }
 $root = Split-Path $PSScriptRoot -Parent
 Set-Location -LiteralPath $root
 $target = [IO.Path]::GetFullPath($OutputDirectory, $root)
@@ -34,10 +35,38 @@ $sourceHashes = [ordered]@{}
 foreach ($file in (git ls-files --cached --others --exclude-standard -- SECS SECS.Benchmarks SECS.OtherBenchmarks Benchmarks.Local | Where-Object { $_ -match '\.(cs|csproj|props|targets)$' } | Sort-Object -Unique)) {
     $sourceHashes[$file] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
 }
-Run-Dotnet @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', '--optimized-api', "$target/optimized-api.json")
-Run-Dotnet @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', '--storage', "$target/storage.json")
+if (!$ResumeArtifacts) {
+    Run-Dotnet @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', '--optimized-api', "$target/optimized-api.json")
+    Run-Dotnet @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', '--storage', "$target/storage.json")
+} elseif (!(Test-Path -LiteralPath "$target/optimized-api.json") -or !(Test-Path -LiteralPath "$target/storage.json")) {
+    throw 'Resuming requires the original API and storage inputs.'
+}
 Run-Dotnet @('SECS.OtherBenchmarks/bin/Release/net8.0/SECS.OtherBenchmarks.dll', '--validate')
 $artifacts = Join-Path $env:TEMP ('bdn-' + [DateTimeOffset]::Now.ToString('yyyyMMdd-HHmmss'))
+if ($ResumeArtifacts) {
+    $artifacts = [IO.Path]::GetFullPath($ResumeArtifacts, $root)
+    if (!$artifacts.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or !(Test-Path -LiteralPath $artifacts -PathType Container)) {
+        throw 'ResumeArtifacts must be an existing directory inside this project.'
+    }
+}
+$snapshotPath = Join-Path $artifacts 'source-snapshot.json'
+$assemblyHashes = [ordered]@{}
+foreach ($dll in @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', 'Benchmarks.Local/bin/Release/net8.0/SECS.dll', 'SECS.Benchmarks/bin/Release/net8.0/SECS.Benchmarks.dll', 'SECS.OtherBenchmarks/bin/Release/net8.0/SECS.OtherBenchmarks.dll')) {
+    $assemblyHashes[$dll] = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
+}
+if ($ResumeArtifacts) {
+    if (!(Test-Path -LiteralPath $snapshotPath)) { throw 'Resume requires the original source snapshot; start a fresh campaign for unrecorded artifacts.' }
+    $snapshot = Get-Content -LiteralPath $snapshotPath -Raw | ConvertFrom-Json
+    if (($snapshot.sourceHashes | ConvertTo-Json -Depth 20 -Compress) -cne ($sourceHashes | ConvertTo-Json -Depth 20 -Compress) -or
+        ($snapshot.assemblyHashes | ConvertTo-Json -Compress) -cne ($assemblyHashes | ConvertTo-Json -Compress)) {
+        throw 'Sources or measured binaries changed; do not reuse these artifacts.'
+    }
+    $revision = $snapshot.sourceRevision
+} else {
+    [IO.Directory]::CreateDirectory($artifacts) | Out-Null
+    @{ sourceRevision = $revision; sourceHashes = $sourceHashes; assemblyHashes = $assemblyHashes } |
+        ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $snapshotPath -Encoding utf8
+}
 foreach ($suite in @(
     @{ Name = 'secs'; Project = 'SECS.Benchmarks'; Expected = 34 },
     @{ Name = 'legacy'; Project = 'SECS.OtherBenchmarks'; Expected = 51 }
@@ -47,9 +76,14 @@ foreach ($suite in @(
     $started = [DateTimeOffset]::Now.ToString('O')
     $suiteArtifacts = Join-Path $artifacts $suite.Name
     # One measurement process at a time; Short with eight actual iterations, never Dry.
-    Run-Dotnet @($dll, '--filter', '*', '--job', 'Short', '--iterationCount', '8', '--warmupCount', '3', '--inProcess', '--exporters', 'json', '--artifacts', $suiteArtifacts)
+    $cachedFiles = @(Get-ChildItem -LiteralPath (Join-Path $suiteArtifacts 'results') -Filter '*-report-full*.json' -File -ErrorAction SilentlyContinue)
+    $cachedCases = @($cachedFiles | ForEach-Object { (Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json).Benchmarks })
+    $reused = $ResumeArtifacts -and $cachedCases.Count -eq $suite.Expected
+    if (!$reused) {
+        Run-Dotnet @($dll, '--filter', '*', '--job', 'Short', '--iterationCount', '8', '--warmupCount', '3', '--inProcess', '--exporters', 'json', '--artifacts', $suiteArtifacts)
+    }
     $benchmarks = @()
-    $files = @(Get-ChildItem -LiteralPath (Join-Path $suiteArtifacts 'results') -Filter '*-report-full.json' -File | Sort-Object Name)
+    $files = @(Get-ChildItem -LiteralPath (Join-Path $suiteArtifacts 'results') -Filter '*-report-full*.json' -File | Sort-Object Name)
     foreach ($file in $files) {
         $raw = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
         $benchmarks += @($raw.Benchmarks)
@@ -62,7 +96,10 @@ foreach ($suite in @(
             job = 'Short'; toolchain = 'InProcess'; warmupCount = 3; iterationCount = 8
             runtime = $raw.HostEnvironmentInfo.RuntimeVersion; assemblySha256 = $assemblyHash
             sourceHashes = $sourceHashes
-            started = $started; finished = [DateTimeOffset]::Now.ToString('O')
+            started = $(if ($reused) { $null } else { $started }); finished = [DateTimeOffset]::Now.ToString('O')
+            aggregationStarted = $started
+            recoveredExistingMeasurements = [bool]$reused
+            artifactModifiedAt = @($files | ForEach-Object { $_.LastWriteTime.ToString('O') })
             expectedCases = $suite.Expected
             command = "dotnet $dll --filter '*' --job Short --iterationCount 8 --warmupCount 3 --inProcess --exporters json"
             note = 'Collected all eight actual iterations; BenchmarkDotNet statistics retain their configured outlier policy. InProcess avoids generated child-project restore. Extreme five-million-entity stress is opt-in and outside the default matrix.'

@@ -48,7 +48,7 @@ Useful launch options:
 
 Following frames the watched ship and its live target. Death switches to a known surviving fatal projectile owner, otherwise a nearby survivor. Manual camera movement, selection elsewhere, Fit or restart cancels follow. Camera actions do not affect combat.
 
-The statistics panel separates simulation timing, entity populations, combat counters and storage. Live rolling readings describe this session; they are not the full five-ECS benchmark or an FPS guarantee.
+The statistics panel separates simulation timing, entity populations, combat counters and storage. Mean uses the last 600 simulation ticks (10 seconds at 60 Hz), including physics and commits. Capture and rendering sit outside this timer. Compare it with the [game preset and HUD-window report](../docs/space-battle/GAME_REPORT.md); a full-run mean for a finite battle averages a different workload and period.
 
 ## Capture and Diagnostics
 

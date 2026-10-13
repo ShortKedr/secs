@@ -74,6 +74,10 @@ dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --validate-stress
 
 Base validation checks entity data and lifetime at both measured entity counts. Stress preflight uses 257/4,097 entities, seven scenarios repeated three times, payload round-trip and retired-handle checks. Every measured stress case also validates its full population after warmup and samples. These checks validate this repository's workload/adapter contract; they are not complete upstream test suites.
 
+## All SECS suites
+
+The [supplemental campaign](../docs/benchmarks/current/SUPPLEMENT.md) covers every default SECS BenchmarkDotNet case, the legacy suite and direct API/storage diagnostics. Run `./Benchmarks.Local/run_supplement.ps1`, then `python Benchmarks.Local/report_supplement.py docs/benchmarks/current`. The runner uses the same project-local cache/temp paths and runs each workload sequentially; `supplement.json` records source and input hashes.
+
 ## Retained experiments
 
 The [SECS optimization methodology](../docs/benchmarks/optimization-methodology.md) explains preserved baseline/optimized binaries and paired datasets. `results-all-updated.json` / `stress-all-updated.json` and `docs/benchmarks/updated` are the previous complete five-framework run. Other `results*.json`, storage/accessor experiments and BenchmarkDotNet smoke outputs retain their own metadata and scope. Do not mix competitor observations across campaigns or use Dry/smoke timings as a full performance ranking.
