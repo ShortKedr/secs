@@ -118,7 +118,7 @@ struct Increment : IQueryProcessor<Position>
 | .NET 10 (`net10.0`, SDK 10.0.204) | Приложение собрано и запущено именно для .NET 10 с совместимой сборкой пакета. |
 | .NET Framework 4.8 (`net48`, SDK 8.0.426) | Windows-приложение запущено с пакетом и транзитивными зависимостями из локального офлайн-источника. |
 | Godot 4.5 stable .NET, Windows x64 | Официальный редактор `4.5.stable.mono.official.876b29033` импортировал и запустил C#-сцену с пакетом. |
-| Unity 2022.3.60f1 | Editor и Windows Mono Player прошли на отдельных копиях проверочного проекта; Windows IL2CPP не запускался из-за отсутствия модуля. |
+| Unity 2022.3.60f1 | Editor, Windows Mono Player и Windows IL2CPP Player прошли на отдельных копиях проверочного проекта. |
 | Unity 6000.3.19f1 | Editor, Windows Mono Player и Windows IL2CPP Player прошли на отдельных копиях проверочного проекта. |
 
 Скрипты [проверочных потребителей](../../tools/release-consumers) сверяют

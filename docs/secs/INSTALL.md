@@ -118,7 +118,7 @@ On 2026-10-15, the local candidate `.nupkg` passed the independent
 | .NET 10 (`net10.0`, SDK 10.0.204) | Passed; app targeted and ran on .NET 10, selecting the compatible package asset. |
 | .NET Framework 4.8 (`net48`, SDK 8.0.426) | Passed; Windows executable ran with the package and cached transitive dependencies supplied from an offline feed. |
 | Godot 4.5 stable .NET, Windows x64 | Passed; official editor `4.5.stable.mono.official.876b29033` imported and ran the package-backed C# scene. |
-| Unity 2022.3.60f1 | Editor and Windows Mono Player passed from isolated copies of the fixture; Windows IL2CPP was not run because its module is absent. |
+| Unity 2022.3.60f1 | Editor, Windows Mono Player, and Windows IL2CPP Player passed from isolated copies of the fixture. |
 | Unity 6000.3.19f1 | Editor, Windows Mono Player, and Windows IL2CPP Player passed from isolated copies of the fixture. |
 
 The scripts in [release-consumers](../../tools/release-consumers) verify that
