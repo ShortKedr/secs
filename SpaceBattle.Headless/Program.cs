@@ -34,18 +34,18 @@ try
     var framework = frameworkIndex < 0 ? "secs" : args[frameworkIndex + 1];
     switch (framework)
     {
-        case "secs": Runner.Run(static () => new SecsStore(), options); break;
-        case "lite": Runner.Run(static () => new LeoEcsLiteStore(), options); break;
-        case "classic": Runner.Run(static () => new LeoEcsClassicStore(), options); break;
-        case "morpeh": Runner.Run(static () => new MorpehStore(), options); break;
-        case "static": Runner.Run(static () => new StaticEcsStore(), options); break;
+        case "secs": Runner.Run(static () => new SyntheticChurnStore(new SecsStore()), options); break;
+        case "lite": Runner.Run(static () => new SyntheticChurnStore(new LeoEcsLiteStore()), options); break;
+        case "classic": Runner.Run(static () => new SyntheticChurnStore(new LeoEcsClassicStore()), options); break;
+        case "morpeh": Runner.Run(static () => new SyntheticChurnStore(new MorpehStore()), options); break;
+        case "static": Runner.Run(static () => new SyntheticChurnStore(new StaticEcsStore()), options); break;
         default: throw new ArgumentException("--framework must be secs, lite, classic, morpeh, or static");
     }
     return 0;
 }
 catch (Exception exception) { Console.Error.WriteLine(exception); return 1; }
 
-internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, BattleConfig Config, bool Realtime, string Preset)
+internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, BattleConfig Config, bool Realtime, string Preset, int SyntheticChurnOpsPerTick)
 {
     public static RunOptions Parse(string[] args)
     {
@@ -60,6 +60,9 @@ internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, Bat
         var ticks = int.Parse(Value("--ticks", ((int)(seconds * 60)).ToString()));
         var warmup = int.Parse(Value("--warmup", "600"));
         if (ticks < 1 || warmup < 0) throw new ArgumentOutOfRangeException(nameof(ticks));
+        var syntheticChurn = int.Parse(Value("--synthetic-churn", "0"));
+        if (syntheticChurn is < 0 or > SyntheticChurnStore.PoolSize)
+            throw new ArgumentOutOfRangeException("--synthetic-churn", $"Expected 0..{SyntheticChurnStore.PoolSize} operations per tick.");
         var preset = Value("--preset", "benchmark");
         if (preset is not ("benchmark" or "game")) throw new ArgumentException("--preset must be benchmark or game");
         var game = preset == "game";
@@ -76,7 +79,7 @@ internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, Bat
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../")).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         if (!output.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Output must stay inside the current project.");
-        return new(output, ticks, warmup, config, args.Contains("--realtime"), preset);
+        return new(output, ticks, warmup, config, args.Contains("--realtime"), preset, syntheticChurn);
     }
 }
 
@@ -87,13 +90,25 @@ internal static class Runner
     {
         // Warmup uses a separate battle so measured gameplay starts at tick zero.
         using (var warmup = new Battle<T>(factory(), options.Config))
-            for (var i = 0; i < options.WarmupTicks; i++) warmup.Step();
+        {
+            if (warmup.Store is SyntheticChurnStore synthetic) synthetic.InitializePool();
+            for (var i = 0; i < options.WarmupTicks; i++)
+            {
+                if (warmup.Store is SyntheticChurnStore warmupChurn) warmupChurn.BeginStep(options.SyntheticChurnOpsPerTick);
+                if (warmup.Store is SyntheticChurnStore warmupApplyChurn) warmupApplyChurn.ApplyForStep();
+                warmup.Step();
+                if (warmup.Store is SyntheticChurnStore warmupChurnAfterStep) warmupChurnAfterStep.EndStep();
+            }
+        }
         var fresh = factory();
         using var battle = new Battle<T>(fresh, options.Config);
+        if (fresh is SyntheticChurnStore syntheticStore) syntheticStore.InitializePool();
         var timing = new double[options.Ticks]; var hudTiming = new double[options.Ticks]; var allocation = new long[options.Ticks];
         var stages = Battle<T>.StageNames.Select(_ => new double[options.Ticks]).ToArray();
         var entityCounts = new (int Ships, int Projectiles, int Debris, int Particles, int Turrets)[options.Ticks];
         var structuralCounts = new (long Adds, long Removes)[options.Ticks];
+        var syntheticCounts = new (int Ops, int Adds, int Removes)[options.Ticks];
+        var syntheticChurnMs = new double[options.Ticks];
         var collections = new (int Gen0, int Gen1, int Gen2)[options.Ticks];
         var windows = new List<object>(); var hudWindows = new List<object>(); var checkpoints = new List<object>();
         using var process = Process.GetCurrentProcess();
@@ -102,11 +117,16 @@ internal static class Runner
         GC.Collect(); GC.WaitForPendingFinalizers(); GC.Collect();
         var initialCollections = new[] { GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2) };
         var started = Stopwatch.StartNew(); var allocationStart = GC.GetAllocatedBytesForCurrentThread();
+        object? initialWindow = null;
         for (var i = 0; i < options.Ticks; i++)
         {
+            if (fresh is SyntheticChurnStore stepChurn) stepChurn.BeginStep(options.SyntheticChurnOpsPerTick);
             var before = GC.GetAllocatedBytesForCurrentThread();
-            var start = Stopwatch.GetTimestamp(); battle.Step();
+            var start = Stopwatch.GetTimestamp();
+            if (fresh is SyntheticChurnStore applyChurn) syntheticChurnMs[i] = applyChurn.ApplyForStep();
+            battle.Step();
             timing[i] = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
+            if (fresh is SyntheticChurnStore stepChurnAfterStep) syntheticCounts[i] = stepChurnAfterStep.EndStep();
             hudTiming[i] = battle.LastTickMs;
             allocation[i] = GC.GetAllocatedBytesForCurrentThread() - before;
             for (var stage = 0; stage < stages.Length; stage++) stages[stage][i] = battle.LastStageMs[stage];
@@ -140,6 +160,12 @@ internal static class Runner
                 checkpoints.Add(new { Tick = battle.Tick, Checksum = battle.Checksum().ToString("X16") });
                 Console.WriteLine($"{fresh.Name}: {battle.Tick}/{options.Ticks} ticks; {Stats(timing.AsSpan(begin, count))}; ships={battle.ShipCount}; hits={battle.Counters.Hits}; built={battle.Counters.Builds}");
             }
+            if (i + 1 == Math.Min(2000, options.Ticks))
+                initialWindow = new { StartTick = 1, EndTick = i + 1, Timing = Stats(timing.AsSpan(0, i + 1)),
+                    Stages = Battle<T>.StageNames.Select((name, s) => new { Name = name, Timing = Stats(stages[s].AsSpan(0, i + 1)) }).ToArray(),
+                    Ships = battle.ShipCount, Projectiles = battle.ProjectileCount, Debris = battle.DebrisCount,
+                    Particles = battle.ParticleCount, Turrets = battle.TurretCount,
+                    Counters = battle.Counters.Copy(), Checksum = battle.Checksum().ToString("X16") };
             if (options.Realtime)
             {
                 var due = (i + 1) / 60.0;
@@ -153,13 +179,38 @@ internal static class Runner
         var elapsed = started.Elapsed.TotalSeconds;
         battle.Validate();
         var measuredAllocation = allocation.Sum();
+        object OpeningSummary(int count)
+        {
+            var sums = new long[5];
+            for (var tick = 0; tick < count; tick++)
+            {
+                var c = entityCounts[tick];
+                sums[0] += c.Ships; sums[1] += c.Projectiles; sums[2] += c.Debris; sums[3] += c.Particles; sums[4] += c.Turrets;
+            }
+            return new { StartTick = 1, EndTick = count, Timing = Stats(timing.AsSpan(0, count)),
+                HudTiming = Stats(hudTiming.AsSpan(0, count)),
+                Stages = Battle<T>.StageNames.Select((name, s) => new { Name = name, Timing = Stats(stages[s].AsSpan(0, count)) }).ToArray(),
+                MeanShips = (double)sums[0] / count, MeanProjectiles = (double)sums[1] / count,
+                MeanDebris = (double)sums[2] / count, MeanParticles = (double)sums[3] / count, MeanTurrets = (double)sums[4] / count };
+        }
+        object RemainderSummary()
+        {
+            const int start = 2000;
+            var count = options.Ticks - start;
+            return new { StartTick = start + 1, EndTick = options.Ticks, Timing = Stats(timing.AsSpan(start, count)),
+                Stages = Battle<T>.StageNames.Select((name, s) => new { Name = name, Timing = Stats(stages[s].AsSpan(start, count)) }).ToArray() };
+        }
         var report = new
         {
             Metadata = new { Framework = fresh.Name, Runtime = RuntimeInformation.FrameworkDescription, Os = RuntimeInformation.OSDescription,
                 Machine = Environment.MachineName, Date = DateTimeOffset.Now, TieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
                 TargetTickRate = 60, BudgetMs = 1000.0 / 60, options.Ticks, options.WarmupTicks, Realtime = options.Realtime,
                 SimulatedSeconds = options.Ticks / 60.0, WallSeconds = elapsed, Options = options.Config, options.Preset,
-                TimingScope = "Step includes all systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
+                SyntheticChurn = new { OpsPerTick = options.SyntheticChurnOpsPerTick, PoolSize = SyntheticChurnStore.PoolSize,
+                    Operations = syntheticCounts.Sum(x => (long)x.Ops), Adds = syntheticCounts.Sum(x => (long)x.Adds),
+                    Removes = syntheticCounts.Sum(x => (long)x.Removes), Timing = Stats(syntheticChurnMs),
+                    Scope = "fixed pre-Step hook included in outer tick timer; excluded from Battle.LastTickMs and stage timings; pool setup excluded" },
+                TimingScope = "Outer tickMs includes the fixed pre-Step synthetic churn hook and Battle.Step systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
                 HudTimingScope = "Battle.LastTickMs as displayed by desktop HUD; consecutive 600-tick windows, excluding outer call timer overhead",
                 MemoryScope = "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
                 Collision = "circle-kernel-v1; homogeneous disk ships; relative-motion analytic disk/rectangle projectile CCD",
@@ -184,15 +235,20 @@ internal static class Runner
             GcCollections = Enumerable.Range(0, 3).Select(g => GC.CollectionCount(g) - initialCollections[g]).ToArray(),
             Stages = Battle<T>.StageNames.Select((name, i) => new { Name = name, Timing = Stats(stages[i]) }).ToArray(),
             HudTiming = Stats(hudTiming), HudWindows = hudWindows,
-            Windows = windows, Checkpoints = checkpoints, Counters = battle.Counters.Copy(), Tactics = battle.Tactics, Checksum = battle.Checksum().ToString("X16")
+            InitialWindow = initialWindow,
+            OpeningPhases = new { First600 = OpeningSummary(Math.Min(600, options.Ticks)), First2000 = OpeningSummary(Math.Min(2000, options.Ticks)),
+                RemainderAfter2000 = options.Ticks > 2000 ? RemainderSummary() : null },
+            Windows = windows, Checkpoints = checkpoints,
+            Counters = battle.Counters.Copy(), Tactics = battle.Tactics, Checksum = battle.Checksum().ToString("X16")
         };
         File.WriteAllText(options.Output, JsonSerializer.Serialize(report, JsonOptions));
         using var csv = new StreamWriter(csvPath);
-        csv.WriteLine("tick,simulationSeconds,tickMs,allocatedBytes,gen0,gen1,gen2,ships,projectiles,debris,particles,adds,removes,turrets,hudMs," + string.Join(',', Battle<T>.StageNames));
+        csv.WriteLine("tick,simulationSeconds,tickMs,allocatedBytes,gen0,gen1,gen2,ships,projectiles,debris,particles,adds,removes,turrets,hudMs,syntheticOps,syntheticAdds,syntheticRemoves,syntheticChurnMs," + string.Join(',', Battle<T>.StageNames));
         for (var i = 0; i < options.Ticks; i++)
         {
             var c = entityCounts[i]; var s = structuralCounts[i]; var g = collections[i];
-            csv.WriteLine($"{i + 1},{(i + 1) / 60.0:R},{timing[i]:R},{allocation[i]},{g.Gen0},{g.Gen1},{g.Gen2},{c.Ships},{c.Projectiles},{c.Debris},{c.Particles},{s.Adds},{s.Removes},{c.Turrets},{hudTiming[i]:R}," + string.Join(',', stages.Select(stage => stage[i].ToString("R", CultureInfo.InvariantCulture))));
+            var churn = syntheticCounts[i];
+            csv.WriteLine($"{i + 1},{(i + 1) / 60.0:R},{timing[i]:R},{allocation[i]},{g.Gen0},{g.Gen1},{g.Gen2},{c.Ships},{c.Projectiles},{c.Debris},{c.Particles},{s.Adds},{s.Removes},{c.Turrets},{hudTiming[i]:R},{churn.Ops},{churn.Adds},{churn.Removes},{syntheticChurnMs[i].ToString("R", CultureInfo.InvariantCulture)}," + string.Join(',', stages.Select(stage => stage[i].ToString("R", CultureInfo.InvariantCulture))));
         }
         Console.WriteLine($"Wrote {options.Output} and {csvPath}");
     }
@@ -206,4 +262,89 @@ internal static class Runner
             Percentile(0.5), Percentile(0.95), Percentile(0.99), sorted[^1], misses, misses * 100.0 / sorted.Length);
     }
     public sealed record TickStats(double MeanMs, double StddevMs, double MedianMs, double P95Ms, double P99Ms, double MaxMs, int BudgetMisses, double BudgetMissPercent);
+}
+
+// A fixed set of entities used only by the headless benchmark. They carry only
+// Lifetime, which no gameplay query processes, so transitions cannot affect combat.
+internal sealed class SyntheticChurnStore(IEcsStore inner) : IEcsStore
+{
+    public const int PoolSize = 32;
+    private readonly EntityKey[] pool = new EntityKey[PoolSize];
+    private readonly bool[] lifetimePresent = new bool[PoolSize];
+    private bool initialized;
+    private bool stepping;
+    private bool applied;
+    private int opsPerTick;
+    private int cursor;
+    private int adds;
+    private int removes;
+    public double LastChurnMs { get; private set; }
+
+    public string Name => inner.Name;
+    public void InitializePool()
+    {
+        if (initialized) return;
+        for (var i = 0; i < pool.Length; i++) pool[i] = inner.Create();
+        inner.Commit();
+        initialized = true;
+    }
+
+    public void BeginStep(int operations)
+    {
+        if (!initialized) throw new InvalidOperationException("Synthetic churn pool is not initialized.");
+        if (stepping) throw new InvalidOperationException("Synthetic churn step is already active.");
+        if (operations is < 0 or > PoolSize) throw new ArgumentOutOfRangeException(nameof(operations));
+        stepping = true; applied = false; opsPerTick = operations; adds = 0; removes = 0;
+    }
+
+    public double ApplyForStep()
+    {
+        if (!stepping) throw new InvalidOperationException("Synthetic churn step is not active.");
+        if (applied) throw new InvalidOperationException("Synthetic churn was already applied for this step.");
+        applied = true;
+        if (opsPerTick == 0) { LastChurnMs = 0; return 0; }
+        var start = Stopwatch.GetTimestamp();
+        for (var i = 0; i < opsPerTick; i++)
+        {
+            var slot = cursor++ % PoolSize;
+            if (lifetimePresent[slot])
+            {
+                inner.Remove<Lifetime>(pool[slot]);
+                lifetimePresent[slot] = false;
+                removes++;
+            }
+            else
+            {
+                inner.Set(pool[slot], new Lifetime { EndTick = int.MaxValue });
+                lifetimePresent[slot] = true;
+                adds++;
+            }
+        }
+        inner.Commit();
+        LastChurnMs = (Stopwatch.GetTimestamp() - start) * 1000.0 / Stopwatch.Frequency;
+        return LastChurnMs;
+    }
+
+    public (int Ops, int Adds, int Removes) EndStep()
+    {
+        if (!stepping) throw new InvalidOperationException("Synthetic churn step is not active.");
+        if (!applied) throw new InvalidOperationException("Synthetic churn was not applied for this step.");
+        stepping = false;
+        return (adds + removes, adds, removes);
+    }
+
+    public EntityKey Create() => inner.Create();
+    public void Destroy(EntityKey entity) => inner.Destroy(entity);
+    public bool Alive(EntityKey entity) => inner.Alive(entity);
+    public ref T Get<T>(EntityKey entity) where T : unmanaged => ref inner.Get<T>(entity);
+    public bool Has<T>(EntityKey entity) where T : unmanaged => inner.Has<T>(entity);
+    public void Set<T>(EntityKey entity, in T value) where T : unmanaged => inner.Set(entity, value);
+    public void Remove<T>(EntityKey entity) where T : unmanaged => inner.Remove<T>(entity);
+    public void Commit() => inner.Commit();
+    public void ForEach<T, P>(ref P processor) where T : unmanaged where P : struct, IProcessor<T> => inner.ForEach<T, P>(ref processor);
+    public void ForEach<T1, T2, P>(ref P processor) where T1 : unmanaged where T2 : unmanaged where P : struct, IProcessor<T1, T2> => inner.ForEach<T1, T2, P>(ref processor);
+    public void ForEach<T1, T2, T3, P>(ref P processor) where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where P : struct, IProcessor<T1, T2, T3> => inner.ForEach<T1, T2, T3, P>(ref processor);
+    public void ForEachComponents<T1, T2, T3, P>(ref P processor) where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where P : struct, IComponentProcessor<T1, T2, T3> => inner.ForEachComponents<T1, T2, T3, P>(ref processor);
+    public StoreDiagnostics Diagnostics() => inner.Diagnostics();
+    public void Dispose() => inner.Dispose();
 }

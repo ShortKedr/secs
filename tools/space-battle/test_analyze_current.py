@@ -35,6 +35,67 @@ def sample_run(preset=None, mean=1, hud=False):
 
 
 class CurrentCampaignTests(unittest.TestCase):
+    def test_format2_requires_exact_primary_and_churn_profiles(self):
+        manifest = {"Workload": {"Preset": "game", "Seed": 7331, "ShipsPerTeam": 96,
+                                  "GameplayChurnMultiplier": 2},
+                    "Profiles": [{"Name": name, "Primary": name == "high",
+                                  "SyntheticChurnOpsPerTick": rate,
+                                  "FrameworkOrder": list(report.V2_FRAMEWORK_ORDER[name])}
+                                 for name, rate in report.V2_PROFILES.items()]}
+        self.assertEqual(tuple(report.validate_v2_profiles(manifest)), tuple(report.V2_PROFILES))
+        manifest["Profiles"][1]["SyntheticChurnOpsPerTick"] = 2
+        with self.assertRaisesRegex(ValueError, "synthetic churn rate"):
+            report.validate_v2_profiles(manifest)
+
+    def test_format2_synthetic_metadata_checks_expected_count_and_scope(self):
+        metadata = {"OpsPerTick": 4, "PoolSize": 32, "Operations": 4 * report.TICKS,
+                    "Adds": 2 * report.TICKS, "Removes": 2 * report.TICKS,
+                    "Scope": "fixed pre-Step hook included in outer tick timer; excluded from Battle.LastTickMs and stage timings; pool setup excluded",
+                    "Timing": summary()}
+        report.validate_synthetic_metadata(metadata, 4, "sample")
+        metadata["Operations"] -= 1
+        with self.assertRaisesRegex(ValueError, "totals mismatch"):
+            report.validate_synthetic_metadata(metadata, 4, "sample")
+        metadata["Operations"] += 1
+        metadata["Adds"] += 33
+        metadata["Removes"] -= 33
+        with self.assertRaisesRegex(ValueError, "totals mismatch"):
+            report.validate_synthetic_metadata(metadata, 4, "sample")
+
+    def test_format2_report_localizes_sections_and_compares_cumulative_windows_to_remainder(self):
+        runs = {}
+        for profile in report.V2_PROFILES:
+            for framework in report.FRAMEWORKS:
+                stages = [{"Name": name, "Timing": summary(.2)} for name in report.STAGE_NAMES]
+                phase = {"Timing": summary(1), "Stages": stages}
+                opening = {"First600": phase, "First2000": phase,
+                           "RemainderAfter2000": phase}
+                runs[profile, framework] = {
+                    "Metadata": {"Runtime": "test runtime", "Os": "test OS",
+                                 "SyntheticChurn": {"Timing": summary(.01)}},
+                    "Timing": summary(1), "HudTiming": summary(1), "Stages": stages, "OpeningPhases": opening,
+                    "Provenance": {"Sources": {"StaticEcs": "a" * 40, "StaticPack": "b" * 40}},
+                    "HudWindows": [{"Timing": summary(.5), "MeanShips": 1}],
+                    "InitialWindow": {"Timing": summary(1)},
+                    "Windows": [{"Ships": 1, "Turrets": 2}],
+                    "Counters": {"Shots": 1, "Hits": 1, "ShipsCreated": 1, "ShipsDestroyed": 0},
+                    "Checksum": "A" * 16, "AllocatedBytes": 0,
+                }
+        manifest = {"StartedAt": "start", "FinishedAt": "finish", "SourceRevision": "f" * 40}
+        hardware = {"Cpu": {"Name": "test CPU"}, "TotalPhysicalMemoryBytes": 1024**3}
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
+            root = Path(directory)
+            data = root / "current"
+            data.mkdir()
+            with patch.object(report, "DOCS", root):
+                report.render_format2(runs, manifest, hardware, data, True)
+            english = (root / "REPORT.md").read_text(encoding="utf-8")
+            russian = (root / "REPORT.ru.md").read_text(encoding="utf-8")
+            self.assertIn("Cumulative outer mean 1–600", english)
+            self.assertIn("Remainder outer mean 2,001–108,000", english)
+            self.assertIn("## Совпадение игрового состояния", russian)
+            self.assertIn("## Стадии SECS: начало, остаток и полный прогон", russian)
+            self.assertTrue((data / "summary.csv").exists())
     def test_campaign_preset_is_known_and_matches_requested_input(self):
         with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
             path = Path(directory)

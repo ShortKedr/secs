@@ -1,5 +1,7 @@
 English | [Русский](GAME_REPORT.ru.md)
 
+> Historical campaign from 2026-10-14. These low/nominal/high profiles changed combat rules through `ChurnMultiplier`; they are not controlled ECS churn measurements. The [current high benchmark](REPORT.md) holds combat rules fixed. Reproduce this historical method from commit `d5269ea`, since the current suite uses a different workload.
+
 # Space Battle benchmarks — game preset
 
 Preset: `game`.
