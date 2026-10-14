@@ -1,0 +1,145 @@
+name: SECS library CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build, test, pack, .NET 8 and 10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Read the single project version
+        id: version
+        run: |
+          version=$(dotnet msbuild SECS/SECS.csproj -getProperty:Version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Restore and build every library target
+        run: |
+          dotnet restore SECS/SECS.csproj
+          dotnet build SECS/SECS.csproj -c Release --no-restore
+      - name: Run SECS tests
+        run: dotnet test SECS.Tests/SECS.Tests.csproj -c Release --logger "trx;LogFileName=secs-tests.trx" --results-directory artifacts/release/tests
+      - name: Pack the exact source commit
+        run: dotnet pack SECS/SECS.csproj -c Release --no-build -o artifacts/release -p:RepositoryCommit="$GITHUB_SHA"
+      - name: Verify package metadata and content
+        run: >-
+          python tools/release/verify_package.py
+          artifacts/release/ShortKedr.SECS.${{ steps.version.outputs.version }}.nupkg
+          --version "${{ steps.version.outputs.version }}" --commit "$GITHUB_SHA"
+      - name: Build and inspect the Unity archive
+        run: >-
+          python tools/release/make_unity_zip.py
+          --package artifacts/release/ShortKedr.SECS.${{ steps.version.outputs.version }}.nupkg
+          --output artifacts/release/SECS.Unity.${{ steps.version.outputs.version }}.zip
+          --version "${{ steps.version.outputs.version }}" --commit "$GITHUB_SHA"
+      - name: Verify Unity ZIP bytes and manifest
+        run: >-
+          python tools/release/verify_unity_zip.py
+          --package artifacts/release/ShortKedr.SECS.${{ steps.version.outputs.version }}.nupkg
+          --unity-zip artifacts/release/SECS.Unity.${{ steps.version.outputs.version }}.zip
+          --version "${{ steps.version.outputs.version }}" --commit "$GITHUB_SHA"
+      - name: Run package-backed .NET 8 consumer
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-DotNetSmoke.ps1 -PackageDirectory artifacts/release -Framework net8.0 -Version "${{ steps.version.outputs.version }}"
+      - name: Run package-backed .NET 10 consumer
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-DotNetSmoke.ps1 -PackageDirectory artifacts/release -Framework net10.0 -Version "${{ steps.version.outputs.version }}"
+      - name: Check bilingual documentation
+        run: python tools/check_docs.py
+      - name: Retain package, Unity archive and test log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: secs-build-${{ github.run_id }}
+          path: artifacts/release/
+          if-no-files-found: warn
+          retention-days: 14
+
+  framework:
+    name: .NET Framework 4.8 consumer
+    needs: package
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@v8
+        with:
+          name: secs-build-${{ github.run_id }}
+          path: artifacts/release
+      - name: Run package-backed .NET Framework application
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-DotNetSmoke.ps1 -PackageDirectory artifacts/release -Framework net48 -Version "${{ needs.package.outputs.version }}"
+  godot:
+    name: Godot 4.5 .NET desktop consumer
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/download-artifact@v8
+        with:
+          name: secs-build-${{ github.run_id }}
+          path: artifacts/release
+      - name: Install pinned Godot 4.5 .NET editor
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 --output godot.zip \
+            https://github.com/godotengine/godot-builds/releases/download/4.5-stable/Godot_v4.5-stable_mono_linux_x86_64.zip
+          # SHA-512 from godotengine/godot-builds/releases/godot-4.5-stable.json.
+          echo '8cbfc3f8ef2e346aac72df3a0f71f4a7b05df575cbd8e0930aad7dc6a7ad79b3e27395184674a3718c376f49011a40689966bf243638d8e7efef4693dd3b276b  godot.zip' | sha512sum --check
+          mkdir -p artifacts/release/godot
+          unzip -q godot.zip -d artifacts/release/godot
+          GODOT_BIN=$(find artifacts/release/godot -type f -name 'Godot_v4.5-stable_mono_linux.x86_64' -print -quit)
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --version | tee artifacts/release/godot-version.txt
+          grep -q '^4\.5\.' artifacts/release/godot-version.txt
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+      - name: Run package-backed Godot scene
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-GodotSmoke.ps1 -PackageDirectory artifacts/release -GodotExecutable "$env:GODOT_BIN" -Version "${{ needs.package.outputs.version }}"
+  verified:
+    name: SECS hosted checks
+    needs: [package, framework, godot]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every runtime and packaging check
+        env:
+          PACKAGE: ${{ needs.package.result }}
+          FRAMEWORK: ${{ needs.framework.result }}
+          GODOT: ${{ needs.godot.result }}
+        run: |
+          for result in "$PACKAGE" "$FRAMEWORK" "$GODOT"; do
+            test "$result" = success || { echo "SECS hosted checks are incomplete: $PACKAGE $FRAMEWORK $GODOT"; exit 1; }
+          done
+          echo 'SECS package, .NET, Framework and Godot hosted checks passed.'
