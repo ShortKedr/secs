@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "purpose": "Illustrative recorded gameplay, not current-HEAD benchmark evidence",
+  "format": {
+    "container": "mp4",
+    "video": "h264",
+    "pixelFormat": "yuv420p",
+    "width": 1920,
+    "height": 1080,
+    "fps": 60,
+    "audio": "aac",
+    "sampleRate": 48000,
+    "channels": 2,
+    "silent": true
+  },
+  "clips": [
+    {
+      "file": "01-squad-attack.mp4",
+      "poster": "01-squad-attack.png",
+      "type": "group",
+      "profile": "nominal",
+      "seed": 7331,
+      "ticks": [
+        952,
+        1287
+      ],
+      "events": [
+        {
+          "tick": 1107,
+          "seconds": 2.5833333333333335
+        }
+      ],
+      "durationSeconds": 5.6,
+      "frames": 336,
+      "bytes": 5039281,
+      "sha256": "fee929b942f933dceed2a9ec6097ee58e8deaed9a728bcf3b007a22e3417dcc6",
+      "posterSha256": "d1e0196a38303a60444c72d545858ccf771c828998348f7ecaf2d276de36fed4",
+      "browserVersion": "151.0.7922.34",
+      "camera": "group-cinema-v2",
+      "presentationSpeed": "1x",
+      "recordingBuild": {
+        "sourceFingerprint": "1606542cced1bdc1443f6a0ef1a7a2c65431b454b319effc999fcaedb727e88c",
+        "productionSiteFingerprint": "794cc0c011e2608369777e23cc172465e32c4e1e96be2d1ba5f69eb9a929d039",
+        "wasmSha256": "4f2cc0b224f929d82d3ccb83e6b3675c1a5af82669b77030ed0b4e9230698227"
+      },
+      "simulationModified": false,
+      "fullAudioVideoDecode": "PASS"
+    },
+    {
+      "file": "02-heavy-hit.mp4",
+      "poster": "02-heavy-hit.png",
+      "type": "heavy",
+      "profile": "high",
+      "seed": 7331,
+      "ticks": [
+        1304,
+        1814
+      ],
+      "events": [
+        {
+          "tick": 1574,
+          "seconds": 6.7
+        }
+      ],
+      "durationSeconds": 11.333333333333334,
+      "frames": 680,
+      "bytes": 6174035,
+      "sha256": "99bab5b1a85ff670bb4bae367d2b595829f9031c38b52dfbf7501064da21707d",
+      "posterSha256": "50eb121672ac87029d98a87168a0cb6a0bc55905628d437763df48d9e2e40ca9",
+      "browserVersion": "151.0.7922.34",
+      "camera": "original-showcase",
+      "presentationSpeed": "0.5x presentation, duplicate each exact simulation frame twice around flight/impact",
+      "recordingBuild": {
+        "sourceCommit": "6bb0efbccc972ddfd6aa5f3293b91f47ed666f8b",
+        "wasmSha256": "9b198decb2d9a3270e6718b341dd61cd39781c9336ca1d683f22d4bfb1653379"
+      },
+      "simulationModified": false,
+      "fullAudioVideoDecode": "PASS"
+    },
+    {
+      "file": "03-heavy-closeup.mp4",
+      "poster": "03-heavy-closeup.png",
+      "type": "heavy-closeup",
+      "profile": "high",
+      "seed": 7331,
+      "ticks": [
+        1538,
+        1664
+      ],
+      "events": [
+        {
+          "tick": 1574,
+          "seconds": 1.2
+        }
+      ],
+      "durationSeconds": 3.3333333333333335,
+      "frames": 200,
+      "bytes": 1604803,
+      "sha256": "920bf96556c89778b3f86274a0f2e60471aeb1ffa96878035fe2dbae2cbc41b2",
+      "posterSha256": "77e67f5b60f4029a148384dea1449c039f7275ed1246ff8fac2943be850bd7b1",
+      "browserVersion": "151.0.7922.34",
+      "camera": "original-showcase",
+      "presentationSpeed": "0.5x presentation, duplicate each exact simulation frame twice around flight/impact",
+      "recordingBuild": {
+        "sourceCommit": "6bb0efbccc972ddfd6aa5f3293b91f47ed666f8b",
+        "wasmSha256": "9b198decb2d9a3270e6718b341dd61cd39781c9336ca1d683f22d4bfb1653379"
+      },
+      "simulationModified": false,
+      "fullAudioVideoDecode": "PASS"
+    },
+    {
+      "file": "04-warp-battle.mp4",
+      "poster": "04-warp-battle.png",
+      "type": "warp",
+      "profile": "high",
+      "seed": 7331,
+      "ticks": [
+        270,
+        1500
+      ],
+      "events": [
+        {
+          "tick": 450,
+          "seconds": 3
+        }
+      ],
+      "durationSeconds": 20.516666666666666,
+      "frames": 1231,
+      "bytes": 13755265,
+      "sha256": "7cd5ca1b1b94283ec946fed5e8cfeee5e5705cea9ebdabb686947a280f0eeeee",
+      "posterSha256": "d1e4b6b3578dc4fd7ef8ad37430d608dce2cce629ea91a562b8ec7927b38dd03",
+      "browserVersion": "151.0.7922.34",
+      "camera": "original-showcase",
+      "presentationSpeed": "1x",
+      "recordingBuild": {
+        "sourceCommit": "6bb0efbccc972ddfd6aa5f3293b91f47ed666f8b",
+        "wasmSha256": "9b198decb2d9a3270e6718b341dd61cd39781c9336ca1d683f22d4bfb1653379"
+      },
+      "simulationModified": false,
+      "fullAudioVideoDecode": "PASS"
+    }
+  ]
+}

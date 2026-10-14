@@ -1,5 +1,7 @@
 [English](README.md) | Русский
 
+**[Промо Space Battle: четыре записанных ролика](docs/promo/space-battle/README.ru.md)**
+
 <p align="center">
   <img src="docs/branding/logo/shortkedr-ecs-200.png" width="200" height="200" alt="ShortKedr ECS — белка и кедровая шишка">
 </p>

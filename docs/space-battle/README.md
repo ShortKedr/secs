@@ -1,5 +1,7 @@
 English | [Русский](README.ru.md)
 
+**[Watch four promo clips](../promo/space-battle/README.md)**
+
 # SpaceBattle
 
 SpaceBattle is an AI fleet battle and a realistic ECS comparison workload. Desktop and browser clients share the C# simulation; the headless runner can use SECS, LeoECS Lite, LeoECS Classic, Morpeh or StaticEcs.

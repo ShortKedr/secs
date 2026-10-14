@@ -1,5 +1,7 @@
 English | [Русский](README.ru.md)
 
+**[Space Battle promo: four recorded clips](docs/promo/space-battle/README.md)**
+
 <p align="center">
   <img src="docs/branding/logo/shortkedr-ecs-200.png" width="200" height="200" alt="ShortKedr ECS — squirrel and cedar cone emblem">
 </p>

@@ -1,5 +1,7 @@
 [English](README.md) | Русский
 
+**[Посмотреть четыре промо-ролика](../promo/space-battle/README.ru.md)**
+
 # SpaceBattle
 
 SpaceBattle — бой флотов под управлением ИИ и реалистичная нагрузка для сравнения ECS. Desktop и браузер используют общую C#-симуляцию; headless запускает её на SECS, LeoECS Lite, LeoECS Classic, Morpeh или StaticEcs.
