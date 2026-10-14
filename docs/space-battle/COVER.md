@@ -11,6 +11,14 @@ not the frozen measured run, a benchmark, or evidence of realtime performance.
 Historical `action.png` and `action.png.json`, their hash inventory, parity
 records and all measurement files remain unchanged.
 
+The saved pair was refreshed on 2026-10-14 from a clean local checkout of
+`43316769acfcfa00a5307dd79490ef07e2f07ee6` using Chromium `151.0.7922.34`.
+The capture recorded `SourceDirty=false`, tick 180, 180 on-screen ships and
+722 projectiles; battle checksum `79B277702009BA08`. The validator checked
+the loaded files against the served AOT build, including the build identity,
+atlas manifest and six generated textures. This verifies the local capture;
+it does not verify a remote workflow or deployment.
+
 ## Configuration And Local Capture
 
 The authoritative parameters live in [cover-settings.json](cover-settings.json),
