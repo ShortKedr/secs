@@ -10,15 +10,15 @@ The current headless simulation was measured with five ECS implementations: SECS
 
 ## Framework revisions used
 
-Third-party rows show exact upstream commits, not guessed release numbers. The SECS row shows the campaign's repository revision; the manifest also records measured source hashes. Third-party commits are recorded in the result JSON files.
+Third-party rows show exact upstream commits. A release version is shown only when its upstream tag points to that commit. StaticEcs has no matching upstream tag; its vendored `package.json` declares a package version instead. The SECS row shows the campaign's repository revision; the manifest also records measured source hashes. Third-party commits are recorded in the result JSON files.
 
-| Framework | Source revision |
-| --- | --- |
-| SECS | `bde83f13f03a5770c03fda135e3445cb0e45b192` |
-| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` |
-| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` |
-| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` |
-| StaticEcs | `6323d710c22cfff70100fe3748de432cb5fc70c8` |
+| Framework | Source revision | Version at revision |
+| --- | --- | --- |
+| SECS | `bde83f13f03a5770c03fda135e3445cb0e45b192` | — |
+| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` | [2024.5.22](https://github.com/Leopotam/ecslite/releases/tag/2024.5.22) |
+| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` | [2023.6.22](https://github.com/Leopotam/ecs/releases/tag/2023.6.22) |
+| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` | [2024.1.1](https://github.com/scellecs/morpeh/releases/tag/2024.1.1) |
+| StaticEcs | `6323d710c22cfff70100fe3748de432cb5fc70c8` | [1.2.01](https://github.com/Felid-Force-Studios/StaticEcs/blob/6323d710c22cfff70100fe3748de432cb5fc70c8/package.json) (package metadata; no matching tag) |
 
 **Validation passed:** 15 cases, 1,620,000 measured ticks. Within each profile all 30 checkpoints, final checksums, gameplay and tactical counters, and per-minute entity counts match.
 
