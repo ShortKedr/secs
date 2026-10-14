@@ -402,7 +402,12 @@ class CoverTests(unittest.TestCase):
 
     def test_workflow_publication_is_guarded_and_narrow(self):
         workflow = (cover.ROOT / ".github/workflows/space-battle-cover.yml").read_text()
-        self.assertRegex(workflow, r"push:\s+branches: \[main\]")
+        self.assertRegex(workflow, r"schedule:\s+- cron: \"17 4 \* \* \*\"")
+        self.assertNotRegex(workflow, r"(?m)^  push:")
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("needs.changes.outputs.refresh == 'true'", workflow)
+        self.assertIn("git diff-tree --quiet -r \"$captured_commit\" HEAD --", workflow)
+        self.assertIn("docs/space-battle/cover-settings.json", workflow)
         self.assertIn("-p test_cover.py", workflow)
         self.assertIn("wasm-tools", workflow)
         self.assertIn("build-space-battle-web.ps1", workflow)

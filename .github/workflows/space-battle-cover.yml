@@ -1,8 +1,8 @@
 name: Space Battle Cover
 
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "17 4 * * *"
   workflow_dispatch:
 
 permissions:
@@ -13,8 +13,49 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  capture:
+  changes:
     if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      refresh: ${{ steps.check.outputs.refresh }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check for changes affecting the cover
+        id: check
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "refresh=true" >> "$GITHUB_OUTPUT"
+            echo "Manual cover refresh requested." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          captured_commit=$(python3 -c 'import json; print(json.load(open("docs/space-battle/cover.png.json"))["SourceCommit"])')
+          if [[ ! "$captured_commit" =~ ^([0-9a-f]{40}|[0-9a-f]{64})$ ]] ||
+             ! git merge-base --is-ancestor "$captured_commit" HEAD; then
+            echo "refresh=true" >> "$GITHUB_OUTPUT"
+            echo "Cover provenance is unavailable; refreshing it." >> "$GITHUB_STEP_SUMMARY"
+          elif git diff-tree --quiet -r "$captured_commit" HEAD -- \
+            SpaceBattle.Web/ SpaceBattle.Core/ SpaceBattle.SECS/ SECS/ \
+            SpaceBattle.Game/Assets/ tools/build-space-battle-web.ps1 \
+            tools/web/ tools/space-battle/cover.py \
+            tools/space-battle/cover-requirements.txt \
+            docs/space-battle/cover-settings.json \
+            .github/workflows/space-battle-cover.yml LICENSE; then
+            echo "refresh=false" >> "$GITHUB_OUTPUT"
+            echo "No cover-affecting changes since $captured_commit; skipping capture." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "refresh=true" >> "$GITHUB_OUTPUT"
+            echo "Cover-affecting changes found since $captured_commit." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  capture:
+    needs: changes
+    if: needs.changes.outputs.refresh == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -87,7 +128,7 @@ jobs:
         with:
           name: space-battle-cover
           path: Benchmarks.Local/tmp/space-battle-cover
-      - name: Validate the downloaded image against this push
+      - name: Validate the downloaded image against this source commit
         run: |
           python tools/space-battle/cover.py validate \
             --directory Benchmarks.Local/tmp/space-battle-cover --source-commit "$GITHUB_SHA"
@@ -112,4 +153,4 @@ jobs:
             echo "::error::Cover publication rejected. Check contents:write policy, main branch protection, or a newer push. The validated capture remains in the workflow artifact."
             exit 1
           fi
-          echo "Updated cover for source $GITHUB_SHA. GITHUB_TOKEN does not trigger another push workflow." >> "$GITHUB_STEP_SUMMARY"
+          echo "Updated cover for source $GITHUB_SHA. GITHUB_TOKEN does not trigger push workflows." >> "$GITHUB_STEP_SUMMARY"

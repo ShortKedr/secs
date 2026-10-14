@@ -61,8 +61,12 @@ Capture writes into `Benchmarks.Local/tmp/space-battle-cover`, not the documents
 
 ## Validation And Publication
 
-The [workflow](../../.github/workflows/space-battle-cover.yml) contract is a push
-to `main` or `workflow_dispatch` on `main`. It builds and captures the actual
+The [workflow](../../.github/workflows/space-battle-cover.yml) checks the default
+branch daily at 04:17 UTC. It captures only when the web frontend, simulation,
+shared assets, build or capture tooling, cover settings, or workflow have changed
+since the `SourceCommit` recorded in the current cover manifest. Cover-only bot
+commits and unrelated documentation changes do not start a capture. Manual
+`workflow_dispatch` on `main` forces a refresh. It builds and captures the actual
 source commit using the real C# simulation and Canvas renderer of the AOT build.
 It serves that build on loopback, not a potentially older live Pages deployment.
 Native OpenGL, Xvfb and Mesa capture are no longer required. Chromium runs at
@@ -98,7 +102,7 @@ recursively run this workflow. Branch protection or repository
 `contents: write` policy can block publication; the captured pair remains
 available as a workflow artifact when publication fails.
 
-Overlapping runs are superseded by the latest push. Before publication, the job
+Overlapping runs are superseded by the latest run. Before publication, the job
 checks that `main` still points to the simulated commit; it skips a stale result.
 The final push is fast-forward only, so a racing source push is never overwritten.
 GitHub documents the [GITHUB_TOKEN recursion safeguard](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
