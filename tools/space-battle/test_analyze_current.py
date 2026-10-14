@@ -154,11 +154,34 @@ class CurrentCampaignTests(unittest.TestCase):
             russian = (root / "GAME_REPORT.ru.md").read_text(encoding="utf-8")
             self.assertIn("[Русский](GAME_REPORT.ru.md)", english)
             self.assertIn("[English](GAME_REPORT.md)", russian)
+            self.assertIn("# Space Battle benchmarks — game preset", english)
+            self.assertIn("# Бенчмарки Space Battle — игровой preset", russian)
+            self.assertIn("Other workload: [finite battle](REPORT.md).", english)
+            self.assertIn("Другой режим: [конечный бой](REPORT.ru.md).", russian)
+            self.assertNotIn("](GAME_REPORT.md)", english.split("Other workload:", 1)[1])
             self.assertIn("Total Step s", english)
             self.assertEqual(english.count("| Total Step |"), 3)
             self.assertIn("Game preset: LightSwarm", english)
             self.assertIn("--data-dir docs/space-battle/game-current --preset game --report-base GAME_REPORT", english)
             self.assertIn("worst / 1–600", english)
+
+    def test_finite_report_links_only_to_the_game_preset(self):
+        runs = {(p, f): sample_run("benchmark") for p in report.PROFILES for f in report.FRAMEWORKS}
+        manifest = {"Preset": "benchmark", "StartedAt": "start", "FinishedAt": "finish", "SourceRevision": "test"}
+        hardware = {"Cpu": {"Name": "test CPU"}, "TotalPhysicalMemoryBytes": 1024**3}
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
+            root = Path(directory)
+            data = root / "current"
+            data.mkdir()
+            with patch.object(report, "DOCS", root):
+                report.render(runs, manifest, hardware, data, False)
+            english = (root / "REPORT.md").read_text(encoding="utf-8")
+            russian = (root / "REPORT.ru.md").read_text(encoding="utf-8")
+            self.assertIn("# Space Battle benchmarks — finite battle", english)
+            self.assertIn("# Бенчмарки Space Battle — конечный бой", russian)
+            self.assertIn("Other workload: [game defaults](GAME_REPORT.md).", english)
+            self.assertIn("Другой режим: [настройки игры](GAME_REPORT.ru.md).", russian)
+            self.assertNotIn("](REPORT.md)", english.split("Other workload:", 1)[1])
 
     def test_recomputes_quantiles_and_budget_misses(self):
         values = [0, 1, 2, 3, 20]

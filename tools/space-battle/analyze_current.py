@@ -414,7 +414,8 @@ def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
             absolute_thresholds=lambda row, column: policy.threshold(row[0], metric_keys[column]) if column in metric_keys else None,
             language=language, asset_path=asset_path)
         lines = [(f"[English]({report_base}.md) | Русский" if ru else f"English | [Русский]({report_base}.ru.md)"), "",
-                 "# " + ("Бенчмарки Space Battle" if ru else "Space Battle benchmarks"), "",
+                 "# " + (("Бенчмарки Space Battle — игровой preset" if preset == "game" else "Бенчмарки Space Battle — конечный бой") if ru else
+                         ("Space Battle benchmarks — game preset" if preset == "game" else "Space Battle benchmarks — finite battle")), "",
                  f"Preset: `{preset}`.", "",
                  ("Актуальная кампания: " if ru else "Current campaign: ") + f"{manifest['StartedAt']} — {manifest['FinishedAt']}.", "",
                  ("Измерена текущая headless-симуляция на пяти ECS: " if ru else "Measured the current headless simulation on five ECS: ") +
@@ -435,11 +436,13 @@ def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
                   "Step time includes gameplay systems, physics and structural commits. Rendering, setup, snapshots and telemetry serialization are excluded. The 16.67 ms budget is a simulation budget, not FPS. These are observations on this machine; one run per case does not establish a stable ranking or confidence interval. Allocations count managed bytes on the Step thread and exclude native storage."), "",
                  ("Квантили headless выбирают sorted[ceil((N−1)×p)]: это верхний наблюдаемый элемент для позиции p. Live HUD использует nearest rank ceil(N×p)−1; Mean от этого различия не зависит." if ru else
                   "Headless quantiles select sorted[ceil((N−1)×p)], the upper observed sample at position p. The live HUD uses nearest rank ceil(N×p)−1; Mean is unaffected by this convention."), "",
-                 ("Средние ~0.2 ms за весь headless-прогон и ~4 ms на desktop Release HUD имеют разные периоды усреднения. В конечном benchmark-бою поздние тики могут обрабатывать мало живых сущностей и снижать среднее за 30 минут; HUD показывает текущую фазу. Настройки game меняют состав, расстановку и подкрепления. Окна ниже используют внутренний Battle.LastTickMs, как HUD, и раскрывают краткие фазы и их численность. Даже при одинаковых параметрах headless не измеряет влияние desktop-рендеринга и его нагрузки на процесс; эти данные сами по себе не доказывают причину конкретного значения 4 ms." if ru else
-                  "A roughly 0.2 ms full headless-run mean and roughly 4 ms on the desktop Release HUD average different periods. In the finite benchmark battle, late ticks can process few live entities and lower the 30-minute mean; the HUD shows the current phase. Game settings change fleet composition, deployment and reinforcements. The windows below use internal Battle.LastTickMs, as the HUD does, and expose short phases and their counts. Even with matching settings, headless does not measure the effect of desktop rendering and its process load; these data alone do not establish the cause of a particular 4 ms observation."), "",
+                 ("Mean HUD усредняет последние до 600 тиков, тогда как общий headless Mean охватывает все 108 000 тиков после отдельного прогрева на 600 тиков. Конечный benchmark-бой может позднее обрабатывать мало живых сущностей и снижать среднее за 30 минут; игровой preset сохраняет подкрепления. Окна ниже используют внутренний Battle.LastTickMs, как HUD, и раскрывают краткие фазы и их численность. Сравнивайте результаты при одинаковых настройках боя, runtime, диапазоне тиков, прогреве и границах таймера: desktop-рендеринг и ожидание кадра в Battle.LastTickMs не входят, хотя могут влиять на нагрузку процесса." if ru else
+                  "HUD Mean averages the latest up to 600 ticks, while the full headless Mean covers all 108,000 ticks after a separate 600-tick warmup. The finite benchmark battle can later process few live entities and lower its 30-minute mean; the game preset keeps reinforcements active. The windows below use internal Battle.LastTickMs, as the HUD does, and expose short phases and their counts. Compare results only with matching battle settings, runtime, tick range, warmup and timer boundaries: desktop rendering and frame waiting are outside Battle.LastTickMs, though they can affect process load."), "",
                  *compact_legend(language, asset_path, f"../benchmarks/COLORS{suffix}.md"),
-                 (f"Другой режим: [конечный бой](REPORT{suffix}.md) / [настройки игры](GAME_REPORT{suffix}.md)." if ru else
-                  "Other workload: [finite battle](REPORT.md) / [game defaults](GAME_REPORT.md)."), "",
+                 ((f"Другой режим: [конечный бой](REPORT{suffix}.md)." if preset == "game" else
+                   f"Другой режим: [настройки игры](GAME_REPORT{suffix}.md).") if ru else
+                  ("Other workload: [finite battle](REPORT.md)." if preset == "game" else
+                   "Other workload: [game defaults](GAME_REPORT.md).")), "",
                  (f"[Профиль Release-клиента и первые тики HUD](DESKTOP_TIMING{suffix}.md) отдельно проверяют холодный старт, tiering и paced replay." if ru else
                   "The [Release client and initial HUD ticks](DESKTOP_TIMING.md) separately check cold startup, tiering and paced replay."), "",
                  "## " + ("Время тика" if ru else "Tick time"), "",
@@ -498,6 +501,8 @@ def main():
     parser.add_argument("--preset", choices=tuple(PRESETS), help="Expected input preset; legacy inputs mean benchmark")
     parser.add_argument("--report-base", help="Sibling report filename stem (default REPORT or GAME_REPORT)")
     parser.add_argument("--verify-ticks", action="store_true")
+    parser.add_argument("--skip-charts", action="store_true",
+                        help="Regenerate reports from saved results while preserving existing chart files")
     args = parser.parse_args()
     directory = args.directory.resolve()
     require(directory.is_relative_to(DOCS), "Published results must stay inside docs/space-battle")
@@ -505,9 +510,11 @@ def main():
         require(bool(args.report_base) and all(c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-" for c in args.report_base),
                 "Report base must be a simple filename stem")
     runs, manifest, hardware = validate(directory, args.verify_ticks, args.preset)
-    charts(runs, directory)
+    if not args.skip_charts:
+        charts(runs, directory)
     render(runs, manifest, hardware, directory, args.verify_ticks, args.report_base)
-    print(f"PASS: 15 {manifest.get('Preset', 'benchmark')} cases; 1,620,000 ticks; canonical port parity; wrote bilingual reports, charts and summary")
+    outputs = "bilingual reports and summary" if args.skip_charts else "bilingual reports, charts and summary"
+    print(f"PASS: 15 {manifest.get('Preset', 'benchmark')} cases; 1,620,000 ticks; canonical port parity; wrote {outputs}")
 
 
 if __name__ == "__main__":

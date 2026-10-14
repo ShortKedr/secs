@@ -1,6 +1,6 @@
 English | [Русский](GAME_REPORT.ru.md)
 
-# Space Battle benchmarks
+# Space Battle benchmarks — game preset
 
 Preset: `game`.
 
@@ -22,7 +22,7 @@ Step time includes gameplay systems, physics and structural commits. Rendering, 
 
 Headless quantiles select sorted[ceil((N−1)×p)], the upper observed sample at position p. The live HUD uses nearest rank ceil(N×p)−1; Mean is unaffected by this convention.
 
-A roughly 0.2 ms full headless-run mean and roughly 4 ms on the desktop Release HUD average different periods. In the finite benchmark battle, late ticks can process few live entities and lower the 30-minute mean; the HUD shows the current phase. Game settings change fleet composition, deployment and reinforcements. The windows below use internal Battle.LastTickMs, as the HUD does, and expose short phases and their counts. Even with matching settings, headless does not measure the effect of desktop rendering and its process load; these data alone do not establish the cause of a particular 4 ms observation.
+HUD Mean averages the latest up to 600 ticks, while the full headless Mean covers all 108,000 ticks after a separate 600-tick warmup. The finite benchmark battle can later process few live entities and lower its 30-minute mean; the game preset keeps reinforcements active. The windows below use internal Battle.LastTickMs, as the HUD does, and expose short phases and their counts. Compare results only with matching battle settings, runtime, tick range, warmup and timer boundaries: desktop rendering and frame waiting are outside Battle.LastTickMs, though they can affect process load.
 
 ### Colour scale
 
@@ -30,7 +30,7 @@ A roughly 0.2 ms full headless-run mean and roughly 4 ms on the desktop Release 
 
 Colour shows lag from the best value in a comparable group: green → yellow → red. Groups entirely within 5% are grey. Colour describes effect size, not statistical significance. [Comparison rules](../benchmarks/COLORS.md).
 
-Other workload: [finite battle](REPORT.md) / [game defaults](GAME_REPORT.md).
+Other workload: [finite battle](REPORT.md).
 
 The [Release client and initial HUD ticks](DESKTOP_TIMING.md) separately check cold startup, tiering and paced replay.
 
