@@ -1,0 +1,16 @@
+config_version=5
+
+[application]
+
+config/name="SECS Release Smoke"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.5", "C#", "GL Compatibility")
+
+[dotnet]
+
+project/assembly_name="SECSReleaseSmoke"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"

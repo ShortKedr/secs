@@ -19,7 +19,10 @@ public readonly struct Entity : System.IEquatable<Entity>
 
     public override bool Equals(object? obj) => obj is Entity other && Equals(other);
 
-    public override int GetHashCode() => System.HashCode.Combine(Id, Version);
+    public override int GetHashCode()
+    {
+        unchecked { return (Id * 397) ^ Version; }
+    }
 
     public override string ToString() => $"Entity({Id}:{Version})";
 

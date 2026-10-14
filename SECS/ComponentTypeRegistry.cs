@@ -22,7 +22,7 @@ internal sealed unsafe class ComponentTypeRegistry
         {
             var oldLength = _bySlot.Length;
             Array.Resize(ref _bySlot, Math.Max(slot + 1, oldLength * 2));
-            Array.Fill(_bySlot, -1, oldLength, _bySlot.Length - oldLength);
+            for (var i = oldLength; i < _bySlot.Length; i++) _bySlot[i] = -1;
         }
         var type = new ComponentType(
             _byId.Count,
@@ -44,7 +44,7 @@ internal sealed unsafe class ComponentTypeRegistry
     private static int[] CreateSlots(int count)
     {
         var slots = new int[count];
-        Array.Fill(slots, -1);
+        for (var i = 0; i < slots.Length; i++) slots[i] = -1;
         return slots;
     }
 

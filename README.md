@@ -8,7 +8,8 @@ English | [Русский](README.ru.md)
 
 # SECS — ShortKedr ECS
 
-A small entity-component-system (ECS) library for .NET 8. SECS groups entities
+A small entity-component-system (ECS) library with .NET Standard 2.0/2.1 and
+.NET 8 builds. SECS groups entities
 by their component types and stores unmanaged component data in chunks. Systems update
 that data through typed `ref` queries and run sequentially in `PreUpdate`,
 `Update`, and `PostUpdate`. The repository includes tests, benchmarks, and an
@@ -18,7 +19,7 @@ autonomous Space Battle sample.
 
 | Your goal | Where to go |
 | --- | --- |
-| Use the library | [Quickstart](#quickstart) · [API and lifetime rules](docs/secs/README.md) · [Sample source](SECS.Sample/Program.cs) |
+| Use the library | [Quickstart](#quickstart) · [Package installation](docs/secs/INSTALL.md) · [API and lifetime rules](docs/secs/README.md) · [Sample source](SECS.Sample/Program.cs) |
 | Work on SECS | [Implemented optimizations](docs/SECS_OPTIMIZATION.md) · [Development plans](docs/README.md#library-development) |
 | Read or reproduce measurements | [Microbenchmarks](SECS.Benchmarks/README.md) · [Five-framework comparison](Benchmarks.Local/README.md) · [Space Battle report](docs/space-battle/REPORT.md) |
 | Run the game | [Desktop](SpaceBattle.Game/README.md) · [Web](SpaceBattle.Web/README.md) |
@@ -63,6 +64,7 @@ Current unit tests and game checksums do not establish cross-platform or CPU/GPU
 parity. Benchmark results describe particular machines, revisions, and workloads;
 see each report for its method and limitations.
 
+[SECS release versioning](docs/secs/VERSIONING.md) ·
 [License: MIT for original project material](LICENSE) ·
 [Documentation map](docs/README.md) ·
 [Third-party licenses and pinned sources](THIRD_PARTY_NOTICES.md)

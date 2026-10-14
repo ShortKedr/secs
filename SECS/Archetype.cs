@@ -26,8 +26,11 @@ internal sealed unsafe class Archetype : IDisposable
         foreach (var type in componentTypes) maxTypeId = Math.Max(maxTypeId, type.Id);
         _columnByType = new int[maxTypeId + 1];
         _offsetByType = new int[maxTypeId + 1];
-        Array.Fill(_columnByType, -1);
-        Array.Fill(_offsetByType, -1);
+        for (var i = 0; i < _columnByType.Length; i++)
+        {
+            _columnByType[i] = -1;
+            _offsetByType[i] = -1;
+        }
         _offsets = new int[componentTypes.Length];
 
         var offset = 0;
@@ -193,6 +196,7 @@ internal sealed unsafe class Archetype : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CopyComponent(byte* source, byte* destination, int size)
     {
+#if NET8_0_OR_GREATER
         // Small columns are common in transitions; avoid a general-purpose memmove per field.
         switch (size)
         {
@@ -204,6 +208,9 @@ internal sealed unsafe class Archetype : IDisposable
                 break;
             default: Buffer.MemoryCopy(source, destination, size, size); break;
         }
+#else
+        Buffer.MemoryCopy(source, destination, size, size);
+#endif
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

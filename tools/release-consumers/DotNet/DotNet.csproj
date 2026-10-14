@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <SECSVersion Condition="'$(SECSVersion)' == ''">0.1.0</SECSVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ShortKedr.SECS" Version="$(SECSVersion)" />
+  </ItemGroup>
+</Project>

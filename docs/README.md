@@ -10,6 +10,8 @@ measurements named in the report.
 
 ## Using SECS
 
+- [Package installation](secs/INSTALL.md): local NuGet package, Unity DLLs, and Godot C# setup.
+- [Release versioning](secs/VERSIONING.md): SemVer numbers, cedar-themed names, and publication dates.
 - [Library guide](secs/README.md): queries, systems, ownership, and lifetime rules.
 - [Runtime optimizations](SECS_OPTIMIZATION.md): direct creation, accessors, retained storage, and diagnostics already implemented.
 - [Sample](../SECS.Sample/Program.cs) and [tests](../SECS.Tests): executable examples and current contracts.

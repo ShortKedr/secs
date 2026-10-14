@@ -4,7 +4,7 @@ English | [Русский](README.ru.md)
 
 [Project overview](../../README.md) · [Documentation map](../README.md)
 
-SECS targets .NET 8. Components must satisfy C# `unmanaged`; systems and queries
+SECS builds for .NET Standard 2.0/2.1 and .NET 8. Components must satisfy C# `unmanaged`; systems and queries
 execute sequentially. Add a reference to [SECS.csproj](../../SECS/SECS.csproj)
 and use the `SECS` namespace. The [sample](../../SECS.Sample/Program.cs) is a
 complete application showing systems and typed chunk iteration.

@@ -42,7 +42,7 @@ public sealed class World : IDisposable
 
     internal Entity CreateEntityIn(Archetype archetype)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_disposed) throw new ObjectDisposedException(nameof(World));
         var id = _freeEntityIds.Count > 0 ? _freeEntityIds.Pop() : _entityRecords.Count;
         var version = id < _entityRecords.Count ? _entityRecords[id].Version : 1;
 
@@ -107,7 +107,7 @@ public sealed class World : IDisposable
 
     private unsafe Archetype GetCreationArchetype(int type1, int type2, int type3)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_disposed) throw new ObjectDisposedException(nameof(World));
         if (type1 == type2 || type1 == type3 || (type2 >= 0 && type2 == type3))
             throw new ArgumentException("A creation template cannot contain duplicate component types.");
         var key = (type1, type2, type3);
@@ -133,7 +133,7 @@ public sealed class World : IDisposable
 
     public ComponentAccessor<T> GetAccessor<T>() where T : unmanaged
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_disposed) throw new ObjectDisposedException(nameof(World));
         var typeId = _componentTypes.GetOrCreate<T>().Id;
         foreach (var accessor in _accessors)
             if (accessor.TypeId == typeId) return new ComponentAccessor<T>(accessor);
@@ -145,7 +145,7 @@ public sealed class World : IDisposable
 
     public StorageStatistics GetStorageStatistics()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_disposed) throw new ObjectDisposedException(nameof(World));
         var chunks = 0;
         var entities = 0;
         long nativeBytes = 0;
@@ -249,7 +249,11 @@ public sealed class World : IDisposable
     {
         ValidateEntity(entity);
         var typeId = _componentTypes.GetId<T>();
+#if NET8_0_OR_GREATER
         ref var record = ref CollectionsMarshal.AsSpan(_entityRecords)[entity.Id];
+#else
+        var record = _entityRecords[entity.Id];
+#endif
         return ref record.Archetype!.GetComponentRef<T>(record.ChunkIndex, record.RowIndex, typeId);
     }
 

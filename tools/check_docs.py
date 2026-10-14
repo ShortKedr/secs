@@ -29,7 +29,7 @@ DOCUMENTS = [
     "tools/space-battle/scenes/README.md",
     "docs/promo/space-battle/README.md",
     "Benchmarks.Local/README.md", "THIRD_PARTY_NOTICES.md",
-    "docs/README.md", "docs/secs/README.md",
+    "docs/README.md", "docs/secs/README.md", "docs/secs/INSTALL.md",
     "SpaceBattle.Game/DEVELOPMENT.md", "SpaceBattle.Web/DEVELOPMENT.md",
     "docs/space-battle/RESEARCH.md",
     "docs/space-battle/REPORT_2026-10-11.md", "docs/benchmarks/current/REPORT.md",
