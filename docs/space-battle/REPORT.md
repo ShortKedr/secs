@@ -8,6 +8,18 @@ Current campaign: 2026-10-14T02:41:10.8503994+05:00 — 2026-10-14T02:48:16.8906
 
 The current headless simulation was measured with five ECS implementations: SECS, LeoEcsLite, LeoEcsClassic, Morpeh, and StaticEcs. Gameplay system revisions: `mounted-armament-v7`, `layered-squads-v3`, `circle-kernel-v1`, `layered-weapon-damage-v1`.
 
+## Framework revisions used
+
+Third-party rows show exact upstream commits, not guessed release numbers. The SECS row shows the campaign's repository revision; the manifest also records measured source hashes. Third-party commits are recorded in the result JSON files.
+
+| Framework | Source revision |
+| --- | --- |
+| SECS | `bde83f13f03a5770c03fda135e3445cb0e45b192` |
+| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` |
+| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` |
+| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` |
+| StaticEcs | `6323d710c22cfff70100fe3748de432cb5fc70c8` |
+
 **Validation passed:** 15 cases, 1,620,000 measured ticks. Within each profile all 30 checkpoints, final checksums, gameplay and tactical counters, and per-minute entity counts match.
 
 Local tick CSV verification recomputed means, quantiles, spread, budget misses and allocations. Input CSV hashes are retained in the manifest.

@@ -394,6 +394,14 @@ def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
         writer.writerows(rows)
     first = runs["nominal", "secs"]
     m = first["Metadata"]
+    source_pins = first["Provenance"]["Sources"]
+    framework_pins = [("SECS", manifest["SourceRevision"]),
+                      ("LeoECS Lite", source_pins["Lite"]),
+                      ("LeoECS Classic", source_pins["Classic"]),
+                      ("Morpeh", source_pins["Morpeh"]),
+                      ("StaticEcs", source_pins["StaticEcs"])]
+    require(all(len(pin) == 40 and all(char in "0123456789abcdefABCDEF" for char in pin)
+                for _, pin in framework_pins), "Invalid framework source revision")
     cpus = hardware["Cpu"] if isinstance(hardware["Cpu"], list) else [hardware["Cpu"]]
     cpu = ", ".join(c["Name"].strip() for c in cpus)
     policy = TimingPolicy.from_file(Path(__file__).with_name("heatmap_policy.json"))
@@ -403,6 +411,9 @@ def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
         suffix = ".ru" if ru else ""
         language = "ru" if ru else "en"
         asset_path = "../benchmarks/heatmap"
+        pin_rows = ["| " + ("Фреймворк | Ревизия исходников |" if ru else "Framework | Source revision |"),
+                    "| --- | --- |",
+                    *(f"| {name} | `{pin}` |" for name, pin in framework_pins)]
         table_rows = []
         for row, ((profile, _), run) in zip(rows, runs.items()):
             table_rows.append([row[0], row[1], *[
@@ -421,6 +432,10 @@ def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
                  ("Текущая headless-симуляция измерена на пяти ECS: SECS, LeoEcsLite, LeoEcsClassic, Morpeh и StaticEcs. Ревизии игровых систем: " if ru else
                   "The current headless simulation was measured with five ECS implementations: SECS, LeoEcsLite, LeoEcsClassic, Morpeh, and StaticEcs. Gameplay system revisions: ") +
                  ", ".join(f"`{v}`" for v in RULES.values()) + ".", "",
+                 "## " + ("Ревизии фреймворков в замерах" if ru else "Framework revisions used"), "",
+                 ("Для сторонних ECS указаны точные коммиты исходных репозиториев, а не предполагаемые номера релизов. Для SECS указана ревизия репозитория кампании; манифест дополнительно фиксирует хеши измеренных исходников. Коммиты сторонних ECS записаны в JSON-результатах." if ru else
+                  "Third-party rows show exact upstream commits, not guessed release numbers. The SECS row shows the campaign's repository revision; the manifest also records measured source hashes. Third-party commits are recorded in the result JSON files."), "",
+                 *pin_rows, "",
                  ("**Проверка пройдена:** 15 случаев, 1 620 000 измеренных тиков. В каждом профиле совпали все 30 контрольных точек, итоговые checksum, игровые и тактические счётчики и поминутная численность сущностей." if ru else
                   "**Validation passed:** 15 cases, 1,620,000 measured ticks. Within each profile all 30 checkpoints, final checksums, gameplay and tactical counters, and per-minute entity counts match."), "",
                  ("Тики CSV проверены локально: пересчитаны среднее, квантили, разброс, превышения бюджета и аллокации. Хеши исходных CSV сохранены в манифесте." if ru else

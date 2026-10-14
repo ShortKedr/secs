@@ -10,6 +10,18 @@ All five frameworks were measured afresh in one sequential campaign: 40 base cas
 
 Environment: .NET 8.0.31, X64, AMD Ryzen 9 9900X 12-Core Processor, 24 logical processors. Release, one thread, tiered compilation off. Source revision: `80fd4f7f8d93e2a2d665d3024c615991e34199b7`. [Campaign metadata](campaign.json) pins source and measured assembly hashes; [base raw samples](base.json) and [stress raw samples](stress.json) retain all observations.
 
+## Framework revisions used
+
+Third-party rows show exact upstream commits, not guessed release numbers. The SECS row shows the campaign's repository revision; [campaign metadata](campaign.json) also records hashes of the measured source and assemblies. Third-party commits come from the hash-verified [vendor manifest](../../../Benchmarks.Local/vendor-manifest.json).
+
+| Framework | Source revision |
+| --- | --- |
+| SECS | `80fd4f7f8d93e2a2d665d3024c615991e34199b7` |
+| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` |
+| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` |
+| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` |
+| StaticEcs | `6323d710c22cfff70100fe3748de432cb5fc70c8` |
+
 ## Recorded means
 
 | Scenario | N | SECS | LeoECS Lite | LeoECS Classic | Morpeh | StaticEcs |

@@ -33,6 +33,13 @@ for data, count in ((base, 20), (stress, 8)):
     require(data['metadata']['runtime'] == base['metadata']['runtime'], 'Mixed runtimes')
 date = manifest['started'][:10]
 frameworks = ('SECS', 'LeoECS Lite', 'LeoECS Classic', 'Morpeh', 'StaticEcs')
+vendor_path = root / 'Benchmarks.Local/vendor-manifest.json'
+require(hashlib.sha256(vendor_path.read_bytes()).hexdigest() ==
+        manifest['sourceHashes']['Benchmarks.Local/vendor-manifest.json'],
+        'Vendor manifest differs from measured campaign')
+vendor = {item['name']: item['revision'] for item in json.loads(vendor_path.read_text(encoding='utf-8'))['components']}
+pin_rows = '\n'.join(f'| {name} | `{manifest["sourceRevision"] if name == "SECS" else vendor[name]}` |'
+                     for name in frameworks)
 def table(data, language):
     indexed = {(r['scenario'], r['entityCount'], r['framework']): r for r in data['results']}
     cases = sorted({(r['entityCount'], r['scenario']) for r in data['results']})
@@ -60,6 +67,14 @@ en = f'''English | [Русский](REPORT.ru.md)
 All five frameworks were measured afresh in one sequential campaign: 40 base cases and 70 stress cases. Each cell below is mean milliseconds per complete operation; lower is better. Markers show relative lag within each scenario and entity-count row; they describe effect size, not statistical significance.
 
 Environment: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} logical processors. Release, one thread, tiered compilation off. Source revision: `{manifest['sourceRevision']}`. [Campaign metadata](campaign.json) pins source and measured assembly hashes; [base raw samples](base.json) and [stress raw samples](stress.json) retain all observations.
+
+## Framework revisions used
+
+Third-party rows show exact upstream commits, not guessed release numbers. The SECS row shows the campaign's repository revision; [campaign metadata](campaign.json) also records hashes of the measured source and assemblies. Third-party commits come from the hash-verified [vendor manifest](../../../Benchmarks.Local/vendor-manifest.json).
+
+| Framework | Source revision |
+| --- | --- |
+{pin_rows}
 
 ## Recorded means
 
@@ -96,6 +111,14 @@ ru = f'''[English](REPORT.md) | Русский
 Все пять фреймворков измерены заново в одной последовательной кампании: 40 базовых и 70 стресс-кейсов. Каждая ячейка ниже — среднее время полной операции в миллисекундах; меньше лучше. Маркеры показывают относительное отставание внутри строки сценария и числа сущностей; цвет описывает величину различия, а не статистическую значимость.
 
 Среда: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} логических процессоров. Release, один поток, tiered compilation отключён. Ревизия исходников: `{manifest['sourceRevision']}`. [Метаданные кампании](campaign.json) фиксируют хеши исходников и измеренных сборок; [базовые сырые замеры](base.json) и [стресс-замеры](stress.json) сохраняют все наблюдения.
+
+## Ревизии фреймворков в замерах
+
+Для сторонних ECS указаны точные коммиты исходных репозиториев, а не предполагаемые номера релизов. Для SECS указана ревизия репозитория кампании; [метаданные](campaign.json) также содержат хеши измеренных исходников и сборок. Коммиты сторонних ECS взяты из проверенного по хешу [манифеста](../../../Benchmarks.Local/vendor-manifest.json).
+
+| Фреймворк | Ревизия исходников |
+| --- | --- |
+{pin_rows}
 
 ## Измеренные средние
 
