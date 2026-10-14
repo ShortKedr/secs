@@ -97,6 +97,4 @@ for examples and storage diagnostics.
 ## Working on the library
 
 [Tests](../../SECS.Tests) cover the current API. [Benchmarks](../../SECS.Benchmarks/README.md)
-measure specific workloads. Future Fixed, runner, SIMD, parallel, and GA work
-starts with the [development documents](../README.md#library-development).
-Those proposed APIs and guarantees are not current library features.
+measure specific workloads.

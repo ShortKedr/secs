@@ -14,8 +14,8 @@ DOCUMENTS = [
     "README.md", "SECS.Benchmarks/README.md", "SpaceBattle.Game/README.md",
     "SpaceBattle.Web/README.md",
     "SpaceBattle.Game/Assets/PROVENANCE.md", "SpaceBattle.Adapters/README.md",
-    "docs/SECS_OPTIMIZATION.md", "docs/SECS_DETERMINISM_PLAN.md", "docs/benchmarks/optimization-methodology.md",
-    "docs/space-battle/README.md", "docs/space-battle/PLAN.md",
+    "docs/SECS_OPTIMIZATION.md", "docs/benchmarks/optimization-methodology.md",
+    "docs/space-battle/README.md",
     "docs/space-battle/SYSTEMS.md", "docs/space-battle/TACTICS.md", "docs/space-battle/ARMAMENT.md", "docs/space-battle/REINFORCEMENTS.md", "docs/space-battle/COVER.md", "docs/space-battle/PERFORMANCE_INVESTIGATION.md", "docs/space-battle/REPORT.md",
     "docs/space-battle/SPATIAL_OPTIMIZATION.md", "docs/space-battle/FLEETS.md", "docs/space-battle/PHYSICS.md",
     "tools/physics/README.md", "tools/performance/README.md", "tools/HardwareStudy/README.md",
@@ -197,15 +197,10 @@ def check(root=ROOT):
                         raw_evidence = target.name.endswith("-report-github.md") and target.parent.name == "results" and target.is_relative_to(ROOT / "Benchmarks.Local")
                         if not parsed.scheme and target != english and not original_license and not raw_evidence:
                             raise ValueError("Russian navigation leaves its locale: " + str(path.relative_to(ROOT)) + ": " + destination)
-    # Planning originals intentionally have no English translation. Check their
-    # navigation too, without imposing a bilingual template on specifications.
+    # Check remaining single-language public guides without imposing a bilingual
+    # template on them.
     paired = {p for en in paths for p in (en, russian_path(en))}
     single_paths = sorted(p for p in (ROOT / "docs/secs").rglob("*.md") if p not in paired)
-    single_paths.extend([
-        ROOT / "tools/space-battle/SCENE_SEARCH_PROMPT.ru.md",
-        ROOT / "docs/audit/2026-10-14/AUDIT.ru.md",
-        ROOT / "docs/audit/2026-10-14/CLEANUP_PROMPT.ru.md",
-    ])
     for path in single_paths:
         clean, _ = without_fences(path.read_text(encoding="utf-8-sig"))
         html = HtmlLinks()

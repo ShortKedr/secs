@@ -88,4 +88,4 @@ dotnet build SpaceBattle.Adapters/SpaceBattle.Adapters.csproj -c Release --no-re
 dotnet SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll --validate-adapters
 ```
 
-Первоначальные результаты относятся к [журналу приёмки 2026-10-11](../docs/space-battle/PLAN.ru.md). Текущие parity и provenance см. в [отчёте](../docs/space-battle/REPORT.ru.md).
+Текущие parity и provenance см. в [отчёте](../docs/space-battle/REPORT.ru.md).

@@ -20,7 +20,7 @@
 | Ваша задача | Куда перейти |
 | --- | --- |
 | Использовать библиотеку | [Быстрый старт](#быстрый-старт) · [Установка пакета](docs/secs/INSTALL.ru.md) · [API и правила времени жизни](docs/secs/README.ru.md) · [Исходник примера](SECS.Sample/Program.cs) |
-| Развивать SECS | [Реализованные оптимизации](docs/SECS_OPTIMIZATION.ru.md) · [Планы развития](docs/README.ru.md#развитие-библиотеки) |
+| Развивать SECS | [Реализованные оптимизации](docs/SECS_OPTIMIZATION.ru.md) · [Тесты](SECS.Tests) |
 | Прочитать или воспроизвести измерения | [Микробенчмарки](SECS.Benchmarks/README.ru.md) · [Сравнение пяти фреймворков](Benchmarks.Local/README.ru.md) · [Отчёт Space Battle](docs/space-battle/REPORT.ru.md) |
 | Запустить игру | [Desktop](SpaceBattle.Game/README.ru.md) · [Web](SpaceBattle.Web/README.ru.md) |
 
@@ -58,14 +58,12 @@ LeoECS Classic, Morpeh и StaticEcs через адаптеры нативног
 
 ## Статус и подтверждения
 
-Сейчас библиотека работает на CPU. Арифметика Fixed, time slicing,
-детерминированное параллельное выполнение и GPU execution —
-[планы развития](docs/README.ru.md#развитие-библиотеки). Текущие unit-тесты и
-игровые checksum не доказывают равенство между платформами или CPU/GPU.
+Сейчас библиотека работает на CPU; системы и запросы выполняются последовательно.
+Текущие unit-тесты и игровые checksum не доказывают равенство между платформами.
 Результаты бенчмарков относятся к конкретным машинам, версиям и нагрузкам;
 методика и ограничения описаны в каждом отчёте.
 
-[Нумерация и названия релизов SECS](docs/secs/VERSIONING.ru.md) ·
 [Лицензия: MIT для собственных материалов проекта](LICENSE) ·
 [Карта документации](docs/README.ru.md) ·
+[Внутренние планы (доступ по приглашению)](https://github.com/ShortKedr/secs-private) ·
 [Лицензии и закреплённые сторонние исходники](THIRD_PARTY_NOTICES.ru.md)

@@ -124,7 +124,6 @@ stay under ignored `Benchmarks.Local`. Historical reports and measurements are
 not regenerated. For custom criteria use the Node entry points
 [find-scenes.mjs](find-scenes.mjs), [capture-scene.mjs](capture-scene.mjs) and the
 pure [candidate detector](scene-candidates.mjs), not changes to the simulation.
-The fuller causal requirements are in the [scene search prompt](../SCENE_SEARCH_PROMPT.ru.md).
 
 Tests:
 

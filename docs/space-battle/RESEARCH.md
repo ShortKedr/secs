@@ -6,13 +6,12 @@ English | [Русский](RESEARCH.ru.md)
 
 Read each study with its recorded source revision, scenario and runtime. Later game changes do not update those measurements. Matching before/after results within one runtime do not prove cross-platform determinism. Stage timings measure parts of the simulation; they do not measure the complete client's FPS.
 
-## Archived Campaign and Design
+## Archived campaign
 
 | Document | Context |
 | --- | --- |
 | [Report, 2026-10-11](REPORT_2026-10-11.md) | Five ECS, `predictive-neutral-v1`, Aether; original tables, charts and capture evidence |
 | [Systems catalogue](SYSTEMS.md) | Original nine-stage workload and components; historical catalogue, not a current code inventory |
-| [Delivery plan, 2026-10-11](PLAN.md) | Original acceptance requirements and recorded completion ledger; not a current work queue |
 | [Tactical AI v2](TACTICS.md) | Earlier kill-cost and focus-group model, superseded by [v3](TACTICS_V3.md) |
 
 ## Historical Visual Evidence

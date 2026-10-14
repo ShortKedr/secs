@@ -81,4 +81,4 @@ the four successful store names. `Validate(IEcsStore, int)` takes ownership of a
 empty store and disposes it after validation. `RunAll` prints each framework name
 before validation to identify failures.
 
-The original adapter validation is recorded in the [2026-10-11 acceptance ledger](../docs/space-battle/PLAN.md). For current campaign parity and provenance see the [current report](../docs/space-battle/REPORT.md).
+For current campaign parity and provenance see the [current report](../docs/space-battle/REPORT.md).

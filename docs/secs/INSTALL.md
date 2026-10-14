@@ -1,16 +1,21 @@
 English | [Русский](INSTALL.ru.md)
 
-# Install SECS 0.1.0
+# Install a locally built SECS 0.1.0 candidate
 
-SECS is an early ECS library for C# applications. Download the release assets
-from the [`secs-v0.1.0` GitHub Release](https://github.com/ShortKedr/secs/releases/tag/secs-v0.1.0)
-once it is published. The package is distributed as a `.nupkg` asset; it is not
-published to NuGet.org by this release. Keep the versioned package or Unity ZIP
-with your project so the dependency can be restored later.
+SECS is an early ECS library for C# applications. No `secs-v0.1.0` GitHub
+Release has been published. From the repository root, build a local package:
+
+```powershell
+dotnet pack SECS/SECS.csproj -c Release -o artifacts/release
+```
+
+The resulting `ShortKedr.SECS.0.1.0.nupkg` is a local candidate. These
+instructions use a local package source. Keep a copy with your project for
+repeatable restore.
 
 ## .NET applications
 
-Use the release's `ShortKedr.SECS.0.1.0.nupkg` as a local NuGet source. For an
+Use the locally built `ShortKedr.SECS.0.1.0.nupkg` as a NuGet source. For an
 SDK-style project, place the package in a directory such as `packages/` and put
 this `NuGet.Config` beside the project:
 
@@ -32,29 +37,25 @@ The `netstandard2.0` asset used by .NET Framework 4.8 depends on
 `System.Memory`; NuGet.org supplies that dependency unless it is also available
 in an offline package source.
 
-The planned targets for this release are .NET 8 and .NET Framework 4.8 on
-Windows. A successful library build is not evidence that an application runs:
-the release gate must run the package-backed consumer for both targets. Later
-.NET SDKs can consume the compatible assets, but only tested runtimes belong in
-the verified release matrix.
+Package-backed consumers have run on .NET 8, .NET 10, and .NET Framework 4.8
+on Windows. A library build alone does not establish application behavior;
+the observed local runs are listed below.
 
 ## Unity
 
-Download the release's Unity ZIP. In a Unity 2022.3 LTS or Unity 6 project,
+The local [Unity ZIP builder](../../tools/release/make_unity_zip.py) packages
+the same DLLs as the local `.nupkg`. In a Unity 2022.3 LTS or Unity 6 project,
 choose the **.NET Standard 2.1** API Compatibility Level. Copy all DLLs from
 `lib/netstandard2.1/` in the ZIP into `Assets/Plugins/` and allow Unity to
 reimport. The ZIP also includes the MIT license and this guide. Use the `SECS`
-namespace in a C# script. The published release must include a verification
-report with the exact Editor patches and backends that passed. The basic
+namespace in a C# script. The basic
 `World`, `Query<T>().ForEach`, and `Get<T>`
 API requires no `unsafe` setting in the consuming project. Direct chunk-pointer
 iteration requires an `unsafe` context and project/compiler support for unsafe
 code. Dispose every `World` to release its native buffers.
 
-The release gate must run an imported-DLL smoke test in Editor/Mono and in a
-Windows player built with Mono and IL2CPP for each supported Unity branch.
-Platform-specific exports such as WebGL and mobile are outside this release's
-verified matrix.
+The local checks listed below ran an imported-DLL smoke test in Editor and
+Windows players using Mono and IL2CPP. WebGL and mobile exports were not tested.
 
 ## Godot C#
 
@@ -74,10 +75,9 @@ package and Godot's SDK on NuGet.org.
 dotnet restore YourGodotProject.csproj --configfile NuGet.Config
 ```
 
-Use `SECS` from a C# node or other managed class. The release gate must run
-the scene from [the Godot consumer fixture](../../tools/release-consumers/Godot)
-with the package, then confirm the scene exited successfully. Godot C# Web and
-mobile exports are not covered by this release.
+Use `SECS` from a C# node or other managed class. The local
+[Godot consumer fixture](../../tools/release-consumers/Godot) imported and ran
+the package-backed scene. Godot C# Web and mobile exports were not tested.
 
 ## Minimal API check
 
@@ -122,9 +122,6 @@ On 2026-10-15, the local candidate `.nupkg` passed the independent
 | Unity 6000.3.19f1 | Editor, Windows Mono Player, and Windows IL2CPP Player passed from isolated copies of the fixture. |
 
 The scripts in [release-consumers](../../tools/release-consumers) verify that
-the restored SECS package matches the local candidate by SHA-256. These local
-runs do not prove that a future clean release commit produces the same bytes
-or that published assets have been downloaded and checked. Release notes must
-list the exact versions and successful logs before claiming final support.
-Until all required checks pass, this is installation documentation for a
-planned release.
+the restored SECS package matches the local candidate by SHA-256. These runs
+used a local candidate from a working tree. They do not establish the contents
+or behavior of any published release.

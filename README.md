@@ -20,7 +20,7 @@ autonomous Space Battle sample.
 | Your goal | Where to go |
 | --- | --- |
 | Use the library | [Quickstart](#quickstart) · [Package installation](docs/secs/INSTALL.md) · [API and lifetime rules](docs/secs/README.md) · [Sample source](SECS.Sample/Program.cs) |
-| Work on SECS | [Implemented optimizations](docs/SECS_OPTIMIZATION.md) · [Development plans](docs/README.md#library-development) |
+| Work on SECS | [Implemented optimizations](docs/SECS_OPTIMIZATION.md) · [Tests](SECS.Tests) |
 | Read or reproduce measurements | [Microbenchmarks](SECS.Benchmarks/README.md) · [Five-framework comparison](Benchmarks.Local/README.md) · [Space Battle report](docs/space-battle/REPORT.md) |
 | Run the game | [Desktop](SpaceBattle.Game/README.md) · [Web](SpaceBattle.Web/README.md) |
 
@@ -58,13 +58,12 @@ through native storage and query adapters.
 
 ## Status and evidence
 
-The library currently runs on CPU. Fixed arithmetic, time slicing, deterministic
-parallel execution, and GPU execution are [development plans](docs/README.md#library-development).
-Current unit tests and game checksums do not establish cross-platform or CPU/GPU
-parity. Benchmark results describe particular machines, revisions, and workloads;
+The library currently runs on CPU with sequential systems and queries.
+Current unit tests and game checksums do not establish cross-platform parity.
+Benchmark results describe particular machines, revisions, and workloads;
 see each report for its method and limitations.
 
-[SECS release versioning](docs/secs/VERSIONING.md) ·
 [License: MIT for original project material](LICENSE) ·
 [Documentation map](docs/README.md) ·
+[Internal plans (restricted access)](https://github.com/ShortKedr/secs-private) ·
 [Third-party licenses and pinned sources](THIRD_PARTY_NOTICES.md)

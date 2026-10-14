@@ -124,8 +124,7 @@ preview-процессы не трогаются. Выходные файлы, �
 сборки остаются в ignored `Benchmarks.Local`. Исторические отчёты и измерения не
 пересоздаются. Для иных критериев используйте Node entry points
 [find-scenes.mjs](find-scenes.mjs), [capture-scene.mjs](capture-scene.mjs) и чистый
-[детектор](scene-candidates.mjs), а не изменения симуляции. Расширенные причинные
-требования находятся в [промпте поиска сцен](../SCENE_SEARCH_PROMPT.ru.md).
+[детектор](scene-candidates.mjs), а не изменения симуляции.
 
 Тесты:
 

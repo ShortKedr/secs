@@ -4,7 +4,7 @@ English | [Русский](SECS_OPTIMIZATION.ru.md)
 
 [Library guide](secs/README.md) · [Documentation map](README.md) · [Current ECS campaign](benchmarks/current/REPORT.md) · [Current API and storage measurements](benchmarks/current/SUPPLEMENT.md) · [Historical 2026-10-11 before/after experiment](benchmarks/optimization-methodology.md)
 
-Status: implemented in the current [CPU runtime](../SECS/World.cs). This guide describes APIs and their costs. Measured speedups belong to the linked benchmark reports; future SIMD, Fixed, and schedulers are separate [development plans](README.md#library-development).
+Status: implemented in the current [CPU runtime](../SECS/World.cs). This guide describes APIs and their costs. Measured speedups belong to the linked benchmark reports.
 
 ## Existing API
 

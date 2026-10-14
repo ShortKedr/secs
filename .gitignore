@@ -20,6 +20,8 @@ _other_ecs_benchmarks/
 *.pdb
 *.tmp
 /progress.md
+# Independent private repository for plans and internal documentation.
+/secs-private/
 __pycache__/
 *.pyc
 /Benchmarks.Local/.dotnet/

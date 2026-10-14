@@ -501,15 +501,10 @@ def frontend_report(data):
                                 "custom/frontend-capture-parity.json", "custom/frontend-profile-parity.json")])
     lines += ["", f"CoreDllSha256={data['CoreDllSha256']}; GameDllSha256={data['GameDllSha256']}; "
               f"SecsAdapterDllSha256={data['SecsAdapterDllSha256']}.", ""]
-    plan = DOCS / "PLAN.md"
-    if plan.is_file():
-        e7 = next((line for line in plan.read_text(encoding="utf-8-sig").splitlines() if line.startswith("| E7 |")), "")
-        if all(marker in e7 for marker in ("--validate", "666A96DD2647E74D", "16/16", "Debug", "Release")):
-            lines += ["Предварительная валидация по [PLAN.md, E7](PLAN.md): основной исполнитель сообщил "
-                      "Core --validate PASS для новых правил, короткое сравнение пяти портов (3000 тиков, "
-                      "10 checkpoints, checksum 666A96DD2647E74D) и SECS.Tests 16/16 PASS в Debug и Release. "
-                      "Это сообщённые проверочные данные; анализатор не запускал эти тесты повторно. "
-                      "Они не заменяют полный измеренный набор и отдельную проверку frontend CSV.", ""]
+    lines += ["Отдельно сообщалось о проверке новых правил: основной исполнитель сообщил об успешном Core --validate "
+              "и коротком сравнении пяти портов (3 000 тиков, 10 checkpoints, checksum 666A96DD2647E74D); "
+              "SECS.Tests также прошли 16/16 в Debug и Release. Автор отчёта эти проверки не повторял. "
+              "Эти результаты со слов исполнителя не заменяют полный измеренный набор и отдельную проверку frontend CSV.", ""]
     return lines
 
 
