@@ -131,7 +131,7 @@ def estimate(value):
     return median(numbers), (min(numbers), max(numbers)) if len(numbers) >= 2 else None, True
 
 
-def marker(name, label, asset_path="heatmap"):
+def marker(name, label, asset_path="../benchmarks/heatmap"):
     return f'![{label}]({asset_path}/{name}.svg "{label}")'
 
 
@@ -180,7 +180,7 @@ def levels(values, direction="lower", absolute_threshold=None):
     return output
 
 
-def shade_values(values, direction="lower", absolute_threshold=None, *, language="ru", asset_path="heatmap"):
+def shade_values(values, direction="lower", absolute_threshold=None, *, language="ru", asset_path="../benchmarks/heatmap"):
     values = list(values)
     labels = EN_LABELS if language == "en" else LABELS
     if language not in ("en", "ru"):
@@ -201,7 +201,7 @@ def colors(values, direction="lower", absolute_threshold=None):
     return [palette.get(name, EQUAL_COLOR) for name in levels(list(values), direction, absolute_threshold)]
 
 
-def shade_columns(rows, columns, group_by=(), absolute_thresholds=None, *, language="ru", asset_path="heatmap"):
+def shade_columns(rows, columns, group_by=(), absolute_thresholds=None, *, language="ru", asset_path="../benchmarks/heatmap"):
     result = [list(row) for row in rows]
     groups = {}
     for index, row in enumerate(result):
@@ -217,7 +217,7 @@ def shade_columns(rows, columns, group_by=(), absolute_thresholds=None, *, langu
     return result
 
 
-def shade_rows(rows, columns, absolute_thresholds=None, *, language="ru", asset_path="heatmap"):
+def shade_rows(rows, columns, absolute_thresholds=None, *, language="ru", asset_path="../benchmarks/heatmap"):
     result = [list(row) for row in rows]
     for row in result:
         threshold = absolute_thresholds(row) if absolute_thresholds else None
@@ -227,7 +227,7 @@ def shade_rows(rows, columns, absolute_thresholds=None, *, language="ru", asset_
     return result
 
 
-def compact_legend(language="en", asset_path="heatmap", details_link=None):
+def compact_legend(language="en", asset_path="../benchmarks/heatmap", details_link=None):
     if language not in ("en", "ru"):
         raise ValueError("Colour scale language must be en or ru")
     labels = EN_LABELS if language == "en" else LABELS
@@ -250,12 +250,12 @@ def compact_legend(language="en", asset_path="heatmap", details_link=None):
     return lines + [""]
 
 
-def legend(policy=None):
-    scale = " ".join(marker(name, LABELS[name if name in ("best", "worst") else "relative"])
+def legend(policy=None, asset_path="../benchmarks/heatmap"):
+    scale = " ".join(marker(name, LABELS[name if name in ("best", "worst") else "relative"], asset_path)
                      for name, _ in PALETTE)
     return [
         "### Цветовая шкала", "",
-        f"До 5% {scale} От 30%; " + marker("equal", LABELS["equal"]) + " нейтральная группа или неразличимое отставание.", "",
+        f"До 5% {scale} От 30%; " + marker("equal", LABELS["equal"], asset_path) + " нейтральная группа или неразличимое отставание.", "",
         "Шкала общая для всех таблиц, без растяжения по min-max: до 5% - зелёный; 5-15% - "
         "переход к жёлтому; 15-30% - переход к красному; от 30% - красный. Линейный переход "
         "показан девятью фиксированными SVG-ступенями. 5/15/30% - договорённые пороги величины "
@@ -301,8 +301,9 @@ def legend(policy=None):
     ] + [""] if policy and policy.entries else ["Выбранные абсолютные пороги: нет (все null).", ""])
 
 
-def write_assets(docs):
-    output = docs / "heatmap"
+def write_assets(docs_root):
+    """Write the shared markers under docs/benchmarks/heatmap."""
+    output = docs_root / "benchmarks" / "heatmap"
     output.mkdir(parents=True, exist_ok=True)
     for name, color in (*PALETTE, ("equal", EQUAL_COLOR)):
         root = ET.Element("svg", xmlns="http://www.w3.org/2000/svg",

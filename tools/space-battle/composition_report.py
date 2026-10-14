@@ -126,8 +126,8 @@ def composition_section(docs, runs, read_json, require, table, heat_policy=None)
         measured[profile] = r
 
     lines = ["## Системы и компоненты", "",
-             "Ниже приведён каталог текущего сценария. Полная самостоятельная версия: [SYSTEMS.md](SYSTEMS.md). "
-             "Числа состава относятся к логическим компонентам игры, без приватного LifetimeMarker адаптеров.", ""]
+             "Ниже приведён исторический каталог workload `predictive-neutral-v1`. Самостоятельная версия: [SYSTEMS.md](SYSTEMS.md). "
+             "Числа состава относятся к логическим компонентам измеренного прогона, без приватного LifetimeMarker адаптеров.", ""]
     lines += catalogue_body(docs, "ru").splitlines()
     lines += ["", "### Среднее время стадий, nominal", "",
               "Значения в ms из исходных performance-запусков, не из диагностического observer. "

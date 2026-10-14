@@ -311,8 +311,10 @@ class HeatmapTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(dir=analyze.ROOT) as directory:
             docs = Path(directory)
             write_assets(docs)
-            before = {path.name: path.read_bytes() for path in (docs / "heatmap").glob("*.svg")}
+            asset_dir = docs / "benchmarks" / "heatmap"
+            before = {path.name: path.read_bytes() for path in asset_dir.glob("*.svg")}
             self.assertEqual(set(before), {f"{name}.svg" for name in (*MARKERS, "equal")})
+            self.assertFalse((docs / "space-battle" / "heatmap").exists())
             for name, color in zip((*MARKERS, "equal"), colors):
                 data = before[f"{name}.svg"]
                 root = ET.fromstring(data)
@@ -326,7 +328,7 @@ class HeatmapTests(unittest.TestCase):
                 })
                 self.assertLess(len(data), 400)
             write_assets(docs)
-            self.assertEqual(before, {path.name: path.read_bytes() for path in (docs / "heatmap").glob("*.svg")})
+            self.assertEqual(before, {path.name: path.read_bytes() for path in asset_dir.glob("*.svg")})
 
     def test_bilingual_legend_markers_and_policy_reasons(self):
         policy = self.load_policy([self.entry()])
@@ -343,7 +345,7 @@ class HeatmapTests(unittest.TestCase):
         self.assertIn(self.entry()["reason_ru"], ru)
         self.assertIn("### Color Scale", en)
         self.assertIn("### Цветовая шкала", ru)
-        pattern = r'!\[([^\]]+)\]\(heatmap/(\w+)\.svg "([^"]+)"\)'
+        pattern = r'!\[([^\]]+)\]\((?:\.\./benchmarks/)?heatmap/(\w+)\.svg "([^"]+)"\)'
         en_markers, ru_markers = re.findall(pattern, en), re.findall(pattern, ru)
         self.assertEqual([name for _, name, _ in en_markers], [name for _, name, _ in ru_markers])
         self.assertEqual(set(name for _, name, _ in en_markers), {*MARKERS, "equal"})
@@ -355,7 +357,7 @@ class HeatmapTests(unittest.TestCase):
         for number in ("100.00", "110.00", "130.00"):
             self.assertIn(number, en)
             self.assertIn(number, ru)
-        self.assertNotRegex(en + ru, r'heatmap/\w+\.svg "[^"]+"\) \*\*[\d.]+\*\*')
+        self.assertNotRegex(en + ru, r'(?:\.\./benchmarks/)?heatmap/\w+\.svg "[^"]+"\) \*\*[\d.]+\*\*')
 
     def test_report_versions_extra_phrases_remains_optional(self):
         source = report_locale.catalogue_body(analyze.DOCS, "ru") + "\n" + "\n".join(legend())
@@ -363,6 +365,8 @@ class HeatmapTests(unittest.TestCase):
         self.assertIn("### Color Scale", en)
         self.assertIn("### Цветовая шкала", ru)
         self.assertEqual(re.findall(r"heatmap/\w+\.svg", en), re.findall(r"heatmap/\w+\.svg", ru))
+        self.assertIn("../benchmarks/heatmap/equal.svg", en)
+        self.assertIn("../benchmarks/heatmap/equal.svg", ru)
 
 
 if __name__ == "__main__":

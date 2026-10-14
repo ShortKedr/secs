@@ -9,7 +9,10 @@ class ReportLocaleTests(unittest.TestCase):
         return report_locale.catalogue_body(analyze.DOCS, "ru") + "\n\n" + prose
 
     def test_locale_navigation_and_data_preservation(self):
-        en, ru = report_locale.report_versions(self.source("## Время тика\n\n| low | 0.3966 | BC1ED478AF94A722 |\n[SYSTEMS.md](SYSTEMS.md)"), analyze.DOCS)
+        intro = ("Ниже приведён исторический каталог workload `predictive-neutral-v1`. Самостоятельная версия: "
+                 "[SYSTEMS.md](SYSTEMS.md). Числа состава относятся к логическим компонентам измеренного прогона, "
+                 "без приватного LifetimeMarker адаптеров.")
+        en, ru = report_locale.report_versions(self.source("## Время тика\n\n| low | 0.3966 | BC1ED478AF94A722 |\n" + intro + "\n[SYSTEMS.md](SYSTEMS.md)"), analyze.DOCS)
         self.assertTrue(en.startswith("English | [Русский](REPORT.ru.md)"))
         self.assertTrue(ru.startswith("[English](REPORT.md) | Русский"))
         self.assertIn("| low | 0.3966 | BC1ED478AF94A722 |", en)
@@ -22,8 +25,15 @@ class ReportLocaleTests(unittest.TestCase):
         self.assertIn("](../../SpaceBattle.Web/README.ru.md)", ru)
         self.assertIn(report_locale.HISTORICAL_NOTICE_EN, en)
         self.assertIn(report_locale.HISTORICAL_NOTICE_RU, ru)
-        self.assertIn("](TACTICS.md)", en)
-        self.assertIn("](TACTICS.ru.md)", ru)
+        self.assertIn("](TACTICS_V3.md)", en)
+        self.assertIn("](TACTICS_V3.ru.md)", ru)
+        self.assertIn("](ARCHITECTURE.md)", en)
+        self.assertIn("](ARCHITECTURE.ru.md)", ru)
+        self.assertNotIn("BENCHMARK_METHOD_2026-10-11", en + ru)
+        self.assertIn("The archived browser replay ran Core + SECS + Aether", en)
+        self.assertIn("Архивный браузерный replay выполнял Core + SECS + Aether", ru)
+        self.assertIn("historical `predictive-neutral-v1` workload", en)
+        self.assertNotIn("current scenario", en)
 
     def test_missing_translation_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "Missing English"):

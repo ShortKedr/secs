@@ -524,7 +524,7 @@ def table(headers, rows):
 def plots(runs):
     # Import plotting packages only after the evidence gate has passed.
     sys.path.insert(0, str(ROOT / "Benchmarks.Local/python-packages"))
-    os.environ["MPLCONFIGDIR"] = str(DOCS / ".matplotlib-cache")
+    os.environ["MPLCONFIGDIR"] = str(ROOT / "Benchmarks.Local" / "matplotlib-cache")
     import numpy as np
     import matplotlib
     matplotlib.use("Agg")
@@ -872,7 +872,7 @@ def main():
         validate_parity(runs, capture, frontend)
         hardware = validate_hardware(runs)
         gc_samples = tick_gc_samples(runs)
-        write_assets(DOCS)
+        write_assets(ROOT / "docs")
         charts = plots(runs)
         write_csv(runs, gc_samples)
         english, russian = report_versions(report(runs, capture, charts, frontend, hardware, gc_samples, heat_policy),

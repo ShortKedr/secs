@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+import os
 
 import colorize_research_reports as report
 
@@ -49,7 +51,12 @@ class ResearchColourTests(unittest.TestCase):
                 path = report.ROOT / (stem + ('.ru.md' if language == 'ru' else '.md'))
                 with path.open(encoding='utf-8', newline='') as stream:
                     text = stream.read()
-                self.assertEqual(report.colorize_document(text, stem, language, path), text, str(path))
+                colored = report.colorize_document(text, stem, language, path)
+                self.assertEqual(colored, text, str(path))
+                expected_assets = Path(os.path.relpath(report.ROOT / 'docs/benchmarks/heatmap', path.parent)).as_posix()
+                for marker in report.MARKER.findall(colored):
+                    self.assertIn(f'({expected_assets}/', marker)
+                    self.assertNotIn('docs/space-battle/heatmap/', marker)
 
 
 if __name__ == '__main__':

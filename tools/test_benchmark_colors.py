@@ -1,7 +1,7 @@
 import unittest
 from decimal import Decimal
 
-from benchmark_colors import EQUAL_COLOR, Metric, colors, compact_legend, levels, shade_values
+from benchmark_colors import EQUAL_COLOR, Metric, colors, compact_legend, legend, levels, shade_values
 
 
 class SharedColourTests(unittest.TestCase):
@@ -12,6 +12,12 @@ class SharedColourTests(unittest.TestCase):
         markers = shade_values(values, language="en", asset_path="../heatmap")
         self.assertTrue(all("../heatmap/" in str(v) for v in markers))
         self.assertIn("Lag", markers[0])
+
+    def test_default_markers_use_the_shared_docs_asset_directory(self):
+        cells = shade_values([100, 130])
+        self.assertTrue(all("../benchmarks/heatmap/" in str(value) for value in cells))
+        self.assertIn("../benchmarks/heatmap/equal.svg", "\n".join(legend()))
+        self.assertIn("../benchmarks/heatmap/equal.svg", "\n".join(compact_legend()))
 
     def test_close_groups_stay_grey_on_charts_and_tables(self):
         values = [100, 103, 105]

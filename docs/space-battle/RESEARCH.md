@@ -11,10 +11,21 @@ Each study is evidence for its recorded source snapshot, scenario and runtime. C
 | Document | Context |
 | --- | --- |
 | [Report, 2026-10-11](REPORT_2026-10-11.md) | Five ECS, `predictive-neutral-v1`, Aether; original tables, charts and capture evidence |
-| [Methodology, 2026-10-11](BENCHMARK_METHOD_2026-10-11.md) | Original input schema, gates, metric scopes and analysis instructions; includes later armament notes |
 | [Systems catalogue](SYSTEMS.md) | Original nine-stage workload and components; historical catalogue, not a current code inventory |
 | [Delivery plan, 2026-10-11](PLAN.md) | Original acceptance requirements and recorded completion ledger; not a current work queue |
 | [Tactical AI v2](TACTICS.md) | Earlier kill-cost and focus-group model, superseded by [v3](TACTICS_V3.md) |
+
+## Historical Visual Evidence
+
+These PNG/sidecar pairs are recorded historical snapshots, not current capture outputs. Their reproduction from the current source has not been verified.
+
+| Snapshot | PNG | Recorded metadata |
+| --- | --- | --- |
+| Tick 0 | [tick-0.png](tick-0.png) | [sidecar](tick-0.png.json) |
+| Tick 900 | [tick-900.png](tick-900.png) | [sidecar](tick-900.png.json) |
+| Tick 900, 960 x 540 | [tick-900-960x540.png](tick-900-960x540.png) | [sidecar](tick-900-960x540.png.json) |
+| Tick 3600 | [tick-3600.png](tick-3600.png) | [sidecar](tick-3600.png.json) |
+| Stress 4102, tick 0 | [stress-4102-tick-0.png](stress-4102-tick-0.png) | [sidecar](stress-4102-tick-0.png.json) |
 
 ## Performance and Compatibility Studies
 

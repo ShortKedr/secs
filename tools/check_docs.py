@@ -31,7 +31,7 @@ DOCUMENTS = [
     "Benchmarks.Local/README.md", "THIRD_PARTY_NOTICES.md",
     "docs/README.md", "docs/secs/README.md",
     "SpaceBattle.Game/DEVELOPMENT.md", "SpaceBattle.Web/DEVELOPMENT.md",
-    "docs/space-battle/RESEARCH.md", "docs/space-battle/BENCHMARK_METHOD_2026-10-11.md",
+    "docs/space-battle/RESEARCH.md",
     "docs/space-battle/REPORT_2026-10-11.md", "docs/benchmarks/current/REPORT.md",
     "docs/space-battle/ARCHITECTURE.md",
     "docs/benchmarks/COLORS.md",
@@ -201,7 +201,11 @@ def check(root=ROOT):
     # navigation too, without imposing a bilingual template on specifications.
     paired = {p for en in paths for p in (en, russian_path(en))}
     single_paths = sorted(p for p in (ROOT / "docs/secs").rglob("*.md") if p not in paired)
-    single_paths.append(ROOT / "tools/space-battle/SCENE_SEARCH_PROMPT.ru.md")
+    single_paths.extend([
+        ROOT / "tools/space-battle/SCENE_SEARCH_PROMPT.ru.md",
+        ROOT / "docs/audit/2026-10-14/AUDIT.ru.md",
+        ROOT / "docs/audit/2026-10-14/CLEANUP_PROMPT.ru.md",
+    ])
     for path in single_paths:
         clean, _ = without_fences(path.read_text(encoding="utf-8-sig"))
         html = HtmlLinks()

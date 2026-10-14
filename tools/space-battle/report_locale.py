@@ -9,12 +9,12 @@ import re
 HISTORICAL_NOTICE_EN = (
     "> **Historical measurements:** the tables, charts and frozen benchmark captures below use `predictive-neutral-v1`. "
     "They use the old Aether physics and do not describe current performance. "
-    "See the [current campaign](REPORT.md) and [tactical AI history](TACTICS.md).\n\n"
+    "See the [current campaign](REPORT.md), [current tactics](TACTICS_V3.md) and [architecture](ARCHITECTURE.md).\n\n"
 )
 HISTORICAL_NOTICE_RU = (
     "> **Исторические измерения:** таблицы, графики и зафиксированные захваты бенчмарка ниже относятся к `predictive-neutral-v1`. "
     "Они используют старую физику Aether и не описывают текущую производительность. "
-    "См. [актуальную кампанию](REPORT.ru.md) и [историю тактического AI](TACTICS.ru.md).\n\n"
+    "См. [актуальную кампанию](REPORT.ru.md), [текущую тактику](TACTICS_V3.ru.md) и [архитектуру](ARCHITECTURE.ru.md).\n\n"
 )
 
 
@@ -118,8 +118,8 @@ PHRASES = {
     "Мин 11-20 mean ms": "Minutes 11-20 Mean ms", "Мин 21-30 mean ms": "Minutes 21-30 Mean ms",
     "Поздняя/ранняя": "Late / Early", "Наибольшая стадия": "Largest Stage", "Тики >16.67ms": "Ticks >16.67ms",
     "не определено": "undefined", "недоступно": "unavailable", "неизвестно": "unknown",
-    "Ниже приведён каталог текущего сценария. Полная самостоятельная версия: [SYSTEMS.md](SYSTEMS.md). Числа состава относятся к логическим компонентам игры, без приватного LifetimeMarker адаптеров.":
-        "The catalogue below describes the current scenario. Standalone version: [SYSTEMS.md](SYSTEMS.md). Composition counts refer to logical gameplay components, excluding adapters' private LifetimeMarker.",
+    "Ниже приведён исторический каталог workload `predictive-neutral-v1`. Самостоятельная версия: [SYSTEMS.md](SYSTEMS.md). Числа состава относятся к логическим компонентам измеренного прогона, без приватного LifetimeMarker адаптеров.":
+        "The catalogue below describes the historical `predictive-neutral-v1` workload. Standalone version: [SYSTEMS.md](SYSTEMS.md). Composition counts refer to logical components in the measured run, excluding adapters' private LifetimeMarker.",
     "Значения в ms из исходных performance-запусков, не из диагностического observer. Стадии включают указанные выше обходы, вычисления и структурные последствия; это не изолированная стоимость одной ECS-операции.":
         "Times in ms come from the original performance runs, not the diagnostic observer. Stages include the traversals, computation and structural effects described above; they do not isolate the cost of one ECS operation.",
     "Для каждого профиля выполнен отдельный диагностический SECS replay всех 108000 тиков, без изменения ранее измеренных Core/SECS/Aether DLL: их SHA256 совпадает с исходными JSON. На каждом тике совпадают численности четырёх семейств и StructuralAdds/Removes исходного CSV; все 30 минутных checksums и итоговые Counters совпадают. На tick 0 и каждые 3600 тиков наблюдатель дополнительно сверяет численности всех 23 типов независимыми native-запросами. Это подтверждает состав данного replay, но не заменяет проверку каждой сущности во всех пяти адаптерах.":
@@ -235,7 +235,7 @@ def report_versions(markdown, docs, extra_phrases=None):
     russian = re.sub(r"(?<=\]\()([^()]+?)(\.md)(?=\))",
                      lambda m: m[1] + ("" if m[1].endswith(".ru") else ".ru") + m[2], markdown)
     en_nav = ("English | [Русский](REPORT.ru.md)\n\n"
-              "[Repository](../../README.md) | [Methodology](BENCHMARK_METHOD_2026-10-11.md) | [Systems](SYSTEMS.md)\n\n"
+              "[Repository](../../README.md) | [Systems](SYSTEMS.md)\n\n"
               "[Key results](#key-results) | [Entity composition](#measured-entity-composition) | "
               "[Tick timing](#tick-timing) | [Frontend](#separate-frontend-profile)\n\n"
               "**[Run the live .NET WASM demo](https://shortkedr.github.io/secs/)** |\n"
@@ -244,7 +244,7 @@ def report_versions(markdown, docs, extra_phrases=None):
               "Browser timings are not the desktop benchmark results below; cross-platform\n"
               "checksum equality is not promised.\n\n")
     ru_nav = ("[English](REPORT.md) | Русский\n\n"
-              "[Репозиторий](../../README.ru.md) | [Методика](BENCHMARK_METHOD_2026-10-11.ru.md) | [Системы](SYSTEMS.ru.md)\n\n"
+              "[Репозиторий](../../README.ru.md) | [Системы](SYSTEMS.ru.md)\n\n"
               "[Ключевые результаты](#ключевые-результаты) | [Состав сущностей](#измеренный-состав-сущностей) | "
               "[Время тика](#время-тика) | [Фронтенд](#отдельный-профиль-фронтенда)\n\n"
               "**[Запустить демо .NET WASM в браузере](https://shortkedr.github.io/secs/?lang=ru)** |\n"
