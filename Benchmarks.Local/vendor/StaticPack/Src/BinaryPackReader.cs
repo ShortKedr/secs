@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Text;
 using static System.Runtime.CompilerServices.MethodImplOptions;
@@ -9,11 +11,20 @@ using Unity.IL2CPP.CompilerServices;
 #endif
 
 namespace FFS.Libraries.StaticPack {
+
+    /// <summary>
+    /// Parses a format-specific header and returns the total payload size in bytes
+    /// (header + payload). Passed to <see cref="BinaryPackReader.RentAndFillFromBytes"/> /
+    /// <see cref="BinaryPackReader.RentAndFillFromFile"/> for cases when the source is gzip-compressed
+    /// and the exact size can only be determined by decompressing the first bytes.
+    /// </summary>
+    public delegate uint TotalSizeParser(ReadOnlySpan<byte> header);
+
     #if ENABLE_IL2CPP
     [Il2CppSetOption(Option.NullChecks, false)]
     [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
     #endif
-    public struct BinaryPackReader {
+    public struct BinaryPackReader : IDisposable {
         private const uint ARRAY_INFO_BYTES = sizeof(int) + sizeof(int);      // count + byteSize
         private const uint ARRAY2_INFO_BYTES = sizeof(int) * 2 + sizeof(int); // count x2 + byteSize
         private const uint ARRAY3_INFO_BYTES = sizeof(int) * 3 + sizeof(int); // count x3 + byteSize
@@ -21,9 +32,13 @@ namespace FFS.Libraries.StaticPack {
         public byte[] Buffer;
         public readonly uint Size;
         public uint Position;
+        public readonly bool Rented;
 
         [MethodImpl(AggressiveInlining)]
-        public BinaryPackReader(byte[] buffer, uint size, uint position) {
+        public BinaryPackReader(byte[] buffer, uint size, uint position) : this(buffer, size, position, false) { }
+
+        [MethodImpl(AggressiveInlining)]
+        private BinaryPackReader(byte[] buffer, uint size, uint position, bool rented) {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (buffer == null) throw new Exception("buffer is null");
             if (position + size > buffer.Length) throw new Exception("incorrect position or size");
@@ -31,6 +46,129 @@ namespace FFS.Libraries.StaticPack {
             Buffer = buffer;
             Position = position;
             Size = size;
+            Rented = rented;
+        }
+
+        private const int MAX_PEEK_HEADER_SIZE = 256;
+
+        // RFC 1952: every gzip stream starts with 0x1F 0x8B. Used to autodetect gzip-compressed sources
+        // without requiring the caller to pass a flag.
+        private const byte GZIP_MAGIC_0 = 0x1F;
+        private const byte GZIP_MAGIC_1 = 0x8B;
+
+        [MethodImpl(AggressiveInlining)]
+        private static bool IsGzipMagic(byte b0, byte b1) {
+            return b0 == GZIP_MAGIC_0 && b1 == GZIP_MAGIC_1;
+        }
+
+        /// <summary>
+        /// Rents a buffer from <see cref="ArrayPool{Byte}.Shared"/> of exactly <paramref name="size"/> bytes
+        /// and reads that many bytes from <paramref name="source"/> into it. The returned reader has
+        /// <c>Rented = true</c> and must be released via <see cref="Dispose"/> to return the buffer to the pool.
+        /// </summary>
+        [MethodImpl(AggressiveInlining)]
+        public static BinaryPackReader RentAndFillFromStream(Stream source, uint size) {
+            var buffer = ArrayPool<byte>.Shared.Rent((int) size);
+            ReadExactly(source, buffer, 0, (int) size);
+            return new BinaryPackReader(buffer, size, 0, true);
+        }
+
+        /// <summary>
+        /// Creates a reader over the contents of <paramref name="data"/>. Gzip compression is autodetected
+        /// from the standard RFC 1952 magic bytes (<c>0x1F 0x8B</c>) at offset 0.
+        /// <para>When <paramref name="data"/> is not gzip-compressed the array is wrapped without renting
+        /// (<c>Rented = false</c>); <paramref name="headerSize"/> and <paramref name="parseTotalSize"/> are ignored.</para>
+        /// <para>When <paramref name="data"/> is gzip-compressed the method opens a decompression stream,
+        /// peeks the first <paramref name="headerSize"/> bytes, passes them to <paramref name="parseTotalSize"/>,
+        /// rents a buffer of exactly the returned size, copies the header and reads the remaining payload
+        /// (<c>Rented = true</c>).</para>
+        /// </summary>
+        public static BinaryPackReader RentAndFillFromBytes(byte[] data, int headerSize = 0, TotalSizeParser parseTotalSize = null) {
+            if (data.Length < 2 || !IsGzipMagic(data[0], data[1])) {
+                return new BinaryPackReader(data, (uint) data.Length, 0);
+            }
+            using var ms = new MemoryStream(data, writable: false);
+            using var gz = new GZipStream(ms, CompressionMode.Decompress, false);
+            return RentAndFillWithHeaderPeek(gz, headerSize, parseTotalSize);
+        }
+
+        /// <summary>
+        /// Creates a reader over the contents of a file. Gzip compression is autodetected from the
+        /// standard RFC 1952 magic bytes (<c>0x1F 0x8B</c>) at offset 0.
+        /// <para>When the file is not gzip-compressed it is read into a rented buffer of exactly its length
+        /// (<c>Rented = true</c>); <paramref name="headerSize"/> and <paramref name="parseTotalSize"/> are ignored.</para>
+        /// <para>When the file is gzip-compressed a decompression stream is opened, the first
+        /// <paramref name="headerSize"/> bytes are peeked and passed to <paramref name="parseTotalSize"/>,
+        /// a buffer of exactly the returned size is rented, the header is copied in and the remaining payload
+        /// is read (<c>Rented = true</c>).</para>
+        /// </summary>
+        public static BinaryPackReader RentAndFillFromFile(string filePath, int headerSize = 0, TotalSizeParser parseTotalSize = null) {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None, 4096);
+            Span<byte> magic = stackalloc byte[2];
+            var magicRead = fs.Read(magic);
+            if (magicRead < 2 || !IsGzipMagic(magic[0], magic[1])) {
+                fs.Seek(0, SeekOrigin.Begin);
+                return RentAndFillFromStream(fs, (uint) fs.Length);
+            }
+            fs.Seek(0, SeekOrigin.Begin);
+            using var gz = new GZipStream(fs, CompressionMode.Decompress, false);
+            return RentAndFillWithHeaderPeek(gz, headerSize, parseTotalSize);
+        }
+
+        private static BinaryPackReader RentAndFillWithHeaderPeek(Stream source, int headerSize, TotalSizeParser parseTotalSize) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (headerSize <= 0) throw new Exception("headerSize must be > 0 for gzip source");
+            if (headerSize > MAX_PEEK_HEADER_SIZE) throw new Exception($"headerSize must be <= {MAX_PEEK_HEADER_SIZE}");
+            if (parseTotalSize == null) throw new Exception("parseTotalSize is required for gzip source");
+            #endif
+            Span<byte> headerBuffer = stackalloc byte[MAX_PEEK_HEADER_SIZE];
+            var header = headerBuffer.Slice(0, headerSize);
+            ReadExactly(source, header);
+            var totalSize = parseTotalSize(header);
+            var buffer = ArrayPool<byte>.Shared.Rent((int) totalSize);
+            header.CopyTo(buffer.AsSpan(0, headerSize));
+            ReadExactly(source, buffer, headerSize, (int) totalSize - headerSize);
+            return new BinaryPackReader(buffer, totalSize, 0, true);
+        }
+
+        /// <summary>
+        /// Returns the rented buffer to <see cref="ArrayPool{Byte}.Shared"/> when the reader was created
+        /// via one of the <c>RentAndFill*</c> factories. For readers that wrap an externally owned array
+        /// this is a no-op.
+        /// </summary>
+        [MethodImpl(AggressiveInlining)]
+        public void Dispose() {
+            if (Rented && Buffer != null) {
+                ArrayPool<byte>.Shared.Return(Buffer);
+            }
+            Buffer = null;
+        }
+
+        /// <summary>
+        /// Reads exactly <c>count</c> bytes in a loop: <see cref="Stream.Read(byte[], int, int)"/> may return
+        /// fewer bytes than requested. <c>net7.0+</c> ships its own <c>Stream.ReadExactly</c>; this is a single
+        /// wrapper that works on every target framework.
+        /// </summary>
+        public static void ReadExactly(Stream source, byte[] buffer, int offset, int count) {
+            while (count > 0) {
+                var n = source.Read(buffer, offset, count);
+                if (n == 0) {
+                    throw new EndOfStreamException();
+                }
+                offset += n;
+                count -= n;
+            }
+        }
+
+        /// <inheritdoc cref="ReadExactly(Stream, byte[], int, int)"/>
+        public static void ReadExactly(Stream source, Span<byte> destination) {
+            while (!destination.IsEmpty) {
+                var n = source.Read(destination);
+                if (n == 0) {
+                    throw new EndOfStreamException();
+                }
+                destination = destination.Slice(n);
+            }
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -144,7 +282,9 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (!HasNext(sizeof(short))) throw new Exception("ByteReader, Out of bound");
             #endif
-            return (short) (Buffer[Position++] | (Buffer[Position++] << 8));
+            var value = Unsafe.ReadUnaligned<short>(ref Buffer[Position]);
+            Position += 2;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -163,7 +303,9 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (!HasNext(sizeof(ushort))) throw new Exception("ByteReader, Out of bound");
             #endif
-            return (ushort) (Buffer[Position++] | (Buffer[Position++] << 8));
+            var value = Unsafe.ReadUnaligned<ushort>(ref Buffer[Position]);
+            Position += 2;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -182,7 +324,9 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (!HasNext(sizeof(char))) throw new Exception("ByteReader, Out of bound");
             #endif
-            return (char) (Buffer[Position++] | (Buffer[Position++] << 8));
+            var value = Unsafe.ReadUnaligned<char>(ref Buffer[Position]);
+            Position += 2;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -201,13 +345,9 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (!HasNext(sizeof(int))) throw new Exception("ByteReader, Out of bound");
             #endif
-            var union = default(Union4);
-            union.Byte0 = Buffer[Position];
-            union.Byte1 = Buffer[Position + 1];
-            union.Byte2 = Buffer[Position + 2];
-            union.Byte3 = Buffer[Position + 3];
+            var value = Unsafe.ReadUnaligned<int>(ref Buffer[Position]);
             Position += 4;
-            return (int) union.Uint;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -226,13 +366,9 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (!HasNext(sizeof(uint))) throw new Exception("ByteReader, Out of bound");
             #endif
-            var union = default(Union4);
-            union.Byte0 = Buffer[Position];
-            union.Byte1 = Buffer[Position + 1];
-            union.Byte2 = Buffer[Position + 2];
-            union.Byte3 = Buffer[Position + 3];
+            var value = Unsafe.ReadUnaligned<uint>(ref Buffer[Position]);
             Position += 4;
-            return union.Uint;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -298,7 +434,12 @@ namespace FFS.Libraries.StaticPack {
 
         [MethodImpl(AggressiveInlining)]
         public long ReadLong() {
-            return (long) ReadUlong();
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(sizeof(long))) throw new Exception("ByteReader, Out of bound");
+            #endif
+            var value = Unsafe.ReadUnaligned<long>(ref Buffer[Position]);
+            Position += 8;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -317,17 +458,9 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (!HasNext(sizeof(ulong))) throw new Exception("ByteReader, Out of bound");
             #endif
-            var union = default(Union8);
-            union.Byte0 = Buffer[Position];
-            union.Byte1 = Buffer[Position + 1];
-            union.Byte2 = Buffer[Position + 2];
-            union.Byte3 = Buffer[Position + 3];
-            union.Byte4 = Buffer[Position + 4];
-            union.Byte5 = Buffer[Position + 5];
-            union.Byte6 = Buffer[Position + 6];
-            union.Byte7 = Buffer[Position + 7];
+            var value = Unsafe.ReadUnaligned<ulong>(ref Buffer[Position]);
             Position += 8;
-            return union.Ulong;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -346,13 +479,9 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (!HasNext(sizeof(float))) throw new Exception("ByteReader, Out of bound");
             #endif
-            var union = default(Union4);
-            union.Byte0 = Buffer[Position];
-            union.Byte1 = Buffer[Position + 1];
-            union.Byte2 = Buffer[Position + 2];
-            union.Byte3 = Buffer[Position + 3];
+            var value = Unsafe.ReadUnaligned<float>(ref Buffer[Position]);
             Position += 4;
-            return union.Float;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -371,17 +500,9 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG || FFS_PACK_ENABLE_DEBUG
             if (!HasNext(sizeof(double))) throw new Exception("ByteReader, Out of bound");
             #endif
-            var union = default(Union8);
-            union.Byte0 = Buffer[Position];
-            union.Byte1 = Buffer[Position + 1];
-            union.Byte2 = Buffer[Position + 2];
-            union.Byte3 = Buffer[Position + 3];
-            union.Byte4 = Buffer[Position + 4];
-            union.Byte5 = Buffer[Position + 5];
-            union.Byte6 = Buffer[Position + 6];
-            union.Byte7 = Buffer[Position + 7];
+            var value = Unsafe.ReadUnaligned<double>(ref Buffer[Position]);
             Position += 8;
-            return union.Double;
+            return value;
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -393,6 +514,195 @@ namespace FFS.Libraries.StaticPack {
 
             value = default;
             return false;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadByte(out byte v0, out byte v1) {
+            v0 = ReadByte();
+            v1 = ReadByte();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadByte(out byte v0, out byte v1, out byte v2) {
+            v0 = ReadByte();
+            v1 = ReadByte();
+            v2 = ReadByte();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadByte(out byte v0, out byte v1, out byte v2, out byte v3) {
+            v0 = ReadByte();
+            v1 = ReadByte();
+            v2 = ReadByte();
+            v3 = ReadByte();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadShort(out short v0, out short v1) {
+            v0 = ReadShort();
+            v1 = ReadShort();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadShort(out short v0, out short v1, out short v2) {
+            v0 = ReadShort();
+            v1 = ReadShort();
+            v2 = ReadShort();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadShort(out short v0, out short v1, out short v2, out short v3) {
+            v0 = ReadShort();
+            v1 = ReadShort();
+            v2 = ReadShort();
+            v3 = ReadShort();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUshort(out ushort v0, out ushort v1) {
+            v0 = ReadUshort();
+            v1 = ReadUshort();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUshort(out ushort v0, out ushort v1, out ushort v2) {
+            v0 = ReadUshort();
+            v1 = ReadUshort();
+            v2 = ReadUshort();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUshort(out ushort v0, out ushort v1, out ushort v2, out ushort v3) {
+            v0 = ReadUshort();
+            v1 = ReadUshort();
+            v2 = ReadUshort();
+            v3 = ReadUshort();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadInt(out int v0, out int v1) {
+            v0 = ReadInt();
+            v1 = ReadInt();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadInt(out int v0, out int v1, out int v2) {
+            v0 = ReadInt();
+            v1 = ReadInt();
+            v2 = ReadInt();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadInt(out int v0, out int v1, out int v2, out int v3) {
+            v0 = ReadInt();
+            v1 = ReadInt();
+            v2 = ReadInt();
+            v3 = ReadInt();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUint(out uint v0, out uint v1) {
+            v0 = ReadUint();
+            v1 = ReadUint();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUint(out uint v0, out uint v1, out uint v2) {
+            v0 = ReadUint();
+            v1 = ReadUint();
+            v2 = ReadUint();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUint(out uint v0, out uint v1, out uint v2, out uint v3) {
+            v0 = ReadUint();
+            v1 = ReadUint();
+            v2 = ReadUint();
+            v3 = ReadUint();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadFloat(out float v0, out float v1) {
+            v0 = ReadFloat();
+            v1 = ReadFloat();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadFloat(out float v0, out float v1, out float v2) {
+            v0 = ReadFloat();
+            v1 = ReadFloat();
+            v2 = ReadFloat();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadFloat(out float v0, out float v1, out float v2, out float v3) {
+            v0 = ReadFloat();
+            v1 = ReadFloat();
+            v2 = ReadFloat();
+            v3 = ReadFloat();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadLong(out long v0, out long v1) {
+            v0 = ReadLong();
+            v1 = ReadLong();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadLong(out long v0, out long v1, out long v2) {
+            v0 = ReadLong();
+            v1 = ReadLong();
+            v2 = ReadLong();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadLong(out long v0, out long v1, out long v2, out long v3) {
+            v0 = ReadLong();
+            v1 = ReadLong();
+            v2 = ReadLong();
+            v3 = ReadLong();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUlong(out ulong v0, out ulong v1) {
+            v0 = ReadUlong();
+            v1 = ReadUlong();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUlong(out ulong v0, out ulong v1, out ulong v2) {
+            v0 = ReadUlong();
+            v1 = ReadUlong();
+            v2 = ReadUlong();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUlong(out ulong v0, out ulong v1, out ulong v2, out ulong v3) {
+            v0 = ReadUlong();
+            v1 = ReadUlong();
+            v2 = ReadUlong();
+            v3 = ReadUlong();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadDouble(out double v0, out double v1) {
+            v0 = ReadDouble();
+            v1 = ReadDouble();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadDouble(out double v0, out double v1, out double v2) {
+            v0 = ReadDouble();
+            v1 = ReadDouble();
+            v2 = ReadDouble();
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadDouble(out double v0, out double v1, out double v2, out double v3) {
+            v0 = ReadDouble();
+            v1 = ReadDouble();
+            v2 = ReadDouble();
+            v3 = ReadDouble();
         }
         #endregion
 
@@ -762,6 +1072,7 @@ namespace FFS.Libraries.StaticPack {
             var dim0 = ReadInt();
             var dim1 = ReadInt();
             var dim2 = ReadInt();
+            Position += sizeof(uint);
 
             var res = new T[dim0, dim1, dim2];
             for (var i0 = 0; i0 < dim0; i0++) {
@@ -1087,6 +1398,737 @@ namespace FFS.Libraries.StaticPack {
         [MethodImpl(AggressiveInlining)]
         public void SkipDictionary() {
             SkipArray();
+        }
+        #endregion
+
+        #region SPAN
+        [MethodImpl(AggressiveInlining)]
+        public void ReadBytes(Span<byte> destination) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext((uint) destination.Length)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            Buffer.AsSpan((int) Position, destination.Length).CopyTo(destination);
+            Position += (uint) destination.Length;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public ReadOnlySpan<byte> ReadBytesAsSpan(uint count) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(count)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            var span = new ReadOnlySpan<byte>(Buffer, (int) Position, (int) count);
+            Position += count;
+            return span;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public ReadOnlyMemory<byte> ReadBytesAsMemory(uint count) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(count)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            var memory = new ReadOnlyMemory<byte>(Buffer, (int) Position, (int) count);
+            Position += count;
+            return memory;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public ReadOnlySpan<byte> RemainingAsSpan() {
+            return new ReadOnlySpan<byte>(Buffer, (int) Position, (int) (Size - Position));
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public ReadOnlyMemory<byte> RemainingAsMemory() {
+            return new ReadOnlyMemory<byte>(Buffer, (int) Position, (int) (Size - Position));
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T>(Span<T> destination) where T : unmanaged {
+            if (destination.Length == 0) return;
+            unsafe {
+                var size = (uint) (destination.Length * sizeof(T));
+                #if DEBUG || FFS_PACK_ENABLE_DEBUG
+                if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+                #endif
+                fixed (byte* src = &Buffer[Position])
+                fixed (T* dest = destination) {
+                    System.Buffer.MemoryCopy(src, dest, size, size);
+                }
+                Position += size;
+            }
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public int ReadSpanUnmanaged<T>(Span<T> destination) where T : unmanaged {
+            if (ReadNullFlag()) return 0;
+
+            var count = ReadInt();
+            var byteSize = ReadUint();
+            if (count > 0) {
+                unsafe {
+                    #if DEBUG || FFS_PACK_ENABLE_DEBUG
+                    var actualSize = (uint) (count * sizeof(T));
+                    if (byteSize != actualSize) throw new Exception($"[ReadSpanUnmanaged<{typeof(T)}>] The number of bytes has changed - stored {byteSize}, actual {actualSize}");
+                    if (count > destination.Length) throw new Exception($"[ReadSpanUnmanaged<{typeof(T)}>] Destination too small - need {count}, have {destination.Length}");
+                    #endif
+
+                    fixed (byte* src = &Buffer[Position])
+                    fixed (T* dest = destination) {
+                        System.Buffer.MemoryCopy(src, dest, byteSize, byteSize);
+                    }
+
+                    Position += byteSize;
+                }
+            }
+
+            return count;
+        }
+        #endregion
+
+        #region UNMANAGED_GENERIC
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T1>(out T1 v1)
+            where T1 : unmanaged {
+            var size = (uint) Unsafe.SizeOf<T1>();
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Buffer[Position]);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T1, T2>(out T1 v1, out T2 v2)
+            where T1 : unmanaged where T2 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T1, T2, T3>(out T1 v1, out T2 v2, out T3 v3)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T1, T2, T3, T4>(out T1 v1, out T2 v2, out T3 v3, out T4 v4)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T1, T2, T3, T4, T5>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T1, T2, T3, T4, T5, T6>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T1, T2, T3, T4, T5, T6, T7>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6, out T7 v7)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged where T7 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            v7 = Unsafe.ReadUnaligned<T7>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanaged<T1, T2, T3, T4, T5, T6, T7, T8>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6, out T7 v7, out T8 v8)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged where T7 : unmanaged where T8 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>() + Unsafe.SizeOf<T8>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            v7 = Unsafe.ReadUnaligned<T7>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()));
+            v8 = Unsafe.ReadUnaligned<T8>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanagedSized<T1>(out T1 v1)
+            where T1 : unmanaged {
+            var payload = (uint) Unsafe.SizeOf<T1>();
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanagedSized<T1, T2>(out T1 v1, out T2 v2)
+            where T1 : unmanaged where T2 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanagedSized<T1, T2, T3>(out T1 v1, out T2 v2, out T3 v3)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanagedSized<T1, T2, T3, T4>(out T1 v1, out T2 v2, out T3 v3, out T4 v4)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanagedSized<T1, T2, T3, T4, T5>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanagedSized<T1, T2, T3, T4, T5, T6>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanagedSized<T1, T2, T3, T4, T5, T6, T7>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6, out T7 v7)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged where T7 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            v7 = Unsafe.ReadUnaligned<T7>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ReadUnmanagedSized<T1, T2, T3, T4, T5, T6, T7, T8>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6, out T7 v7, out T8 v8)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged where T7 : unmanaged where T8 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>() + Unsafe.SizeOf<T8>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            v7 = Unsafe.ReadUnaligned<T7>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()));
+            v8 = Unsafe.ReadUnaligned<T8>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanaged<T1>(out T1 v1) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T1)} contains references");
+            #endif
+            var size = (uint) Unsafe.SizeOf<T1>();
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Buffer[Position]);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanaged<T1, T2>(out T1 v1, out T2 v2) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T2)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanaged<T1, T2, T3>(out T1 v1, out T2 v2, out T3 v3) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T3)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanaged<T1, T2, T3, T4>(out T1 v1, out T2 v2, out T3 v3, out T4 v4) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T4)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanaged<T1, T2, T3, T4, T5>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T5)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanaged<T1, T2, T3, T4, T5, T6>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T6)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanaged<T1, T2, T3, T4, T5, T6, T7>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6, out T7 v7) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T6)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T7)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            v7 = Unsafe.ReadUnaligned<T7>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanaged<T1, T2, T3, T4, T5, T6, T7, T8>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6, out T7 v7, out T8 v8) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T6)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T7)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T8>()) throw new Exception($"[ForceReadUnmanaged] Type {typeof(T8)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>() + Unsafe.SizeOf<T8>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(size)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            v1 = Unsafe.ReadUnaligned<T1>(ref src);
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            v7 = Unsafe.ReadUnaligned<T7>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()));
+            v8 = Unsafe.ReadUnaligned<T8>(ref Unsafe.Add(ref src, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>()));
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanagedSized<T1>(out T1 v1) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T1)} contains references");
+            #endif
+            var payload = (uint) Unsafe.SizeOf<T1>();
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ForceReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanagedSized<T1, T2>(out T1 v1, out T2 v2) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T2)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ForceReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanagedSized<T1, T2, T3>(out T1 v1, out T2 v2, out T3 v3) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T3)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ForceReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanagedSized<T1, T2, T3, T4>(out T1 v1, out T2 v2, out T3 v3, out T4 v4) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T4)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ForceReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanagedSized<T1, T2, T3, T4, T5>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T5)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ForceReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanagedSized<T1, T2, T3, T4, T5, T6>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T6)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ForceReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanagedSized<T1, T2, T3, T4, T5, T6, T7>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6, out T7 v7) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T6)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T7)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ForceReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            v7 = Unsafe.ReadUnaligned<T7>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()));
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceReadUnmanagedSized<T1, T2, T3, T4, T5, T6, T7, T8>(out T1 v1, out T2 v2, out T3 v3, out T4 v4, out T5 v5, out T6 v6, out T7 v7, out T8 v8) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T6)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T7)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T8>()) throw new Exception($"[ForceReadUnmanagedSized] Type {typeof(T8)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>() + Unsafe.SizeOf<T8>());
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (!HasNext(payload + 4)) throw new Exception("ByteReader, Out of bound");
+            #endif
+            ref var src = ref Buffer[Position];
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            var stored = Unsafe.ReadUnaligned<uint>(ref src);
+            if (stored != payload) throw new Exception($"[ForceReadUnmanagedSized] Size mismatch - stored {stored}, expected {payload}");
+            #endif
+            v1 = Unsafe.ReadUnaligned<T1>(ref Unsafe.Add(ref src, 4));
+            v2 = Unsafe.ReadUnaligned<T2>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>()));
+            v3 = Unsafe.ReadUnaligned<T3>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()));
+            v4 = Unsafe.ReadUnaligned<T4>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()));
+            v5 = Unsafe.ReadUnaligned<T5>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()));
+            v6 = Unsafe.ReadUnaligned<T6>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()));
+            v7 = Unsafe.ReadUnaligned<T7>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()));
+            v8 = Unsafe.ReadUnaligned<T8>(ref Unsafe.Add(ref src, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>()));
+            Position += payload + 4;
         }
         #endregion
     }

@@ -163,7 +163,12 @@ def render(metadata: dict[str, Any], results: dict[tuple[str, str, int], dict[st
                labels=("≤5% lag", "15% lag", "≥30% lag", "within 5% / neutral"),
                loc="upper center", bbox_to_anchor=(0.5, 0.916), ncol=4, frameon=False, fontsize=8)
     fig.text(0.5, 0.045, metadata_footer(metadata), ha="center", va="bottom", fontsize=8, color="#4B5563", linespacing=1.4)
-    fig.text(0.5, 0.012, "LeoECS Lite 2024.5.22 | Classic 2023.6.22 | Morpeh 2024.1.1 | StaticEcs 1.2.01",
+    static_revision = metadata.get("revisions", {}).get("staticEcs", "")
+    static_version = {
+        "6323d710c22cfff70100fe3748de432cb5fc70c8": "1.2.01",
+        "23b1cf36d89497e8a126d38459d688e2b0a5dea3": "2.2.9",
+    }.get(static_revision, f"source {str(static_revision)[:8]}")
+    fig.text(0.5, 0.012, f"LeoECS Lite 2024.5.22 | Classic 2023.6.22 | Morpeh 2024.1.1 | StaticEcs {static_version}",
              ha="center", va="bottom", fontsize=8, color="#4B5563")
     fig.subplots_adjust(left=0.12, right=0.985, top=0.86, bottom=0.17, wspace=0.50, hspace=0.36)
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -50,11 +50,11 @@ Allocation fields measure managed allocations on the measured thread. They exclu
 
 ## Current campaign
 
-The canonical [2026-10-13 report](../docs/benchmarks/current/REPORT.md) links [base raw samples](../docs/benchmarks/current/base.json), [stress raw samples](../docs/benchmarks/current/stress.json), [source/runtime metadata](../docs/benchmarks/current/campaign.json) and three charts. This is the complete fresh five-framework matrix. Files in the directory root and `docs/benchmarks/updated` are retained history; they are not the current ranking.
+The canonical [current report](../docs/benchmarks/current/REPORT.md) links [base raw samples](../docs/benchmarks/current/base.json), [stress raw samples](../docs/benchmarks/current/stress.json), [source/runtime metadata](../docs/benchmarks/current/campaign.json) and three charts. This is the complete fresh five-framework matrix. Files in the directory root and `docs/benchmarks/updated` are retained history; they are not the current ranking.
 
 ## Reproduce
 
-Run from the repository root, with .NET 8 runtime, a suitable SDK and the existing local NuGet cache. This offline command builds Release, validates all adapters, records source/assembly hashes, and runs base then stress with one measurement process at a time:
+Run from the repository root, with .NET 8 runtime, an SDK supporting C# 13 (9.0 or newer), and the existing local NuGet cache. This offline command builds Release, validates all adapters, records source/assembly hashes, and runs base then stress with one measurement process at a time:
 
 ```powershell
 ./Benchmarks.Local/run_campaign.ps1 -OutputDirectory Benchmarks.Local/repro-campaign

@@ -21,7 +21,7 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
         {
             if (!open) throw new InvalidOperationException("StaticEcs registration has closed.");
             if (!registered.Add(typeof(T))) return;
-            NativeWorld.RegisterComponentType<Wrapper<T>>();
+            NativeWorld.Types().Component<Wrapper<T>>();
         }
         internal void Close() => open = false;
     }
@@ -75,7 +75,7 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
                 if (created)
                 {
                     // Native Destroy requires an initialized world, even on registration failure.
-                    if (!NativeWorld.IsWorldInitialized()) NativeWorld.Initialize();
+                    if (!NativeWorld.IsWorldInitialized) NativeWorld.Initialize();
                     NativeWorld.Destroy();
                 }
             }
@@ -85,14 +85,14 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
         finally { registration.Close(); }
     }
 
-    public override string Name => "StaticEcs 1.2.01";
+    public override string Name => "StaticEcs 2.2.9";
     private void CheckType<T>() where T : unmanaged
     {
         CheckOpen();
         if (!registered.Contains(typeof(T)))
             throw new InvalidOperationException($"Register {typeof(T)} in the StaticEcsStore constructor before initialization.");
     }
-    protected override EntityGID CreateNative() => NativeWorld.Entity.New().Gid();
+    protected override EntityGID CreateNative() => NativeWorld.NewEntity<Default>().GID;
     protected override bool AliveNative(EntityGID e) => e.TryUnpack<SpaceBattleStaticWorld>(out _);
     protected override void DestroyNative(EntityGID e) => e.Unpack<SpaceBattleStaticWorld>().Destroy();
     protected override void DisposeNative()
@@ -104,22 +104,22 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
     {
         CheckType<T>();
         var native = Native(e).Unpack<SpaceBattleStaticWorld>();
-        if (!native.HasAllOf<Wrapper<T>>()) throw new InvalidOperationException("Component is absent.");
+        if (!native.Has<Wrapper<T>>()) throw new InvalidOperationException("Component is absent.");
         return ref native.Ref<Wrapper<T>>().Value;
     }
     public override bool Has<T>(EntityKey e)
     {
         if (!Alive(e)) return false;
         CheckType<T>();
-        return Native(e).Unpack<SpaceBattleStaticWorld>().HasAllOf<Wrapper<T>>();
+        return Native(e).Unpack<SpaceBattleStaticWorld>().Has<Wrapper<T>>();
     }
     public override void Set<T>(EntityKey e, in T value)
     {
         CheckMutation();
         CheckType<T>();
         var native = Native(e).Unpack<SpaceBattleStaticWorld>();
-        if (native.HasAllOf<Wrapper<T>>()) native.Ref<Wrapper<T>>().Value = value;
-        else native.Add(new Wrapper<T> { Value = value });
+        if (native.Has<Wrapper<T>>()) native.Ref<Wrapper<T>>().Value = value;
+        else native.Set(new Wrapper<T> { Value = value });
     }
     public override void Remove<T>(EntityKey e)
     {
@@ -128,7 +128,7 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
         if (Alive(e))
         {
             var native = Native(e).Unpack<SpaceBattleStaticWorld>();
-            if (native.HasAllOf<Wrapper<T>>()) native.Delete<Wrapper<T>>();
+            if (native.Has<Wrapper<T>>()) native.Delete<Wrapper<T>>();
         }
     }
     public override void ForEach<A, P>(ref P p)
@@ -137,8 +137,8 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
         BeginQuery();
         try
         {
-            foreach (var native in NativeWorld.Query.Entities<All<Wrapper<A>>>())
-                p.Execute(Key(native.Gid()), ref native.Ref<Wrapper<A>>().Value);
+            foreach (var native in NativeWorld.Query<All<Wrapper<A>>>().Entities())
+                p.Execute(Key(native.GID), ref native.Ref<Wrapper<A>>().Value);
         }
         finally { EndQuery(); }
     }
@@ -148,8 +148,8 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
         BeginQuery();
         try
         {
-            foreach (var native in NativeWorld.Query.Entities<All<Wrapper<A>, Wrapper<B>>>())
-                p.Execute(Key(native.Gid()), ref native.Ref<Wrapper<A>>().Value, ref native.Ref<Wrapper<B>>().Value);
+            foreach (var native in NativeWorld.Query<All<Wrapper<A>, Wrapper<B>>>().Entities())
+                p.Execute(Key(native.GID), ref native.Ref<Wrapper<A>>().Value, ref native.Ref<Wrapper<B>>().Value);
         }
         finally { EndQuery(); }
     }
@@ -159,8 +159,8 @@ public sealed class StaticEcsStore : NativeStore<EntityGID>
         BeginQuery();
         try
         {
-            foreach (var native in NativeWorld.Query.Entities<All<Wrapper<A>, Wrapper<B>, Wrapper<C>>>())
-                p.Execute(Key(native.Gid()), ref native.Ref<Wrapper<A>>().Value, ref native.Ref<Wrapper<B>>().Value, ref native.Ref<Wrapper<C>>().Value);
+            foreach (var native in NativeWorld.Query<All<Wrapper<A>, Wrapper<B>, Wrapper<C>>>().Entities())
+                p.Execute(Key(native.GID), ref native.Ref<Wrapper<A>>().Value, ref native.Ref<Wrapper<B>>().Value, ref native.Ref<Wrapper<C>>().Value);
         }
         finally { EndQuery(); }
     }

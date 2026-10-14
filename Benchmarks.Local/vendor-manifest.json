@@ -574,7 +574,7 @@
       "id": "StaticEcs",
       "name": "StaticEcs",
       "repository": "https://github.com/Felid-Force-Studios/StaticEcs",
-      "revision": "6323d710c22cfff70100fe3748de432cb5fc70c8",
+      "revision": "23b1cf36d89497e8a126d38459d688e2b0a5dea3",
       "license": "MIT",
       "license_file": "LICENSE.md",
       "source_root": "Src",
@@ -582,347 +582,157 @@
         {
           "path": "LICENSE.md",
           "bytes": 1060,
-          "sha256": "e13df6bf7430a99a496842a577f7eeb864049fe34452bf4300a5fec0e3cf5ea2"
+          "sha256": "fe69684b0dbf5b4283619b0313450031574864451507133db277d0e7e2155ac3"
         },
         {
-          "path": "Src/Component/Entity/World.Entity.Component.cs",
-          "bytes": 38915,
-          "sha256": "bedaeadbc09b963a2a86bede685bc2a8479ba7bbefdaecb82763018eb9c7b114"
+          "path": "Src/EntityGID.cs",
+          "bytes": 28954,
+          "sha256": "770f82aeba27a38b1d68d8b3148906f9636f2e0d0add47a63811915058f6cac8"
         },
         {
-          "path": "Src/Component/Pool/IComponentConfig.cs",
-          "bytes": 5640,
-          "sha256": "eac54ece0811cd70a3cd5c1300c65d364ffde29ea7d4b4fb40be956b342fcd8b"
+          "path": "Src/Lib.cs",
+          "bytes": 54537,
+          "sha256": "ae2d5002b7c9ef1adc2f511e1cc38a4fd0cb08e06e171ba12508d7a81457140e"
         },
         {
-          "path": "Src/Component/Pool/World.Components.Pool.cs",
-          "bytes": 46797,
-          "sha256": "c8cd39e6ea8bd8ab92f2ab3a417ae22e048f2e4dd0b11d2fbc47ed2c7a6d0e73"
+          "path": "Src/Query/Impl/Query0.cs",
+          "bytes": 118574,
+          "sha256": "cb5eab51bec05ee239dd64e047df90f5ec56ac07093c8d9aae0d0b13a974053b"
         },
         {
-          "path": "Src/Component/Pool/World.Components.PoolWrapper.cs",
-          "bytes": 12435,
-          "sha256": "8725948150003caf240c06f5881c56635972e5e5e008ae1d556a28d3257532c6"
+          "path": "Src/Query/Impl/Query1.cs",
+          "bytes": 221736,
+          "sha256": "2e762442bdf876b8c70ba47cef70152e2c6b371cd77fb975be4ae259451413cc"
         },
         {
-          "path": "Src/Component/Query/QueryMethodComponents.cs",
-          "bytes": 251262,
-          "sha256": "ad95eb14f00f96ed2296ecbb2ff366ac8ca322e6e116b545e0abbaf4669c2c25"
+          "path": "Src/Query/Impl/Query2.cs",
+          "bytes": 249887,
+          "sha256": "bf10df5015374ba87d57bfe5b9769ef704dc774e81ba479f21d30834c3147972"
         },
         {
-          "path": "Src/Component/Runner/Parallel/ParallelRunner.cs",
-          "bytes": 7019,
-          "sha256": "1f73417f4461f1203f7548c63bf912e139971c821c5a20d0e967ff7686592b2e"
+          "path": "Src/Query/Impl/Query3.cs",
+          "bytes": 279454,
+          "sha256": "e71f077a802eca4a11727de3def735fa270047cf269a00a9cd7b13843b632ff1"
         },
         {
-          "path": "Src/Component/Runner/Parallel/QueryFunctionRunnerParallel.cs",
-          "bytes": 96862,
-          "sha256": "3b00526a240a8043e456f1d20e306996f8d6111393215496bfe9d4206e03b8f6"
+          "path": "Src/Query/Impl/Query4.cs",
+          "bytes": 314881,
+          "sha256": "c6a80bc906f632dff858c82c0943095910c8e49c1f17ba04d331d9e2ae4a8cc1"
         },
         {
-          "path": "Src/Component/Runner/Parallel/QueryFunctionRunnerParallelFunction.cs",
-          "bytes": 107200,
-          "sha256": "c4c3c54705fa74a4a87c1b8db29854ab61c8ccb2656e0b6e2f666561c30aa2ae"
+          "path": "Src/Query/Impl/Query5.cs",
+          "bytes": 350152,
+          "sha256": "600804548d74104f4f4ae69ebeeaded4cd08157eed30ed3df45b546d8508431c"
         },
         {
-          "path": "Src/Component/Runner/Parallel/QueryFunctionRunnerWithEntityParallel.cs",
-          "bytes": 106822,
-          "sha256": "8ae1fd227fbb41367bd441711d300f7307d5a0679630b0204322d8cc483d7427"
+          "path": "Src/Query/Impl/Query6.cs",
+          "bytes": 391044,
+          "sha256": "b17dec59ddb3fbb856ea2d6d0b03dae1f156a650dba94618058ddb337a9dfe38"
         },
         {
-          "path": "Src/Component/Runner/Parallel/QueryFunctionRunnerWithEntityRefDataParallel.cs",
-          "bytes": 108425,
-          "sha256": "6b1566747673f96ecb9504a499d92c6cdb8d7d76104aee6cc5545f37a4b54336"
+          "path": "Src/Query/ParallelRunner.cs",
+          "bytes": 9312,
+          "sha256": "d377fd9390336e722557488019c27f11e14cce89b762f222643d11e1a5462851"
         },
         {
-          "path": "Src/Component/Runner/Parallel/QueryFunctionRunnerWithRefDataParallel.cs",
-          "bytes": 98592,
-          "sha256": "b9d64e43cd6402b4db2b067b1f1252fd18273edf9aca141bed6279190a5e1de2"
+          "path": "Src/Query/QueryBatch.cs",
+          "bytes": 77283,
+          "sha256": "7b8f0c9dda1937c4f6eb614ff8c77ab07b6b40c4b508fd3987f58b2a4f42ad9c"
         },
         {
-          "path": "Src/Component/Runner/Parallel/World.QueryComponents.cs",
-          "bytes": 127717,
-          "sha256": "6fc34cc8d23f00f59afa621e9d5d5d5dc72c242df7c45b33647458fec5d24a27"
+          "path": "Src/Query/QueryFilterAnd.cs",
+          "bytes": 24121,
+          "sha256": "a44b6ce0e8af6b03e8623d5c3d07a035ec5bca0196c03757b3b73425c6e94578"
         },
         {
-          "path": "Src/Component/Runner/QueryFunctions.cs",
-          "bytes": 18143,
-          "sha256": "f290536be196ba2d22a763a3a9deb51d6d28220c6a545f61385f7942a6a28524"
+          "path": "Src/Query/QueryFilterComponents.cs",
+          "bytes": 254130,
+          "sha256": "891165beb54109a1320ecb030a21bbeb349c3f9dcbac31732e6c04a27acbf4e1"
         },
         {
-          "path": "Src/Component/Runner/Simple/QueryRunner0.cs",
-          "bytes": 29407,
-          "sha256": "bb53fe899b623350fb0ef161ab6013d07d002a8876c5210e970d9cf1ca255e7d"
+          "path": "Src/Query/QueryFilterEntityTypes.cs",
+          "bytes": 27756,
+          "sha256": "48209cfbaa6f69268549c61c93e344cf42c05fd9de9eaa764523987833eaabef"
         },
         {
-          "path": "Src/Component/Runner/Simple/QueryRunner1.cs",
-          "bytes": 33999,
-          "sha256": "aa9c5ef5ce994e317e27ba7d42ffbfb7e99e57d7707f26fb68c98695210f293f"
+          "path": "Src/Query/QueryFilterOr.cs",
+          "bytes": 21791,
+          "sha256": "1361da79248be31a9bd432e1e6c1aa34b2176937a45d70b2ca086b9570d6fc8e"
         },
         {
-          "path": "Src/Component/Runner/Simple/QueryRunner2.cs",
-          "bytes": 36507,
-          "sha256": "29d62d05a7e156802172159e4f1fd65737c54c8fb24a0de20cd9a21e4348299b"
+          "path": "Src/Query/QueryFilterTracking.cs",
+          "bytes": 188459,
+          "sha256": "f5f69ba4f738aa0ab1d94dc6d4a8a4563ff4a679982b9e601e8b91fc9ad4a3f2"
         },
         {
-          "path": "Src/Component/Runner/Simple/QueryRunner3.cs",
-          "bytes": 38990,
-          "sha256": "3dd7c9eea3683d2ecd4edaeb44c1932e0f4dac5c10f3d5f867a8b9f8255a3c42"
-        },
-        {
-          "path": "Src/Component/Runner/Simple/QueryRunner4.cs",
-          "bytes": 41245,
-          "sha256": "a5fbee177b59253f6b7d215760268322894942bac4631ea629cb3542391e63d4"
-        },
-        {
-          "path": "Src/Component/Runner/Simple/QueryRunner5.cs",
-          "bytes": 43910,
-          "sha256": "b134a3a4531d54a9bd14c0d8c0aba8b4f7b3b29a3d3e6853cdd571624c2df7a0"
-        },
-        {
-          "path": "Src/Component/Runner/Simple/QueryRunner6.cs",
-          "bytes": 46421,
-          "sha256": "7c5ac4d32ce77c113866b91f715ad9c2ad1874a93e87a459f79d39a70a73e71a"
-        },
-        {
-          "path": "Src/Component/Runner/Simple/QueryRunner7.cs",
-          "bytes": 48897,
-          "sha256": "2942e2b2ab9fc0644ef78086cb86c5ea972b0ce3eba2d6ba97afb3e42e880ff4"
-        },
-        {
-          "path": "Src/Component/Runner/Simple/QueryRunner8.cs",
-          "bytes": 51632,
-          "sha256": "f530b9e264b1dab4cc903fbbdc79279c7b7250aa3a492a0682f7bc85e709ad2f"
-        },
-        {
-          "path": "Src/Component/Runner/Simple/World.QueryComponents.cs",
-          "bytes": 125435,
-          "sha256": "9a0b38609c261fcf271000577923318ce12c3e55725e07cf60db969bd40f0192"
-        },
-        {
-          "path": "Src/Component/Serializer/World.Components.Pool.Serializer.cs",
-          "bytes": 25968,
-          "sha256": "acf38dbd47dd537576f34d3e5721ee3e8eae5498c1ce26323f87c85bbc24f5f2"
-        },
-        {
-          "path": "Src/Component/Serializer/World.Components.Serializer.cs",
-          "bytes": 14933,
-          "sha256": "2e0f9ee797ffcb26fe656e6ed6bd23b16ae0a709dbffe57e33dbbbd9048c5886"
-        },
-        {
-          "path": "Src/Component/World.Components.cs",
-          "bytes": 14797,
-          "sha256": "201304aaf1565ca44b9b24d3f3fa32e03fe6d8a24097581c19be7fcb7725ba55"
-        },
-        {
-          "path": "Src/Events/IEventConfig.cs",
-          "bytes": 3308,
-          "sha256": "01e6b435abf76f0d299413d4320e9d69eeacdaf4c450bb9c363209e4b3e72e39"
-        },
-        {
-          "path": "Src/Events/Serializer/World.Events.Pool.Serializer.cs",
-          "bytes": 5109,
-          "sha256": "61a026b6ddd51a964bcf5df8210513ebf027ad90e622aafd7c83eefc419d345c"
-        },
-        {
-          "path": "Src/Events/Serializer/World.Events.Serializer.cs",
-          "bytes": 9495,
-          "sha256": "bba9065d1e507f077d0d4bf8d8b32890b7ef8c1ba8777fdd6b31a80cd9afd4ab"
-        },
-        {
-          "path": "Src/Events/World.Event.cs",
-          "bytes": 2611,
-          "sha256": "7bbf48dbcea631c880578ff53a51c33e5c027e67f91a84df312e21d8d346ce4f"
-        },
-        {
-          "path": "Src/Events/World.EventReceiver.cs",
-          "bytes": 4166,
-          "sha256": "f224497a18f0d42dabc4be2f667a90412eb9dee8c053b048e2411fe46513adef"
-        },
-        {
-          "path": "Src/Events/World.Events.Pool.cs",
-          "bytes": 16973,
-          "sha256": "dd7d405c352df29a133b4f2e61997763d9a0bd0306c72381f90d471030953c60"
-        },
-        {
-          "path": "Src/Events/World.Events.cs",
-          "bytes": 9403,
-          "sha256": "d5a198e663c2c80c8ef8e77bc54e6c46b30c5ccc4fa1dfa87d9b44c9563fb3ce"
-        },
-        {
-          "path": "Src/MultiComponent/MultiComponent.cs",
-          "bytes": 32095,
-          "sha256": "3e21fe14f8d8f576a8a206aeb1c4c90c4cb04cfb9dde792e3f27386f6615c357"
-        },
-        {
-          "path": "Src/MultiComponent/World.Components.cs",
-          "bytes": 7217,
-          "sha256": "6625f0644c4eb3a1a847aa6c43940484c57bf2cd6248cb6d8eba2f826e756644"
+          "path": "Src/Query/QueryFunctions.cs",
+          "bytes": 89087,
+          "sha256": "47995a65a80d4fdcd7b714d4aa67c0031fe2d7d76580cb3fdc398faace928ce2"
         },
         {
           "path": "Src/Query/QueryIterator.cs",
-          "bytes": 106084,
-          "sha256": "d83361e11c08733581261053a81d236d39e378595c7548261e9b723214435749"
-        },
-        {
-          "path": "Src/Query/QueryMethod.cs",
-          "bytes": 1099,
-          "sha256": "38b6b85503ae05bc8f15912e07c857710a6619f5a6de3b428718135a5c807567"
-        },
-        {
-          "path": "Src/Query/QueryWith.cs",
-          "bytes": 28386,
-          "sha256": "e0abb186494164605f66160648bf5af4eb9f2002132380a0078bc50f0a054915"
+          "bytes": 13531,
+          "sha256": "3de2ab07aed0b180133a6774d3496fd86236de4fb3a5f2958288d444c374579c"
         },
         {
           "path": "Src/Query/World.Query.cs",
-          "bytes": 8664,
-          "sha256": "f4627012f435623d80e50bc62f22effeae7521e90d58f660bd873f044472ee27"
+          "bytes": 22905,
+          "sha256": "8f2570646134e543b439e4494f30788bc9c406f081f9ee65116711506cef9f62"
         },
         {
-          "path": "Src/Relations/Entity/World.Entity.Relation.cs",
-          "bytes": 13977,
-          "sha256": "c75466a13f15d730d4759ef62fe175282e52bec81f33e5fffcc3f5f7a26ecbdf"
+          "path": "Src/Systems.cs",
+          "bytes": 48368,
+          "sha256": "1d84b592039166fd5461af50a64af3e66744225ad13a815f8e2c9c493893e80f"
         },
         {
-          "path": "Src/Relations/RelationsComponent.cs",
-          "bytes": 237,
-          "sha256": "443b7f54b93c4335b220d4e054fceda4367157e83edbd2e3d6a34d4e575690ee"
+          "path": "Src/World.API.cs",
+          "bytes": 96530,
+          "sha256": "ffe8e6efff78794f5ee6a75a71bbb1ce51513d09bd04c88a0ea82e146baa40bc"
         },
         {
-          "path": "Src/Relations/World.Components.Relation.cs",
-          "bytes": 14310,
-          "sha256": "21baf27b0237f5c61633dd7f867c4f1677904b386b498c876404db51d415023f"
+          "path": "Src/World.Components.cs",
+          "bytes": 200589,
+          "sha256": "1e774953ff89fc8456611d07759213b385c8b36e632e8bc5638d8fe56a217ffd"
         },
         {
-          "path": "Src/Relations/World.Components.RelationManyToMany.cs",
-          "bytes": 8745,
-          "sha256": "3dc8ebbf0c256234bbfe78db4ceb30aef5c3793202d64374fd708174809f30e8"
-        },
-        {
-          "path": "Src/Relations/World.Components.RelationOneToMany.cs",
-          "bytes": 12204,
-          "sha256": "a85556d8efb1f3665ad7b6006c56d418db8296c78d69b57ae2ecf018d1d11649"
-        },
-        {
-          "path": "Src/Relations/World.Components.RelationOneToOne.cs",
-          "bytes": 8112,
-          "sha256": "e961ad455f7a7a8bdf326dd425d0aa3d27438d907a1d155a0da903910a89c45c"
-        },
-        {
-          "path": "Src/Relations/World.Components.RelationToMany.cs",
-          "bytes": 3606,
-          "sha256": "73e1e77c34ba8dd480bc8a375248bbc88d465bfcbac7b4d1edb0c7eb11939113"
-        },
-        {
-          "path": "Src/Relations/World.Components.RelationToOne.cs",
-          "bytes": 3448,
-          "sha256": "496087e6af60adea46e4de255bb01e0d1bf6cf7354c02e6e4f70c35754d33507"
-        },
-        {
-          "path": "Src/Relations/World.Relations.cs",
-          "bytes": 6265,
-          "sha256": "feb0277f07d95d7ef504c52f31d04a78cd68ba3e9b12dc4a59d354f1031199e1"
-        },
-        {
-          "path": "Src/System/BatchSystems.cs",
-          "bytes": 85958,
-          "sha256": "62ee5b9ef296293f51e3a4fda728a5527a165430872230e001826af6006cd5e0"
-        },
-        {
-          "path": "Src/System/System.cs",
-          "bytes": 5727,
-          "sha256": "832575d93b9203e11e0f3a4649b43b293d896fe4d10d793c5fbc07d5987d78bd"
-        },
-        {
-          "path": "Src/System/Systems.cs",
-          "bytes": 44492,
-          "sha256": "6a61d89d2633034ca043d0d4f12d9701431282589532db565601ca0728172f5f"
-        },
-        {
-          "path": "Src/Tag/Entity/World.Entity.Tag.cs",
-          "bytes": 14009,
-          "sha256": "0214953c81ba5d0af8a34dc067d84bfed4ecc848f4b3af10101125f1e1c0d7b9"
-        },
-        {
-          "path": "Src/Tag/Pool/World.Tags.Pool.cs",
-          "bytes": 21375,
-          "sha256": "f28e62e780d7343cb94dd009b5e82bd516f58209336c8d6e2dba0f89ecb735c2"
-        },
-        {
-          "path": "Src/Tag/Pool/World.Tags.PoolWrapper.cs",
-          "bytes": 6933,
-          "sha256": "f4407807eebe9b1b0b02fd2d77e5b184c7a5d569db4d2394e81d8114be249f02"
-        },
-        {
-          "path": "Src/Tag/Query/QueryMethodTags.cs",
-          "bytes": 86278,
-          "sha256": "2376c2f5ae37e0f3ee29e509d5942f3944fb7092fe627c7d06f27f2a5f1d8f69"
-        },
-        {
-          "path": "Src/Tag/Serializer/World.Tags.Pool.Serializer.cs",
-          "bytes": 5658,
-          "sha256": "470887378df9cc29df94e839a80c038b55055748cdc33cc44674e77a2dc9de00"
-        },
-        {
-          "path": "Src/Tag/Serializer/World.Tags.Serializer.cs",
-          "bytes": 14300,
-          "sha256": "23919f1b1d705ba7413ad26fd0fb9622f5c6fec9c19e27374394aba8316c8d1f"
-        },
-        {
-          "path": "Src/Tag/World.Tags.cs",
-          "bytes": 13207,
-          "sha256": "91cbfc516692b77c1a101844c2e85f21bbf85701c58de73cd589f3c277f6e13b"
-        },
-        {
-          "path": "Src/Utils/BitMask.cs",
-          "bytes": 7258,
-          "sha256": "48c8331c377936e23972c1570dc28a59ed9abbef8272bfbd4b2d89433158ba29"
-        },
-        {
-          "path": "Src/Utils/EntityGID.cs",
-          "bytes": 10812,
-          "sha256": "6df0fb924404fd59cb7dd3b80bbf6ae47ac013c7336d58299a8908f92f94ef9e"
-        },
-        {
-          "path": "Src/Utils/Utils.cs",
-          "bytes": 32652,
-          "sha256": "a42330063be7632d3471560770507f79e481247cc848e89b17b3b6d31f4018a8"
-        },
-        {
-          "path": "Src/World.Context.cs",
-          "bytes": 10817,
-          "sha256": "048c6c954cde5ab1efca370f01011f9bbb46427f55ab3364c25cce71739c9c6c"
-        },
-        {
-          "path": "Src/World.Entities.cs",
-          "bytes": 81918,
-          "sha256": "d17741009b241606f516252fad7c1276feec03beb3168ad090f124f603d36815"
-        },
-        {
-          "path": "Src/World.Entity.Serializer.cs",
-          "bytes": 18998,
-          "sha256": "8309ba6634b0517ffc9f4d0fdb80d6b30f09bfdccd2a7a34326c4d2cbb92ba8c"
+          "path": "Src/World.Data.cs",
+          "bytes": 200654,
+          "sha256": "9af631f75d17fed4617408c64061b1f1f80f9b04c108007d4c37b31d740d4c7b"
         },
         {
           "path": "Src/World.Entity.cs",
-          "bytes": 43051,
-          "sha256": "8e89df9da114f92cb6ff5444558ace4dac50a6e6490d68316c1d7f4cdd5f1d13"
+          "bytes": 87888,
+          "sha256": "2ac5f7af58ab53f21b4ec631cfd6e9872477d2e833e84d02cadff91d1b21a8ac"
+        },
+        {
+          "path": "Src/World.Events.cs",
+          "bytes": 77144,
+          "sha256": "36003ad103ced56b3b747a05c13df50cdf66bf93baf712d1134911aee0ffa020"
+        },
+        {
+          "path": "Src/World.Handle.cs",
+          "bytes": 69269,
+          "sha256": "f33e76acf4310444f1e8f8ce9f1f0b293e0c83af1c2759b0c75a8a3978ec9ce9"
+        },
+        {
+          "path": "Src/World.MultiComponents.cs",
+          "bytes": 82533,
+          "sha256": "aaf507c2e9a08d839c09971268be61f7228c1976fb09d98310e32021362f8bb4"
+        },
+        {
+          "path": "Src/World.Relations.cs",
+          "bytes": 86872,
+          "sha256": "9b5b374cf355d41a890eee541b1c8de390c156a841a7aa243698cf5c63a609ef"
+        },
+        {
+          "path": "Src/World.Resources.cs",
+          "bytes": 34505,
+          "sha256": "c502ec14fc4eb044f23925b9ade1d2d5a99057077357aea3d1434943c6883441"
         },
         {
           "path": "Src/World.Serializer.cs",
-          "bytes": 39111,
-          "sha256": "e03ffb71e02b5d173ccbf296412829d9c5ce2621291a01c97a027ebb2e6d1b1e"
-        },
-        {
-          "path": "Src/World.Wrapper.cs",
-          "bytes": 4642,
-          "sha256": "8bc2189481eb538dad61ed67cfd0c1230aa280440d03c437a1ef28b12582155c"
-        },
-        {
-          "path": "Src/World.cs",
-          "bytes": 12576,
-          "sha256": "3127a7e57943b81e0f05d37868475b96e36bececcfb901031f2b4414038792a4"
+          "bytes": 131761,
+          "sha256": "eb74de7abd473cce34fbfacacb1f49fb8b0e3bf30b332e527ab07bd5155368c6"
         }
       ]
     },
@@ -930,7 +740,7 @@
       "id": "StaticPack",
       "name": "StaticPack",
       "repository": "https://github.com/Felid-Force-Studios/StaticPack",
-      "revision": "72ce8b993593e5cfd24c6a9289a4b132305ef493",
+      "revision": "7bfb6cf925901b9366dda884258d727a89fff76e",
       "license": "MIT",
       "license_file": "LICENSE.md",
       "source_root": "Src",
@@ -942,18 +752,18 @@
         },
         {
           "path": "Src/BinaryPack.cs",
-          "bytes": 12417,
-          "sha256": "6726972303bfaca256c7bf7688fc441319ce24cfb7588428c3447c28ddff309e"
+          "bytes": 11376,
+          "sha256": "a490a2cd6a5d6ecb3823cc539eae06dbf9b9386ea1e8a25b217de3087dd8ec68"
         },
         {
           "path": "Src/BinaryPackReader.cs",
-          "bytes": 35986,
-          "sha256": "13058d954a1fb6a7482c2359e46e6fd9c2065a3fa982ff8ce5041df8ec801f27"
+          "bytes": 104092,
+          "sha256": "95fb4a77f9160650ed8afa1d5e2de4d4a0d4d0f552d5173eac0772531dd5f3e2"
         },
         {
           "path": "Src/BinaryPackWriter.cs",
-          "bytes": 31741,
-          "sha256": "f3bcd4aa28e2503eadf7a76c1e9117626edc8eb7bae1fc038c9cd4ae8ec694c7"
+          "bytes": 87446,
+          "sha256": "01f43e0604b6abbf8accf7d127518f7f2b783f8c2f18dcbb00ec5ad3ec0e185c"
         },
         {
           "path": "Src/PackArrayStrategy.cs",

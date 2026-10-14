@@ -50,11 +50,11 @@ RNG, сортировка, подготовка, проверки, освобо�
 
 ## Текущая кампания
 
-Канонический [отчёт от 2026-10-13](../docs/benchmarks/current/REPORT.ru.md) содержит [базовые сырые замеры](../docs/benchmarks/current/base.json), [стресс-замеры](../docs/benchmarks/current/stress.json), [метаданные исходников/runtime](../docs/benchmarks/current/campaign.json) и три графика. Это полная свежая матрица пяти фреймворков. Файлы в корне каталога и `docs/benchmarks/updated` — сохранённая история, а не текущий рейтинг.
+Канонический [текущий отчёт](../docs/benchmarks/current/REPORT.ru.md) содержит [базовые сырые замеры](../docs/benchmarks/current/base.json), [стресс-замеры](../docs/benchmarks/current/stress.json), [метаданные исходников/runtime](../docs/benchmarks/current/campaign.json) и три графика. Это полная свежая матрица пяти фреймворков. Файлы в корне каталога и `docs/benchmarks/updated` — сохранённая история, а не текущий рейтинг.
 
 ## Воспроизведение
 
-Запускайте из корня репозитория с runtime .NET 8, подходящим SDK и существующим локальным NuGet-кешем. Эта offline-команда собирает Release, проверяет все адаптеры, записывает хеши исходников/сборок и последовательно запускает базу и стресс с одним измерительным процессом одновременно:
+Запускайте из корня репозитория с runtime .NET 8, SDK с поддержкой C# 13 (9.0 или новее) и существующим локальным NuGet-кешем. Эта offline-команда собирает Release, проверяет все адаптеры, записывает хеши исходников/сборок и последовательно запускает базу и стресс с одним измерительным процессом одновременно:
 
 ```powershell
 ./Benchmarks.Local/run_campaign.ps1 -OutputDirectory Benchmarks.Local/repro-campaign

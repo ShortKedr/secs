@@ -98,10 +98,10 @@ static class StressRunner
             tieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
             footer = "Release; single thread; 8 samples; setup/forced GC excluded; Morpeh Commit included",
             versions = new { SECS = Environment.GetEnvironmentVariable("SECS_BENCHMARK_REVISION") ?? "working tree: lookup, chunk reuse, transition cache", lite = "2024.5.22", classic = "2023.6.22",
-                morpeh = "2024.1.1", staticEcs = "1.2.01", staticPack = "1.0.6" },
+                morpeh = "2024.1.1", staticEcs = "2.2.9", staticPack = "1.2.6" },
             revisions = new { classic = "1213c31c9ef8325d48e74a52b345c4db242d038b", lite = "5053141d7d663c6b1855c8409ac93dfac807b239",
-                morpeh = "9f6369384792a01d74df24efd35b08ae313e4f12", staticEcs = "6323d710c22cfff70100fe3748de432cb5fc70c8",
-                staticPack = "72ce8b993593e5cfd24c6a9289a4b132305ef493" }
+                morpeh = "9f6369384792a01d74df24efd35b08ae313e4f12", staticEcs = "23b1cf36d89497e8a126d38459d688e2b0a5dea3",
+                staticPack = "7bfb6cf925901b9366dda884258d727a89fff76e" }
         };
         var output = args.FirstOrDefault(a => a.EndsWith(".json")) ?? "Benchmarks.Local/stress-results.json";
         File.WriteAllText(output, JsonSerializer.Serialize(new { metadata, results }, new JsonSerializerOptions { WriteIndented = true }));

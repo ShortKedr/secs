@@ -38,6 +38,11 @@ require(hashlib.sha256(vendor_path.read_bytes()).hexdigest() ==
         manifest['sourceHashes']['Benchmarks.Local/vendor-manifest.json'],
         'Vendor manifest differs from measured campaign')
 vendor = {item['name']: item['revision'] for item in json.loads(vendor_path.read_text(encoding='utf-8'))['components']}
+for name, key in (('StaticEcs', 'staticEcs'), ('StaticPack', 'staticPack')):
+    require(base['metadata']['revisions'][key] == vendor[name], f'Base {name} revision differs from vendor manifest')
+    require(stress['metadata']['revisions'][key] == vendor[name], f'Stress {name} revision differs from vendor manifest')
+static_version = stress['metadata']['versions']['staticEcs']
+static_pack_version = stress['metadata']['versions']['staticPack']
 pin_rows = '\n'.join(f'| {name} | `{manifest["sourceRevision"] if name == "SECS" else vendor[name]}` |'
                      for name in frameworks)
 def table(data, language):
@@ -66,11 +71,13 @@ en = f'''English | [Русский](REPORT.ru.md)
 
 All five frameworks were measured afresh in one sequential campaign: 40 base cases and 70 stress cases. Each cell below is mean milliseconds per complete operation; lower is better. Markers show relative lag within each scenario and entity-count row; they describe effect size, not statistical significance.
 
-Environment: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} logical processors. Release, one thread, tiered compilation off. Source revision: `{manifest['sourceRevision']}`. [Campaign metadata](campaign.json) pins source and measured assembly hashes; [base raw samples](base.json) and [stress raw samples](stress.json) retain all observations.
+Environment: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} logical processors. Release, one thread, tiered compilation off. Base repository commit: `{manifest['sourceRevision']}`; working tree modified: `{manifest['workingTreeModified']}`. [Campaign metadata](campaign.json) pins the measured source and assembly hashes; [base raw samples](base.json) and [stress raw samples](stress.json) retain all observations.
 
 ## Framework revisions used
 
 Third-party rows show exact upstream commits, not guessed release numbers. The SECS row shows the campaign's repository revision; [campaign metadata](campaign.json) also records hashes of the measured source and assemblies. Third-party commits come from the hash-verified [vendor manifest](../../../Benchmarks.Local/vendor-manifest.json).
+
+StaticEcs is release **{static_version}**. Its compiled StaticPack dependency is **{static_pack_version}**, pinned to commit `{vendor['StaticPack']}`. The manifest records SHA-256 for every included upstream source file.
 
 | Framework | Source revision |
 | --- | --- |
@@ -110,11 +117,13 @@ ru = f'''[English](REPORT.md) | Русский
 
 Все пять фреймворков измерены заново в одной последовательной кампании: 40 базовых и 70 стресс-кейсов. Каждая ячейка ниже — среднее время полной операции в миллисекундах; меньше лучше. Маркеры показывают относительное отставание внутри строки сценария и числа сущностей; цвет описывает величину различия, а не статистическую значимость.
 
-Среда: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} логических процессоров. Release, один поток, tiered compilation отключён. Ревизия исходников: `{manifest['sourceRevision']}`. [Метаданные кампании](campaign.json) фиксируют хеши исходников и измеренных сборок; [базовые сырые замеры](base.json) и [стресс-замеры](stress.json) сохраняют все наблюдения.
+Среда: {base['metadata']['runtime']}, {base['metadata']['architecture']}, {manifest['cpu']}, {manifest['logicalProcessors']} логических процессоров. Release, один поток, tiered compilation отключён. Базовый коммит репозитория: `{manifest['sourceRevision']}`; рабочее дерево изменено: `{manifest['workingTreeModified']}`. [Метаданные кампании](campaign.json) фиксируют хеши измеренных исходников и сборок; [базовые сырые замеры](base.json) и [стресс-замеры](stress.json) сохраняют все наблюдения.
 
 ## Ревизии фреймворков в замерах
 
 Для сторонних ECS указаны точные коммиты исходных репозиториев, а не предполагаемые номера релизов. Для SECS указана ревизия репозитория кампании; [метаданные](campaign.json) также содержат хеши измеренных исходников и сборок. Коммиты сторонних ECS взяты из проверенного по хешу [манифеста](../../../Benchmarks.Local/vendor-manifest.json).
+
+StaticEcs соответствует релизу **{static_version}**. Его зависимость StaticPack **{static_pack_version}** собрана из коммита `{vendor['StaticPack']}`. Манифест содержит SHA-256 каждого включённого файла исходников.
 
 | Фреймворк | Ревизия исходников |
 | --- | --- |

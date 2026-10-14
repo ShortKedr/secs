@@ -15,8 +15,8 @@
 Classic и Lite компилируют существующие исходники поставщиков как связанные
 файлы, по аналогии с `Benchmarks.Local/Comparison.csproj`, без ссылки на его
 исполняемый проект. Morpeh ссылается на существующий проект поставщика.
-StaticEcs ссылается на `Benchmarks.Local/StaticLibrary.csproj` (1.2.01).
-Версии поставщиков не изменяются.
+StaticEcs ссылается на `Benchmarks.Local/StaticLibrary.csproj` (2.2.9).
+StaticPack 1.2.6 компилируется из закреплённого снимка исходников.
 
 ## Контракт
 

@@ -15,7 +15,7 @@ Library project: `SpaceBattle.Adapters.csproj`. Public stores in namespace
 Classic and Lite compile the existing vendor source files as linked sources,
 matching `Benchmarks.Local/Comparison.csproj`, without referencing its executable.
 Morpeh references its existing vendor project. StaticEcs references
-`Benchmarks.Local/StaticLibrary.csproj` (1.2.01). No vendor versions are changed.
+`Benchmarks.Local/StaticLibrary.csproj` (2.2.9). StaticPack 1.2.6 is compiled from the pinned source snapshot.
 
 ## Contract
 

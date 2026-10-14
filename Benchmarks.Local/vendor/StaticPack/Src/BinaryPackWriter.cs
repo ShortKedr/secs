@@ -194,8 +194,7 @@ namespace FFS.Libraries.StaticPack {
         [MethodImpl(AggressiveInlining)]
         public void WriteShort(short value) {
             EnsureSize(sizeof(short));
-            Buffer[Position] = (byte) value;
-            Buffer[Position + 1] = (byte) (value >> 8);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 2;
         }
 
@@ -204,15 +203,13 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG
             ValidatePosition(offset, sizeof(short));
             #endif
-            Buffer[offset] = (byte) value;
-            Buffer[offset + 1] = (byte) (value >> 8);
+            Unsafe.WriteUnaligned(ref Buffer[offset], value);
         }
 
         [MethodImpl(AggressiveInlining)]
         public void WriteUshort(ushort value) {
             EnsureSize(sizeof(ushort));
-            Buffer[Position] = (byte) value;
-            Buffer[Position + 1] = (byte) (value >> 8);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 2;
         }
 
@@ -221,15 +218,13 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG
             ValidatePosition(offset, sizeof(ushort));
             #endif
-            Buffer[offset] = (byte) value;
-            Buffer[offset + 1] = (byte) (value >> 8);
+            Unsafe.WriteUnaligned(ref Buffer[offset], value);
         }
 
         [MethodImpl(AggressiveInlining)]
         public void WriteChar(char value) {
             EnsureSize(sizeof(char));
-            Buffer[Position] = (byte) value;
-            Buffer[Position + 1] = (byte) (value >> 8);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 2;
         }
 
@@ -238,21 +233,20 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG
             ValidatePosition(offset, sizeof(char));
             #endif
-            Buffer[offset] = (byte) value;
-            Buffer[offset + 1] = (byte) (value >> 8);
+            Unsafe.WriteUnaligned(ref Buffer[offset], value);
         }
 
         [MethodImpl(AggressiveInlining)]
         public void WriteInt(int value) {
             EnsureSize(sizeof(int));
-            WriteUintAt(Position, (uint) value);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 4;
         }
 
         [MethodImpl(AggressiveInlining)]
         public void WriteUint(uint value) {
             EnsureSize(sizeof(uint));
-            WriteUintAt(Position, value);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 4;
         }
 
@@ -261,10 +255,7 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG
             ValidatePosition(offset, sizeof(uint));
             #endif
-            Buffer[offset + 0] = (byte) value;
-            Buffer[offset + 1] = (byte) (value >> 8);
-            Buffer[offset + 2] = (byte) (value >> 16);
-            Buffer[offset + 3] = (byte) (value >> 24);
+            Unsafe.WriteUnaligned(ref Buffer[offset], value);
         }
 
         [MethodImpl(AggressiveInlining)]
@@ -321,14 +312,14 @@ namespace FFS.Libraries.StaticPack {
         [MethodImpl(AggressiveInlining)]
         public void WriteLong(long value) {
             EnsureSize(sizeof(long));
-            WriteUlongAt(Position, (ulong) value);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 8;
         }
 
         [MethodImpl(AggressiveInlining)]
         public void WriteUlong(ulong value) {
             EnsureSize(sizeof(ulong));
-            WriteUlongAt(Position, value);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 8;
         }
 
@@ -337,22 +328,13 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG
             ValidatePosition(offset, sizeof(ulong));
             #endif
-            var union = default(Union8);
-            union.Ulong = value;
-            Buffer[offset + 0] = union.Byte0;
-            Buffer[offset + 1] = union.Byte1;
-            Buffer[offset + 2] = union.Byte2;
-            Buffer[offset + 3] = union.Byte3;
-            Buffer[offset + 4] = union.Byte4;
-            Buffer[offset + 5] = union.Byte5;
-            Buffer[offset + 6] = union.Byte6;
-            Buffer[offset + 7] = union.Byte7;
+            Unsafe.WriteUnaligned(ref Buffer[offset], value);
         }
 
         [MethodImpl(AggressiveInlining)]
         public void WriteFloat(float value) {
             EnsureSize(sizeof(float));
-            WriteFloatAt(Position, value);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 4;
         }
 
@@ -361,18 +343,13 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG
             ValidatePosition(offset, sizeof(float));
             #endif
-            var union = default(Union4);
-            union.Float = value;
-            Buffer[offset + 0] = union.Byte0;
-            Buffer[offset + 1] = union.Byte1;
-            Buffer[offset + 2] = union.Byte2;
-            Buffer[offset + 3] = union.Byte3;
+            Unsafe.WriteUnaligned(ref Buffer[offset], value);
         }
 
         [MethodImpl(AggressiveInlining)]
         public void WriteDouble(double value) {
             EnsureSize(sizeof(double));
-            WriteDoubleAt(Position, value);
+            Unsafe.WriteUnaligned(ref Buffer[Position], value);
             Position += 8;
         }
 
@@ -381,24 +358,290 @@ namespace FFS.Libraries.StaticPack {
             #if DEBUG
             ValidatePosition(offset, sizeof(double));
             #endif
-            var union = default(Union8);
-            union.Double = value;
-            Buffer[offset + 0] = union.Byte0;
-            Buffer[offset + 1] = union.Byte1;
-            Buffer[offset + 2] = union.Byte2;
-            Buffer[offset + 3] = union.Byte3;
-            Buffer[offset + 4] = union.Byte4;
-            Buffer[offset + 5] = union.Byte5;
-            Buffer[offset + 6] = union.Byte6;
-            Buffer[offset + 7] = union.Byte7;
+            Unsafe.WriteUnaligned(ref Buffer[offset], value);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteByte(byte v0, byte v1) {
+            EnsureSize(2);
+            var pos = Position;
+            Position += 2;
+            WriteByteAt(pos, v0);
+            WriteByteAt(pos + 1, v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteByte(byte v0, byte v1, byte v2) {
+            EnsureSize(3);
+            var pos = Position;
+            Position += 3;
+            WriteByteAt(pos, v0);
+            WriteByteAt(pos + 1, v1);
+            WriteByteAt(pos + 2, v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteByte(byte v0, byte v1, byte v2, byte v3) {
+            EnsureSize(4);
+            var pos = Position;
+            Position += 4;
+            WriteByteAt(pos, v0);
+            WriteByteAt(pos + 1, v1);
+            WriteByteAt(pos + 2, v2);
+            WriteByteAt(pos + 3, v3);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteShort(short v0, short v1) {
+            EnsureSize(sizeof(short) * 2);
+            var pos = Position;
+            Position += sizeof(short) * 2;
+            WriteShortAt(pos, v0);
+            WriteShortAt(pos + 2, v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteShort(short v0, short v1, short v2) {
+            EnsureSize(sizeof(short) * 3);
+            var pos = Position;
+            Position += sizeof(short) * 3;
+            WriteShortAt(pos, v0);
+            WriteShortAt(pos + 2, v1);
+            WriteShortAt(pos + 4, v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteShort(short v0, short v1, short v2, short v3) {
+            EnsureSize(sizeof(short) * 4);
+            var pos = Position;
+            Position += sizeof(short) * 4;
+            WriteShortAt(pos, v0);
+            WriteShortAt(pos + 2, v1);
+            WriteShortAt(pos + 4, v2);
+            WriteShortAt(pos + 6, v3);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUshort(ushort v0, ushort v1) {
+            EnsureSize(sizeof(ushort) * 2);
+            var pos = Position;
+            Position += sizeof(ushort) * 2;
+            WriteUshortAt(pos, v0);
+            WriteUshortAt(pos + 2, v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUshort(ushort v0, ushort v1, ushort v2) {
+            EnsureSize(sizeof(ushort) * 3);
+            var pos = Position;
+            Position += sizeof(ushort) * 3;
+            WriteUshortAt(pos, v0);
+            WriteUshortAt(pos + 2, v1);
+            WriteUshortAt(pos + 4, v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUshort(ushort v0, ushort v1, ushort v2, ushort v3) {
+            EnsureSize(sizeof(ushort) * 4);
+            var pos = Position;
+            Position += sizeof(ushort) * 4;
+            WriteUshortAt(pos, v0);
+            WriteUshortAt(pos + 2, v1);
+            WriteUshortAt(pos + 4, v2);
+            WriteUshortAt(pos + 6, v3);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteInt(int v0, int v1) {
+            EnsureSize(sizeof(int) * 2);
+            var pos = Position;
+            Position += sizeof(int) * 2;
+            WriteUintAt(pos, (uint) v0);
+            WriteUintAt(pos + 4, (uint) v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteInt(int v0, int v1, int v2) {
+            EnsureSize(sizeof(int) * 3);
+            var pos = Position;
+            Position += sizeof(int) * 3;
+            WriteUintAt(pos, (uint) v0);
+            WriteUintAt(pos + 4, (uint) v1);
+            WriteUintAt(pos + 8, (uint) v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteInt(int v0, int v1, int v2, int v3) {
+            EnsureSize(sizeof(int) * 4);
+            var pos = Position;
+            Position += sizeof(int) * 4;
+            WriteUintAt(pos, (uint) v0);
+            WriteUintAt(pos + 4, (uint) v1);
+            WriteUintAt(pos + 8, (uint) v2);
+            WriteUintAt(pos + 12, (uint) v3);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUint(uint v0, uint v1) {
+            EnsureSize(sizeof(uint) * 2);
+            var pos = Position;
+            Position += sizeof(uint) * 2;
+            WriteUintAt(pos, v0);
+            WriteUintAt(pos + 4, v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUint(uint v0, uint v1, uint v2) {
+            EnsureSize(sizeof(uint) * 3);
+            var pos = Position;
+            Position += sizeof(uint) * 3;
+            WriteUintAt(pos, v0);
+            WriteUintAt(pos + 4, v1);
+            WriteUintAt(pos + 8, v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUint(uint v0, uint v1, uint v2, uint v3) {
+            EnsureSize(sizeof(uint) * 4);
+            var pos = Position;
+            Position += sizeof(uint) * 4;
+            WriteUintAt(pos, v0);
+            WriteUintAt(pos + 4, v1);
+            WriteUintAt(pos + 8, v2);
+            WriteUintAt(pos + 12, v3);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteFloat(float v0, float v1) {
+            EnsureSize(sizeof(float) * 2);
+            var pos = Position;
+            Position += sizeof(float) * 2;
+            WriteFloatAt(pos, v0);
+            WriteFloatAt(pos + 4, v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteFloat(float v0, float v1, float v2) {
+            EnsureSize(sizeof(float) * 3);
+            var pos = Position;
+            Position += sizeof(float) * 3;
+            WriteFloatAt(pos, v0);
+            WriteFloatAt(pos + 4, v1);
+            WriteFloatAt(pos + 8, v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteFloat(float v0, float v1, float v2, float v3) {
+            EnsureSize(sizeof(float) * 4);
+            var pos = Position;
+            Position += sizeof(float) * 4;
+            WriteFloatAt(pos, v0);
+            WriteFloatAt(pos + 4, v1);
+            WriteFloatAt(pos + 8, v2);
+            WriteFloatAt(pos + 12, v3);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteLong(long v0, long v1) {
+            EnsureSize(sizeof(long) * 2);
+            var pos = Position;
+            Position += sizeof(long) * 2;
+            WriteUlongAt(pos, (ulong) v0);
+            WriteUlongAt(pos + 8, (ulong) v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteLong(long v0, long v1, long v2) {
+            EnsureSize(sizeof(long) * 3);
+            var pos = Position;
+            Position += sizeof(long) * 3;
+            WriteUlongAt(pos, (ulong) v0);
+            WriteUlongAt(pos + 8, (ulong) v1);
+            WriteUlongAt(pos + 16, (ulong) v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteLong(long v0, long v1, long v2, long v3) {
+            EnsureSize(sizeof(long) * 4);
+            var pos = Position;
+            Position += sizeof(long) * 4;
+            WriteUlongAt(pos, (ulong) v0);
+            WriteUlongAt(pos + 8, (ulong) v1);
+            WriteUlongAt(pos + 16, (ulong) v2);
+            WriteUlongAt(pos + 24, (ulong) v3);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUlong(ulong v0, ulong v1) {
+            EnsureSize(sizeof(ulong) * 2);
+            var pos = Position;
+            Position += sizeof(ulong) * 2;
+            WriteUlongAt(pos, v0);
+            WriteUlongAt(pos + 8, v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUlong(ulong v0, ulong v1, ulong v2) {
+            EnsureSize(sizeof(ulong) * 3);
+            var pos = Position;
+            Position += sizeof(ulong) * 3;
+            WriteUlongAt(pos, v0);
+            WriteUlongAt(pos + 8, v1);
+            WriteUlongAt(pos + 16, v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUlong(ulong v0, ulong v1, ulong v2, ulong v3) {
+            EnsureSize(sizeof(ulong) * 4);
+            var pos = Position;
+            Position += sizeof(ulong) * 4;
+            WriteUlongAt(pos, v0);
+            WriteUlongAt(pos + 8, v1);
+            WriteUlongAt(pos + 16, v2);
+            WriteUlongAt(pos + 24, v3);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteDouble(double v0, double v1) {
+            EnsureSize(sizeof(double) * 2);
+            var pos = Position;
+            Position += sizeof(double) * 2;
+            WriteDoubleAt(pos, v0);
+            WriteDoubleAt(pos + 8, v1);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteDouble(double v0, double v1, double v2) {
+            EnsureSize(sizeof(double) * 3);
+            var pos = Position;
+            Position += sizeof(double) * 3;
+            WriteDoubleAt(pos, v0);
+            WriteDoubleAt(pos + 8, v1);
+            WriteDoubleAt(pos + 16, v2);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteDouble(double v0, double v1, double v2, double v3) {
+            EnsureSize(sizeof(double) * 4);
+            var pos = Position;
+            Position += sizeof(double) * 4;
+            WriteDoubleAt(pos, v0);
+            WriteDoubleAt(pos + 8, v1);
+            WriteDoubleAt(pos + 16, v2);
+            WriteDoubleAt(pos + 24, v3);
         }
         #endregion
 
         #region BASE_VALUE_TYPES
         [MethodImpl(AggressiveInlining)]
         public void WriteNullable<T>(in T? value) where T : struct {
-            if (WriteNotNullFlag(value)) {
-                BinaryPack<T>.Write(ref this, value!.Value);
+            if (value.HasValue) {
+                EnsureSize(sizeof(byte));
+                Buffer[Position++] = 1;
+                BinaryPack<T>.Write(ref this, value.Value);
+            } else {
+                EnsureSize(sizeof(byte));
+                Buffer[Position++] = 0;
             }
         }
 
@@ -439,7 +682,7 @@ namespace FFS.Libraries.StaticPack {
         [MethodImpl(AggressiveInlining)]
         public void WriteString32(string value) {
             if (WriteNotNullFlag(value)) {
-                EnsureSize((uint) Encoding.UTF8.GetMaxByteCount(value.Length));
+                EnsureSize((uint) Encoding.UTF8.GetMaxByteCount(value.Length) + sizeof(int));
                 var bytesWritten = Encoding.UTF8.GetBytes(value, 0, value.Length, Buffer, (int) Position + sizeof(int));
                 WriteInt(bytesWritten);
                 Position += (uint) bytesWritten;
@@ -450,11 +693,11 @@ namespace FFS.Libraries.StaticPack {
         public void WriteString16(string value) {
             if (WriteNotNullFlag(value)) {
                 var len = Math.Min(value.Length, ushort.MaxValue);
-                EnsureSize((uint) Encoding.UTF8.GetMaxByteCount(len));
+                EnsureSize((uint) Encoding.UTF8.GetMaxByteCount(len) + sizeof(ushort));
                 var bytesWritten = Encoding.UTF8.GetBytes(value, 0, len, Buffer, (int) Position + sizeof(ushort));
-                var bytesLen = (ushort) Math.Min(bytesWritten, ushort.MaxValue);
-                WriteUshort(bytesLen);
-                Position += bytesLen;
+                if (bytesWritten > ushort.MaxValue) throw new Exception($"String UTF-8 byte length {bytesWritten} exceeds String16 limit {ushort.MaxValue}");
+                WriteUshort((ushort) bytesWritten);
+                Position += (uint) bytesWritten;
             }
         }
 
@@ -462,11 +705,11 @@ namespace FFS.Libraries.StaticPack {
         public void WriteString8(string value) {
             if (WriteNotNullFlag(value)) {
                 var len = Math.Min(value.Length, byte.MaxValue);
-                EnsureSize((uint) Encoding.UTF8.GetMaxByteCount(len));
+                EnsureSize((uint) Encoding.UTF8.GetMaxByteCount(len) + sizeof(byte));
                 var bytesWritten = Encoding.UTF8.GetBytes(value, 0, len, Buffer, (int) Position + sizeof(byte));
-                var bytesLen = (byte) Math.Min(bytesWritten, byte.MaxValue);
-                WriteByte(bytesLen);
-                Position += bytesLen;
+                if (bytesWritten > byte.MaxValue) throw new Exception($"String UTF-8 byte length {bytesWritten} exceeds String8 limit {byte.MaxValue}");
+                WriteByte((byte) bytesWritten);
+                Position += (uint) bytesWritten;
             }
         }
         #endregion
@@ -474,6 +717,7 @@ namespace FFS.Libraries.StaticPack {
         #region COLLECTIONS
         [MethodImpl(AggressiveInlining)]
         public void WriteArrayUnmanaged<T>(T[] value) where T : unmanaged {
+            if (value == null) { WriteNotNullFlag(value); return; }
             WriteArrayUnmanaged(value, 0, value.Length);
         }
 
@@ -561,6 +805,7 @@ namespace FFS.Libraries.StaticPack {
         
         [MethodImpl(AggressiveInlining)]
         public void WriteArray<T>(T[] value) {
+            if (value == null) { WriteNotNullFlag(value); return; }
             WriteArray(value, 0, value.Length);
         }
 
@@ -711,6 +956,618 @@ namespace FFS.Libraries.StaticPack {
                 }
                 WriteUintAt(position, Position - (position + sizeof(uint)));
             }
+        }
+        #endregion
+
+        #region SPAN
+        [MethodImpl(AggressiveInlining)]
+        public void WriteBytes(ReadOnlySpan<byte> value) {
+            var count = (uint) value.Length;
+            EnsureSize(count);
+            value.CopyTo(Buffer.AsSpan((int) Position, (int) count));
+            Position += count;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteBytes(ReadOnlyMemory<byte> value) {
+            WriteBytes(value.Span);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteBytes(in ReadOnlySequence<byte> value) {
+            var length = (uint) value.Length;
+            EnsureSize(length);
+            value.CopyTo(Buffer.AsSpan((int) Position, (int) length));
+            Position += length;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T>(ReadOnlySpan<T> value) where T : unmanaged {
+            if (value.Length == 0) return;
+            unsafe {
+                var size = (uint) (value.Length * sizeof(T));
+                EnsureSize(size);
+                fixed (byte* dest = &Buffer[Position])
+                fixed (T* src = value) {
+                    System.Buffer.MemoryCopy(src, dest, size, size);
+                }
+                Position += size;
+            }
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T>(ReadOnlyMemory<T> value) where T : unmanaged {
+            WriteUnmanaged(value.Span);
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteSpanUnmanaged<T>(ReadOnlySpan<T> value) where T : unmanaged {
+            WriteNotNullFlag();
+            WriteInt(value.Length);
+            var position = MakePoint(sizeof(uint));
+            if (value.Length > 0) {
+                unsafe {
+                    var size = (uint) (value.Length * sizeof(T));
+                    EnsureSize(size);
+                    fixed (byte* dest = &Buffer[Position])
+                    fixed (T* src = value) {
+                        System.Buffer.MemoryCopy(src, dest, size, size);
+                    }
+                    Position += size;
+                }
+            }
+            WriteUintAt(position, Position - (position + sizeof(uint)));
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteSpan<T>(ReadOnlySpan<T> value) {
+            WriteNotNullFlag();
+            WriteInt(value.Length);
+            var position = MakePoint(sizeof(uint));
+            for (var i = 0; i < value.Length; i++) {
+                BinaryPack<T>.Write(ref this, value[i]);
+            }
+            WriteUintAt(position, Position - (position + sizeof(uint)));
+        }
+        #endregion
+
+        #region UNMANAGED_GENERIC
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T1>(in T1 v1)
+            where T1 : unmanaged {
+            var size = (uint) Unsafe.SizeOf<T1>();
+            EnsureSize(size);
+            Unsafe.WriteUnaligned(ref Buffer[Position], v1);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T1, T2>(in T1 v1, in T2 v2)
+            where T1 : unmanaged where T2 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T1, T2, T3>(in T1 v1, in T2 v2, in T3 v3)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T1, T2, T3, T4>(in T1 v1, in T2 v2, in T3 v3, in T4 v4)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T1, T2, T3, T4, T5>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T1, T2, T3, T4, T5, T6>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T1, T2, T3, T4, T5, T6, T7>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6, in T7 v7)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged where T7 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()), v7);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanaged<T1, T2, T3, T4, T5, T6, T7, T8>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6, in T7 v7, in T8 v8)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged where T7 : unmanaged where T8 : unmanaged {
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>() + Unsafe.SizeOf<T8>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()), v7);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>()), v8);
+            Position += size;
+        }
+
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanagedSized<T1>(in T1 v1)
+            where T1 : unmanaged {
+            var payload = (uint) Unsafe.SizeOf<T1>();
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanagedSized<T1, T2>(in T1 v1, in T2 v2)
+            where T1 : unmanaged where T2 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanagedSized<T1, T2, T3>(in T1 v1, in T2 v2, in T3 v3)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanagedSized<T1, T2, T3, T4>(in T1 v1, in T2 v2, in T3 v3, in T4 v4)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanagedSized<T1, T2, T3, T4, T5>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanagedSized<T1, T2, T3, T4, T5, T6>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanagedSized<T1, T2, T3, T4, T5, T6, T7>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6, in T7 v7)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged where T7 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()), v7);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void WriteUnmanagedSized<T1, T2, T3, T4, T5, T6, T7, T8>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6, in T7 v7, in T8 v8)
+            where T1 : unmanaged where T2 : unmanaged where T3 : unmanaged where T4 : unmanaged where T5 : unmanaged where T6 : unmanaged where T7 : unmanaged where T8 : unmanaged {
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>() + Unsafe.SizeOf<T8>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()), v7);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>()), v8);
+            Position += payload + 4;
+        }
+
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanaged<T1>(in T1 v1) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T1)} contains references");
+            #endif
+            var size = (uint) Unsafe.SizeOf<T1>();
+            EnsureSize(size);
+            Unsafe.WriteUnaligned(ref Buffer[Position], v1);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanaged<T1, T2>(in T1 v1, in T2 v2) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T2)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanaged<T1, T2, T3>(in T1 v1, in T2 v2, in T3 v3) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T3)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanaged<T1, T2, T3, T4>(in T1 v1, in T2 v2, in T3 v3, in T4 v4) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T4)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanaged<T1, T2, T3, T4, T5>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T5)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanaged<T1, T2, T3, T4, T5, T6>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T6)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanaged<T1, T2, T3, T4, T5, T6, T7>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6, in T7 v7) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T6)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T7)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()), v7);
+            Position += size;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanaged<T1, T2, T3, T4, T5, T6, T7, T8>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6, in T7 v7, in T8 v8) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T6)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T7)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T8>()) throw new Exception($"[ForceWriteUnmanaged] Type {typeof(T8)} contains references");
+            #endif
+            var size = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>() + Unsafe.SizeOf<T8>());
+            EnsureSize(size);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()), v7);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>()), v8);
+            Position += size;
+        }
+
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanagedSized<T1>(in T1 v1) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T1)} contains references");
+            #endif
+            var payload = (uint) Unsafe.SizeOf<T1>();
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanagedSized<T1, T2>(in T1 v1, in T2 v2) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T2)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanagedSized<T1, T2, T3>(in T1 v1, in T2 v2, in T3 v3) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T3)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanagedSized<T1, T2, T3, T4>(in T1 v1, in T2 v2, in T3 v3, in T4 v4) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T4)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanagedSized<T1, T2, T3, T4, T5>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T5)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanagedSized<T1, T2, T3, T4, T5, T6>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T6)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanagedSized<T1, T2, T3, T4, T5, T6, T7>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6, in T7 v7) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T6)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T7)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()), v7);
+            Position += payload + 4;
+        }
+
+        [MethodImpl(AggressiveInlining)]
+        public void ForceWriteUnmanagedSized<T1, T2, T3, T4, T5, T6, T7, T8>(in T1 v1, in T2 v2, in T3 v3, in T4 v4, in T5 v5, in T6 v6, in T7 v7, in T8 v8) {
+            #if DEBUG || FFS_PACK_ENABLE_DEBUG
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T1>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T1)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T2>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T2)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T3>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T3)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T4>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T4)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T5>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T5)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T6>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T6)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T7>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T7)} contains references");
+            if (RuntimeHelpers.IsReferenceOrContainsReferences<T8>()) throw new Exception($"[ForceWriteUnmanagedSized] Type {typeof(T8)} contains references");
+            #endif
+            var payload = (uint) (Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>() + Unsafe.SizeOf<T8>());
+            EnsureSize(payload + 4);
+            ref var dst = ref Buffer[Position];
+            Unsafe.WriteUnaligned(ref dst, payload);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4), v1);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>()), v2);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>()), v3);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>()), v4);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>()), v5);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>()), v6);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>()), v7);
+            Unsafe.WriteUnaligned(ref Unsafe.Add(ref dst, 4 + Unsafe.SizeOf<T1>() + Unsafe.SizeOf<T2>() + Unsafe.SizeOf<T3>() + Unsafe.SizeOf<T4>() + Unsafe.SizeOf<T5>() + Unsafe.SizeOf<T6>() + Unsafe.SizeOf<T7>()), v8);
+            Position += payload + 4;
         }
         #endregion
 

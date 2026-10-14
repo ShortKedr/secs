@@ -176,7 +176,7 @@ internal static class Runner
             Provenance = new
             {
                 Sources = new { SECS = "optimized working tree + default WorldOptions fix", Lite = "5053141d7d663c6b1855c8409ac93dfac807b239", Classic = "1213c31c9ef8325d48e74a52b345c4db242d038b",
-                    Morpeh = "9f6369384792a01d74df24efd35b08ae313e4f12", StaticEcs = "6323d710c22cfff70100fe3748de432cb5fc70c8", StaticPack = "72ce8b993593e5cfd24c6a9289a4b132305ef493" },
+                    Morpeh = "9f6369384792a01d74df24efd35b08ae313e4f12", StaticEcs = "23b1cf36d89497e8a126d38459d688e2b0a5dea3", StaticPack = "7bfb6cf925901b9366dda884258d727a89fff76e" },
                 Binaries = Directory.GetFiles(AppContext.BaseDirectory, "*.dll").Order().ToDictionary(path => Path.GetFileName(path)!, path => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))))
             },
             Timing = Stats(timing), AllocatedBytes = measuredAllocation,

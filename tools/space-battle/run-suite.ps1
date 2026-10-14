@@ -24,6 +24,8 @@ if (-not $target.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [StringCo
 }
 if ($Ticks -lt 1 -or $Warmup -lt 0) { throw 'Ticks must be positive and warmup nonnegative.' }
 [IO.Directory]::CreateDirectory($target) | Out-Null
+& python tools/check_vendor.py
+if ($LASTEXITCODE -ne 0) { throw 'Vendored sources do not match the pinned manifest.' }
 if (-not $SkipBuild) {
     dotnet build SpaceBattle.Headless/SpaceBattle.Headless.csproj -c Release --no-restore -m:1 -nr:false -p:GeneratePackageOnBuild=false -p:UseSharedCompilation=false -p:NuGetAudit=false
     if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
@@ -33,7 +35,7 @@ function Get-SourceHashes {
     $hashes = [ordered]@{}
     $files = git ls-files --cached --others --exclude-standard -- SECS SpaceBattle.Core SpaceBattle.SECS SpaceBattle.Adapters SpaceBattle.Headless Benchmarks.Local/vendor Benchmarks.Local/StaticLibrary.csproj Benchmarks.Local/MorpehLibrary.csproj
     if ($LASTEXITCODE -ne 0) { throw 'Cannot identify measured source files.' }
-    foreach ($file in ($files | Where-Object { $_ -match '\.(cs|csproj|props|targets|json)$' } | Sort-Object -Unique)) {
+    foreach ($file in ($files | Where-Object { $_ -match '\.(cs|csproj|props|targets|json)$' -and (Test-Path -LiteralPath (Join-Path $root $_) -PathType Leaf) } | Sort-Object -Unique)) {
         $hashes[$file] = (Get-FileHash -LiteralPath (Join-Path $root $file) -Algorithm SHA256).Hash
     }
     return $hashes

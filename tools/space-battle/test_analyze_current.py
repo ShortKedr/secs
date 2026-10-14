@@ -20,6 +20,9 @@ def sample_run(preset=None, mean=1, hud=False):
         metadata["Preset"] = preset
     stages = [{"Name": name, "Timing": summary(mean/20)} for name in report.STAGE_NAMES]
     result = {"Metadata": metadata, "Timing": summary(mean), "Stages": stages,
+              "Provenance": {"Sources": {"Lite": "0"*40, "Classic": "1"*40,
+                                         "Morpeh": "2"*40, "StaticEcs": "3"*40,
+                                         "StaticPack": "4"*40}},
               "AllocatedBytes": 0, "Checksum": "A"*16,
               "Counters": {"Shots": 1, "Hits": 1, "ShipsCreated": 1, "ShipsDestroyed": 1},
               "Windows": [{"Ships": 1, "Turrets": 2}]}
@@ -141,7 +144,7 @@ class CurrentCampaignTests(unittest.TestCase):
 
     def test_game_report_defaults_to_its_own_bilingual_names(self):
         runs = {(p, f): sample_run("game", hud=True) for p in report.PROFILES for f in report.FRAMEWORKS}
-        manifest = {"Preset": "game", "StartedAt": "start", "FinishedAt": "finish", "SourceRevision": "test"}
+        manifest = {"Preset": "game", "StartedAt": "start", "FinishedAt": "finish", "SourceRevision": "f"*40}
         hardware = {"Cpu": {"Name": "test CPU"}, "TotalPhysicalMemoryBytes": 1024**3}
         with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
             root = Path(directory)
@@ -167,7 +170,7 @@ class CurrentCampaignTests(unittest.TestCase):
 
     def test_finite_report_links_only_to_the_game_preset(self):
         runs = {(p, f): sample_run("benchmark") for p in report.PROFILES for f in report.FRAMEWORKS}
-        manifest = {"Preset": "benchmark", "StartedAt": "start", "FinishedAt": "finish", "SourceRevision": "test"}
+        manifest = {"Preset": "benchmark", "StartedAt": "start", "FinishedAt": "finish", "SourceRevision": "f"*40}
         hardware = {"Cpu": {"Name": "test CPU"}, "TotalPhysicalMemoryBytes": 1024**3}
         with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
             root = Path(directory)

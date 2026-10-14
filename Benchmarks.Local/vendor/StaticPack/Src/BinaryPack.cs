@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using static System.Runtime.CompilerServices.MethodImplOptions;
 #if ENABLE_IL2CPP
 using Unity.IL2CPP.CompilerServices;
@@ -28,7 +27,7 @@ namespace FFS.Libraries.StaticPack {
             RegisterWithCollections(static (ref BinaryPackWriter writer, in float value) => writer.WriteFloat(value),static (ref BinaryPackReader reader) => reader.ReadFloat(), new UnmanagedPackArrayStrategy<float>());
             RegisterWithCollections(static (ref BinaryPackWriter writer, in double value) => writer.WriteDouble(value),static (ref BinaryPackReader reader) => reader.ReadDouble(), new UnmanagedPackArrayStrategy<double>());
             RegisterWithCollections(static (ref BinaryPackWriter writer, in bool value) => writer.WriteBool(value),static (ref BinaryPackReader reader) => reader.ReadBool(), new UnmanagedPackArrayStrategy<bool>());
-            RegisterWithCollections(static (ref BinaryPackWriter writer, in DateTime value) => writer.WriteDateTime(value),static (ref BinaryPackReader reader) => reader.ReadDateTime(), new UnmanagedPackArrayStrategy<DateTime>());
+            RegisterWithCollections(static (ref BinaryPackWriter writer, in DateTime value) => writer.WriteDateTime(value),static (ref BinaryPackReader reader) => reader.ReadDateTime(), new StructPackArrayStrategy<DateTime>());
             RegisterWithCollections(static (ref BinaryPackWriter writer, in Guid value) => writer.WriteGuid(in value),static (ref BinaryPackReader reader) => reader.ReadGuid(), new UnmanagedPackArrayStrategy<Guid>());
 
             RegisterWithCollections(static (ref BinaryPackWriter writer, in string value) => writer.WriteString16(value), static (ref BinaryPackReader reader) => reader.ReadString16(), new ClassPackArrayStrategy<string>());
@@ -37,6 +36,9 @@ namespace FFS.Libraries.StaticPack {
         public static void Init() {
             // Static constructor
         }
+
+        [MethodImpl(AggressiveInlining)]
+        public static int SizeOf<T>() => Unsafe.SizeOf<T>();
 
         [MethodImpl(AggressiveInlining)]
         public static void RegisterWithCollections<T, S>(BinaryWriter<T> writer, BinaryReader<T> reader, S strategy = default) where S : IPackArrayStrategy<T> {
@@ -73,7 +75,7 @@ namespace FFS.Libraries.StaticPack {
         public static T ReadFromBytes<T>(this byte[] bytes, uint size, uint position, bool gzip = false, uint byteSizeHint = 4096) {
             if (gzip) {
                 var writer = BinaryPackWriter.CreateFromPool(byteSizeHint);
-                writer.WriteGzipData(bytes);
+                writer.WriteGzipData(bytes, (int) position, (int) size);
                 var reader = writer.AsReader();
                 var val =  BinaryPack<T>.Read(ref reader);
                 writer.Dispose();
@@ -168,37 +170,6 @@ namespace FFS.Libraries.StaticPack {
         }
     }
     
-    #if ENABLE_IL2CPP
-    [Il2CppSetOption(Option.NullChecks, false)]
-    [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
-    #endif
-    [StructLayout(LayoutKind.Explicit)]
-    internal struct Union4 {
-        [FieldOffset(0)] public float Float;
-        [FieldOffset(0)] public uint Uint;
-        [FieldOffset(0)] public byte Byte0;
-        [FieldOffset(1)] public byte Byte1;
-        [FieldOffset(2)] public byte Byte2;
-        [FieldOffset(3)] public byte Byte3;
-    }
-
-    #if ENABLE_IL2CPP
-    [Il2CppSetOption(Option.NullChecks, false)]
-    [Il2CppSetOption(Option.ArrayBoundsChecks, false)]
-    #endif
-    [StructLayout(LayoutKind.Explicit)]
-    internal struct Union8 {
-        [FieldOffset(0)] public double Double;
-        [FieldOffset(0)] public ulong Ulong;
-        [FieldOffset(0)] public byte Byte0;
-        [FieldOffset(1)] public byte Byte1;
-        [FieldOffset(2)] public byte Byte2;
-        [FieldOffset(3)] public byte Byte3;
-        [FieldOffset(4)] public byte Byte4;
-        [FieldOffset(5)] public byte Byte5;
-        [FieldOffset(6)] public byte Byte6;
-        [FieldOffset(7)] public byte Byte7;
-    }
 }
 
 #if ENABLE_IL2CPP

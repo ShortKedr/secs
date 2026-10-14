@@ -16,6 +16,8 @@ $env:MSBuildEnableWorkloadResolver = 'false'
 $env:DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE = 'true'
 $env:SECS_BENCHMARK_SCENARIOS = $null
 New-Item -ItemType Directory -Force $OutputDirectory, $env:TEMP | Out-Null
+& python tools/check_vendor.py
+if ($LASTEXITCODE -ne 0) { throw 'Vendored sources do not match the pinned manifest.' }
 function Run-Dotnet([string[]]$Arguments) {
     & dotnet @Arguments
     if ($LASTEXITCODE -ne 0) { throw "dotnet failed: $Arguments" }
@@ -28,11 +30,14 @@ Run-Dotnet @($dll, '--validate')
 Run-Dotnet @($dll, '--validate-stress')
 $revision = (& git rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Cannot read local source revision' }
+$workingTreeModified = [bool](& git status --porcelain --untracked-files=no)
+if ($LASTEXITCODE -ne 0) { throw 'Cannot read local working-tree status' }
 $env:SECS_BENCHMARK_REVISION = $revision
 $sources = @{}
 $sourceFiles = @(Get-ChildItem SECS -Recurse -File -Filter '*.cs' | Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' })
 $sourceFiles += @(Get-ChildItem SECS.Benchmarks -File -Filter '*.cs')
 $sourceFiles += @(Get-ChildItem Benchmarks.Local -File -Filter '*.cs')
+$sourceFiles += @(Get-ChildItem Benchmarks.Local/vendor -Recurse -File -Filter '*.cs')
 $sourceFiles += Get-Item Benchmarks.Local/vendor-manifest.json
 $sourceFiles += @(Get-ChildItem Benchmarks.Local -File -Filter '*.csproj')
 $sourceFiles += Get-Item Benchmarks.Local/Directory.Build.props, SECS/SECS.csproj
@@ -57,7 +62,7 @@ if ((Get-FileHash $dll -Algorithm SHA256).Hash.ToLowerInvariant() -ne $assemblyB
 }
 $manifest = [ordered]@{
     format = 1; started = $started; finished = [DateTimeOffset]::Now.ToString('O')
-    sourceRevision = $revision; sourceHashes = $sources
+    sourceRevision = $revision; workingTreeModified = $workingTreeModified; sourceHashes = $sources
     cpu = $cpu; logicalProcessors = [Environment]::ProcessorCount
     sdk = (& dotnet --version | Out-String).Trim()
     measurementAssemblySha256 = (Get-FileHash $dll -Algorithm SHA256).Hash.ToLowerInvariant()

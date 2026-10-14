@@ -120,7 +120,7 @@ var metadata = new
     footer = "Release; tiering off; 20 samples; setup/forced GC excluded; Morpeh Commit included",
     revisions = new { SECS = Environment.GetEnvironmentVariable("SECS_BENCHMARK_REVISION") ?? "working tree: lookup, chunk reuse, transition cache", classic = "1213c31c9ef8325d48e74a52b345c4db242d038b",
         lite = "5053141d7d663c6b1855c8409ac93dfac807b239", morpeh = "9f6369384792a01d74df24efd35b08ae313e4f12",
-        staticEcs = "6323d710c22cfff70100fe3748de432cb5fc70c8", staticPack = "72ce8b993593e5cfd24c6a9289a4b132305ef493" }
+        staticEcs = "23b1cf36d89497e8a126d38459d688e2b0a5dea3", staticPack = "7bfb6cf925901b9366dda884258d727a89fff76e" }
 };
 var output = args.FirstOrDefault(a => a.EndsWith(".json")) ?? "Benchmarks.Local/results.json";
 File.WriteAllText(output, JsonSerializer.Serialize(new { metadata, results }, new JsonSerializerOptions { WriteIndented = true }));

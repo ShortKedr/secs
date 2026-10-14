@@ -5,7 +5,8 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Version>1.2.01</Version>
+    <LangVersion>latest</LangVersion>
+    <Version>2.2.9</Version>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="vendor/StaticEcs/Src/**/*.cs" />

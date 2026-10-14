@@ -16,8 +16,8 @@ PINS = [
     ("ecs", "LeoECS Classic", "Leopotam/ecs", "1213c31c9ef8325d48e74a52b345c4db242d038b", "MIT-Red OR proprietary", "src"),
     ("ecslite", "LeoECS Lite", "Leopotam/ecslite", "5053141d7d663c6b1855c8409ac93dfac807b239", "MIT-Red", "src"),
     ("morpeh", "Morpeh", "scellecs/morpeh", "9f6369384792a01d74df24efd35b08ae313e4f12", "MIT", "Scellecs.Morpeh/Core"),
-    ("StaticEcs", "StaticEcs", "Felid-Force-Studios/StaticEcs", "6323d710c22cfff70100fe3748de432cb5fc70c8", "MIT", "Src"),
-    ("StaticPack", "StaticPack", "Felid-Force-Studios/StaticPack", "72ce8b993593e5cfd24c6a9289a4b132305ef493", "MIT", "Src"),
+    ("StaticEcs", "StaticEcs", "Felid-Force-Studios/StaticEcs", "23b1cf36d89497e8a126d38459d688e2b0a5dea3", "MIT", "Src"),
+    ("StaticPack", "StaticPack", "Felid-Force-Studios/StaticPack", "7bfb6cf925901b9366dda884258d727a89fff76e", "MIT", "Src"),
 ]
 
 
@@ -60,7 +60,9 @@ def git_files():
     git = str(bundled) if bundled.is_file() else "git"
     result = subprocess.run([git, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "Benchmarks.Local/vendor"],
                             cwd=ROOT, capture_output=True, check=True)
-    return {path for path in result.stdout.decode("utf-8").split("\0") if path}
+    # The index may still list deleted files while a vendor upgrade is uncommitted.
+    return {path for path in result.stdout.decode("utf-8").split("\0")
+            if path and (ROOT / path).is_file()}
 
 
 def verify():
