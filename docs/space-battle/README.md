@@ -12,7 +12,7 @@ SpaceBattle is an AI fleet battle and a realistic ECS comparison workload. Deskt
 | --- | --- |
 | Watch in a browser or run locally | [Web client](../../SpaceBattle.Web/README.md) |
 | Run desktop and learn its controls | [Desktop client](../../SpaceBattle.Game/README.md) |
-| Read the primary high workload and controlled ECS churn comparison | [Current benchmark report](REPORT.md) |
+| Read the single high game workload comparison | [Current benchmark report](REPORT.md) |
 | Read the previous game preset campaign | [Previous game report](GAME_REPORT.md) |
 | Understand the current stages, components and mutation boundaries | [Current architecture](ARCHITECTURE.md) |
 | Understand the ECS adapter contract | [Native adapters](../../SpaceBattle.Adapters/README.md) |
@@ -39,7 +39,7 @@ Tuning values are implementation choices, not proof of balanced matchups. A perf
 
 Run from the repository root. Build and validate before measurement; finish other builds, rendering, profilers and browser tests before timing. Do not mix configurations or revisions.
 
-The primary suite measures five ECS implementations on one fixed high intensity game battle. Its baseline has no synthetic component churn; two additional profiles perform one or four `Lifetime` component transitions per tick on a fixed pool of inert entities. Combat rules, fleet size, seed and reinforcements stay identical across all three profiles. Each case measures 108000 ticks after 600 separate warmup ticks:
+The current suite measures five ECS implementations on exactly one real game workload: profile `high`, preset `game`, and gameplay `ChurnMultiplier=2`. It adds no synthetic churn, diagnostic profiles, inert entity pool, or pre-Step churn hook. Each case measures 108000 ticks after 600 separate warmup ticks:
 
 ```powershell
 ./tools/space-battle/run-suite.ps1 -OutputDirectory docs/space-battle/current

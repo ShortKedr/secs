@@ -17,10 +17,7 @@ from heatmap import Metric, PALETTE, EQUAL_COLOR, TimingPolicy, colors, compact_
 ROOT = Path(__file__).resolve().parents[2]
 DOCS = ROOT / "docs/space-battle"
 PROFILES = {"low": 0.5, "nominal": 1, "high": 2}
-V2_PROFILES = {"high": 0, "high-churn-1": 1, "high-churn-4": 4}
-V2_FRAMEWORK_ORDER = {"high": ("secs", "lite", "classic", "morpeh", "static"),
-                      "high-churn-1": ("classic", "morpeh", "static", "secs", "lite"),
-                      "high-churn-4": ("static", "secs", "lite", "classic", "morpeh")}
+CURRENT_PROFILE = "high"
 FRAMEWORKS = {"secs": "SECS", "lite": "LeoECSLite", "classic": "LeoECS Classic",
               "morpeh": "Morpeh", "static": "StaticEcs 2.2.9"}
 RULES = {"Revision": "mounted-armament-v7", "TacticalRevision": "layered-squads-v3",
@@ -152,37 +149,27 @@ def canonical(run):
                           for w in run.get("HudWindows", [])]}
 
 
-def validate_v2_profiles(manifest):
-    profiles = {item["Name"]: item for item in manifest["Profiles"]}
-    require(tuple(profiles) == tuple(V2_PROFILES), "Expected ordered high/high-churn-1/high-churn-4 profiles")
-    for name, rate in V2_PROFILES.items():
-        item = profiles[name]
-        require(type(item["SyntheticChurnOpsPerTick"]) is int and item["SyntheticChurnOpsPerTick"] == rate,
-                name + ": wrong synthetic churn rate")
-        require(item.get("Primary") is (name == "high"), name + ": wrong primary profile marker")
-        require(tuple(item.get("FrameworkOrder", ())) == V2_FRAMEWORK_ORDER[name], name + ": wrong framework order")
+def validate_current_profile(manifest):
+    require(manifest.get("Format") == 3, "Current campaign requires Format 3")
+    require(manifest.get("Profile") == CURRENT_PROFILE and "Profiles" not in manifest and
+            "PrimaryProfile" not in manifest, "Current campaign must have only one real-game high profile")
+    require(tuple(manifest.get("FrameworkOrder", ())) == tuple(FRAMEWORKS),
+            "Current campaign must include exactly the five ECS implementations")
     workload = manifest["Workload"]
-    require(workload["Preset"] == "game" and workload["Seed"] == 7331 and workload["ShipsPerTeam"] == 96 and
-            workload["GameplayChurnMultiplier"] == 2, "Format 2 workload metadata mismatch")
-    return profiles
-
-
-def validate_synthetic_metadata(synthetic, rate, label):
-    require(synthetic["OpsPerTick"] == rate and synthetic["PoolSize"] == 32,
-            label + ": wrong synthetic churn settings")
-    require(synthetic["Operations"] == rate * TICKS and
-            synthetic["Adds"] + synthetic["Removes"] == synthetic["Operations"] and
-            0 <= synthetic["Adds"] - synthetic["Removes"] <= synthetic["PoolSize"],
-            label + ": synthetic operation totals mismatch")
-    require(synthetic["Scope"] == "fixed pre-Step hook included in outer tick timer; excluded from Battle.LastTickMs and stage timings; pool setup excluded",
-            label + ": synthetic churn scope mismatch")
-    validate_summary(synthetic["Timing"], TICKS, label + ".SyntheticChurn.Timing")
+    require(set(workload) == {"Preset", "Seed", "ShipsPerTeam", "GameplayChurnMultiplier"} and
+            workload["Preset"] == "game" and workload["Seed"] == 7331 and
+            workload["ShipsPerTeam"] == 96 and workload["GameplayChurnMultiplier"] == 2,
+            "Current campaign must use the real game high workload without synthetic parameters")
 
 
 def validate(directory, verify_ticks, expected_preset=None):
     manifest = read_json(directory / "manifest.json")
-    if manifest.get("Format", 1) == 2:
-        return validate_format2(directory, manifest, verify_ticks, expected_preset)
+    if directory.resolve() == (DOCS / "current").resolve():
+        require(manifest.get("Format") == 3,
+                "The current report requires the single real-game high campaign (Format 3)")
+    if manifest.get("Format", 1) == 3:
+        return validate_format3(directory, manifest, verify_ticks, expected_preset)
+    require(manifest.get("Format", 1) == 1, "Unsupported campaign format")
     require(manifest["Completed"] is True, "Campaign is incomplete")
     require(manifest["Ticks"] == 108000 and manifest["WarmupTicks"] == 600,
             "Published campaign requires 108000 ticks and 600 separate warmup ticks")
@@ -256,26 +243,26 @@ def validate(directory, verify_ticks, expected_preset=None):
     return runs, manifest, hardware
 
 
-def validate_format2(directory, manifest, verify_ticks, expected_preset=None):
-    """Validate the isolated synthetic-churn campaign without weakening Format 1 checks."""
+def validate_format3(directory, manifest, verify_ticks, expected_preset=None):
+    """Validate the single real-game high campaign without weakening archived Format 1 checks."""
     require(manifest["Completed"] is True, "Campaign is incomplete")
-    require(manifest.get("Format") == 2, "Unknown campaign format")
+    validate_current_profile(manifest)
     require(manifest["Ticks"] == TICKS and manifest["WarmupTicks"] == 600,
-            "Format 2 requires 108000 ticks and 600 separate warmup ticks")
-    require(manifest.get("Preset") == "game", "Format 2 requires the game preset")
+            "Current campaign requires 108000 ticks and 600 separate warmup ticks")
+    require(manifest.get("Preset") == "game", "Current campaign requires the game preset")
     require(expected_preset is None or expected_preset == "game", "Unexpected campaign preset")
-    require(manifest.get("PrimaryProfile") == "high", "Format 2 primary profile must be high")
     require(bool(manifest.get("SourceRevision")) and bool(manifest.get("SourceHashes")), "Missing source provenance")
-    profiles = validate_v2_profiles(manifest)
     expected_files = {"hardware.json"}
-    for profile in V2_PROFILES:
-        for framework in FRAMEWORKS:
-            expected_files.add(f"{profile}-{framework}.json")
-            expected_files.add(f"{profile}-{framework}.ticks.csv")
+    for framework in FRAMEWORKS:
+        expected_files.add(f"high-{framework}.json")
+        expected_files.add(f"high-{framework}.ticks.csv")
     actual_json = {p.name for p in directory.glob("*.json")} - {"manifest.json"}
     require(actual_json == {name for name in expected_files if name.endswith(".json")},
-            "Expected exactly the complete Format 2 15-case JSON matrix")
-    require(set(manifest["Files"]) == expected_files, "Format 2 manifest file list is incomplete or unexpected")
+            "Expected exactly five high result JSON files and hardware.json")
+    require(set(manifest["Files"]) == expected_files, "Current manifest must list only the five high cases")
+    actual_csv = {p.name for p in directory.glob("*.ticks.csv")}
+    require(not actual_csv or actual_csv == {name for name in expected_files if name.endswith(".ticks.csv")},
+            "Current result directory contains extra tick CSV files")
     for name, expected in manifest["Files"].items():
         path = directory / name
         require(path.parent == directory and path.name == name, "Invalid manifest filename")
@@ -285,12 +272,11 @@ def validate_format2(directory, manifest, verify_ticks, expected_preset=None):
             require(not verify_ticks and name.endswith(".ticks.csv"), "Missing input: " + name)
     hardware = read_json(directory / "hardware.json")
     runs, conditions, provenance = {}, None, None
-    primary_state = None
     initial_state = None
-    for profile, rate in V2_PROFILES.items():
-        port_state = None
-        for framework, name in FRAMEWORKS.items():
-            filename = f"{profile}-{framework}.json"
+    profile = CURRENT_PROFILE
+    port_state = None
+    for framework, name in FRAMEWORKS.items():
+            filename = f"high-{framework}.json"
             run = read_json(directory / filename)
             m = run["Metadata"]
             require(m["Framework"] == name, filename + ": wrong framework")
@@ -303,8 +289,8 @@ def validate_format2(directory, manifest, verify_ticks, expected_preset=None):
                     filename + ": gameplay ChurnMultiplier must stay fixed")
             require(options["Seed"] == 7331 and options["ShipsPerTeam"] == 96 and options["CarriersPerTeam"] == 3,
                     filename + ": wrong fleet/seed")
-            synthetic = m["SyntheticChurn"]
-            validate_synthetic_metadata(synthetic, rate, filename)
+            require("SyntheticChurn" not in m and not any("synthetic" in key.lower() for key in m),
+                    filename + ": synthetic metadata is forbidden")
             validate_summary(run["Timing"], TICKS, filename + ".Timing")
             validate_stages(run["Stages"], TICKS, filename + ".Stages")
             validate_hud(run, filename)
@@ -347,8 +333,8 @@ def validate_format2(directory, manifest, verify_ticks, expected_preset=None):
                 validate_summary(window["Timing"], 3600, filename + f".Windows[{i}]")
                 require((window["StartTick"], window["EndTick"], point["Tick"]) == (i*3600+1, (i+1)*3600, (i+1)*3600),
                         filename + ": noncontiguous windows/checkpoints")
-                require(window["Store"]["Entities"] == sum(window[k] for k in COUNTS) + 32,
-                        filename + ": store census must include the fixed synthetic pool")
+                require(window["Store"]["Entities"] == sum(window[k] for k in COUNTS),
+                        filename + ": store census must contain only gameplay entities")
             require(run["Checkpoints"][-1]["Checksum"] == run["Checksum"] and run["Windows"][-1]["Counters"] == run["Counters"],
                     filename + ": final state mismatch")
             require(sum(w["AllocatedBytes"] for w in run["Windows"]) == run["AllocatedBytes"], filename + ": allocations mismatch")
@@ -358,13 +344,10 @@ def validate_format2(directory, manifest, verify_ticks, expected_preset=None):
             if port_state is None:
                 port_state = state
             require(state == port_state, filename + ": port divergence")
-            if primary_state is None:
-                primary_state = state
-            require(state == primary_state, filename + ": gameplay diverges across synthetic churn profiles")
             early_state = (initial["Checksum"], initial["Counters"], tuple(initial[k] for k in COUNTS))
             if initial_state is None:
                 initial_state = early_state
-            require(early_state == initial_state, filename + ": gameplay diverges by tick 2000 across churn profiles")
+            require(early_state == initial_state, filename + ": gameplay diverges by tick 2000 across ECS implementations")
             if verify_ticks:
                 validate_ticks(directory, profile, framework, run)
             runs[profile, framework] = run
@@ -376,26 +359,19 @@ def validate_ticks(directory, profile, framework, run):
     timings, allocations, gc_samples = [], [], []
     hud_timings, stages = [], {name: [] for name in STAGE_NAMES}
     counts = {key: [] for key in COUNTS}
-    synthetic_ops, synthetic_adds, synthetic_removes, synthetic_ms = [], [], [], []
     with path.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
         has_hud = "HudWindows" in run
+        require(reader.fieldnames is not None and not any("synthetic" in field.lower() for field in reader.fieldnames),
+                path.name + ": synthetic CSV columns are forbidden")
         if has_hud:
             require(reader.fieldnames is not None and
                     {"hudMs", *STAGE_NAMES}.issubset(reader.fieldnames), path.name + ": missing HUD/stage samples")
-        if run["Metadata"].get("SyntheticChurn") is not None:
-            require(reader.fieldnames is not None and {"syntheticOps", "syntheticAdds", "syntheticRemoves", "syntheticChurnMs"}.issubset(reader.fieldnames),
-                    path.name + ": missing synthetic churn columns")
         for i, row in enumerate(reader, 1):
             require(i <= TICKS, path.name + ": too many CSV ticks")
             require(int(row["tick"]) == i, path.name + ": missing/duplicate tick")
             close(float(row["simulationSeconds"]), i/60, path.name + ": simulation clock")
             timings.append(float(row["tickMs"]))
-            if run["Metadata"].get("SyntheticChurn") is not None:
-                synthetic_ops.append(int(row["syntheticOps"]))
-                synthetic_adds.append(int(row["syntheticAdds"]))
-                synthetic_removes.append(int(row["syntheticRemoves"]))
-                synthetic_ms.append(float(row["syntheticChurnMs"]))
             allocations.append(int(row["allocatedBytes"]))
             require(allocations[-1] >= 0, path.name + ": negative allocation")
             gc_samples.append([int(row[f"gen{g}"]) for g in range(3)])
@@ -434,15 +410,7 @@ def validate_ticks(directory, profile, framework, run):
         for stage in run["Stages"]:
             validate_stats(stage["Timing"], stages[stage["Name"]], path.name + "." + stage["Name"])
     require(sum(allocations) == run["AllocatedBytes"], path.name + ": total allocations mismatch")
-    if run["Metadata"].get("SyntheticChurn") is not None:
-        meta = run["Metadata"]["SyntheticChurn"]
-        require(len(synthetic_ops) == TICKS and all(v == meta["OpsPerTick"] for v in synthetic_ops),
-                path.name + ": synthetic ops per tick mismatch")
-        require(sum(synthetic_ops) == meta["Operations"] and sum(synthetic_adds) == meta["Adds"] and
-                sum(synthetic_removes) == meta["Removes"] and
-                all(a + r == o for a, r, o in zip(synthetic_adds, synthetic_removes, synthetic_ops)),
-                path.name + ": synthetic operation totals mismatch")
-        validate_stats(meta["Timing"], synthetic_ms, path.name + ".SyntheticChurn.Timing")
+    if "OpeningPhases" in run:
         validate_stats(run["InitialWindow"]["Timing"], timings[:2000], path.name + ".InitialWindow")
         for stage in run["InitialWindow"]["Stages"]:
             validate_stats(stage["Timing"], stages[stage["Name"]][:2000], path.name + ".InitialWindow." + stage["Name"])
@@ -477,8 +445,8 @@ def validate_gc_interval(post_step, checkpoint, next_sample, label):
 
 
 def charts(runs, directory):
-    if ("high-churn-1", "secs") in runs:
-        return charts_format2(runs, directory)
+    if set(runs) == {(CURRENT_PROFILE, framework) for framework in FRAMEWORKS}:
+        return charts_current(runs, directory)
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -510,25 +478,23 @@ def charts(runs, directory):
         plt.close(fig)
 
 
-def charts_format2(runs, directory):
+def charts_current(runs, directory):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.patches import Patch
     plt.rcParams.update({"font.size": 10})
     policy = TimingPolicy.from_file(Path(__file__).with_name("heatmap_policy.json"))
-    profiles = V2_PROFILES
+    profile = CURRENT_PROFILE
     for metric in ("MeanMs", "P99Ms"):
-        fig, axes = plt.subplots(1, len(profiles), figsize=(15, 4), sharey=True)
-        for index, (axis, profile) in enumerate(zip(axes, profiles)):
-            values = [runs[profile, f]["Timing"][metric] for f in FRAMEWORKS]
-            bars = axis.bar(range(5), values, color=colors(values, absolute_threshold=policy.threshold("high", "tick.mean_ms" if metric == "MeanMs" else "tick.p99_ms")))
-            axis.bar_label(bars, labels=[f"{v:.4f}" for v in values], padding=3, fontsize=8)
-            axis.margins(y=.16)
-            axis.set_xticks(range(5), ["SECS", "Lite", "Classic", "Morpeh", "Static"], rotation=25)
-            axis.set_title(("PRIMARY · " if profile == "high" else "") + profile)
-            axis.set_ylabel("Step time (ms)")
-            axis.grid(axis="y", alpha=.2)
+        fig, axis = plt.subplots(figsize=(9, 4))
+        values = [runs[profile, f]["Timing"][metric] for f in FRAMEWORKS]
+        bars = axis.bar(range(5), values, color=colors(values, absolute_threshold=policy.threshold(profile, "tick.mean_ms" if metric == "MeanMs" else "tick.p99_ms")))
+        axis.bar_label(bars, labels=[f"{v:.4f}" for v in values], padding=3, fontsize=8)
+        axis.margins(y=.16)
+        axis.set_xticks(range(5), ["SECS", "Lite", "Classic", "Morpeh", "Static"], rotation=25)
+        axis.set_ylabel("Tick time (ms)")
+        axis.grid(axis="y", alpha=.2)
         fig.suptitle(f"SpaceBattle game preset, ChurnMultiplier=2: {metric} — 108,000 measured ticks")
         palette = dict(PALETTE)
         fig.legend(handles=[Patch(facecolor=palette["best"], label="Lag ≤5%"),
@@ -540,38 +506,21 @@ def charts_format2(runs, directory):
         fig.savefig(directory / f"{metric}.png", dpi=150)
         plt.close(fig)
 
-    fig, axes = plt.subplots(1, len(profiles), figsize=(16, 5), sharey=True)
+    fig, axis = plt.subplots(figsize=(10, 5))
     x = [0, 1, 2, 3]
-    for axis, profile in zip(axes, profiles):
-        for framework in FRAMEWORKS:
-            run = runs[profile, framework]
-            means = [run["OpeningPhases"]["First600"]["Timing"]["MeanMs"],
-                     run["OpeningPhases"]["First2000"]["Timing"]["MeanMs"],
-                     run["OpeningPhases"]["RemainderAfter2000"]["Timing"]["MeanMs"], run["Timing"]["MeanMs"]]
-            axis.plot(x, means, marker="o", label=FRAMEWORKS[framework])
-        axis.set_xticks(x, ["1–600", "1–2,000", "2,001–108,000", "1–108,000"])
-        axis.set_title(("PRIMARY · " if profile == "high" else "") + profile)
-        axis.grid(True, alpha=.25)
-    axes[0].set_ylabel("Outer mean tick time (ms)")
-    axes[-1].legend(loc="best", fontsize=8)
-    fig.suptitle("Cumulative opening windows, remainder, and full run: outer tick time")
+    for framework in FRAMEWORKS:
+        run = runs[profile, framework]
+        means = [run["OpeningPhases"]["First600"]["Timing"]["MeanMs"],
+                 run["OpeningPhases"]["First2000"]["Timing"]["MeanMs"],
+                 run["OpeningPhases"]["RemainderAfter2000"]["Timing"]["MeanMs"], run["Timing"]["MeanMs"]]
+        axis.plot(x, means, marker="o", label=FRAMEWORKS[framework])
+    axis.set_xticks(x, ["1–600", "1–2,000", "2,001–108,000", "1–108,000"])
+    axis.set_ylabel("Outer mean tick time (ms)")
+    axis.grid(True, alpha=.25)
+    axis.legend(loc="best", fontsize=8)
+    fig.suptitle("High: cumulative opening windows, remainder, and full run")
     fig.tight_layout()
     fig.savefig(directory / "InitialWindows.png", dpi=150)
-    plt.close(fig)
-
-    fig, axis = plt.subplots(figsize=(8, 4))
-    for framework in FRAMEWORKS:
-        axis.plot([V2_PROFILES[p] for p in profiles],
-                  [runs[p, framework]["Metadata"]["SyntheticChurn"]["Timing"]["MeanMs"] for p in profiles],
-                  marker="o", label=FRAMEWORKS[framework])
-    axis.set_xlabel("Synthetic component transitions per tick")
-    axis.set_ylabel("Synthetic hook mean (ms)")
-    axis.set_title("Measured toggle and Commit hook time; zero rate skips Commit")
-    axis.set_xticks([0, 1, 4])
-    axis.grid(True, alpha=.25)
-    axis.legend()
-    fig.tight_layout()
-    fig.savefig(directory / "SyntheticChurnMs.png", dpi=150)
     plt.close(fig)
 
 
@@ -631,9 +580,50 @@ def hud_tables(runs, policy, ru, asset_path):
     return lines
 
 
+def current_hud_tables(runs, ru, asset_path):
+    """Retain the phase and population view when the campaign targets high only."""
+    language = "ru" if ru else "en"
+    lines = ["## " + ("Окна HUD: по 600 тиков" if ru else "HUD windows: 600 ticks each"), "",
+             ("Первое, второе и худшее окно сравнивают одну фазу всех пяти ECS. Худшее окно выбрано по максимальному среднему HUD-времени среди всех портов; границы у портов общие." if ru else
+              "First, second and worst windows compare the same phase across all five ECS. The worst window has the largest mean HUD time among all ports; its tick range is shared."), "",
+             ("Среднее внутреннего HUD-таймера за все 108 000 тиков:" if ru else
+              "Internal HUD timer mean over all 108,000 ticks:"), "",
+             "| Profile | HUD mean ms: SECS | Lite | Classic | Morpeh | StaticEcs |",
+             "| --- | ---: | ---: | ---: | ---: | ---: |"]
+    for profile in (CURRENT_PROFILE,):
+        row = [profile, *[Metric(f"{runs[profile, f]['HudTiming']['MeanMs']:.4f}",
+                                comparison=runs[profile, f]["HudTiming"]["MeanMs"])
+                          for f in FRAMEWORKS]]
+        shaded = shade_rows([row], range(1, 6), language=language, asset_path=asset_path)[0]
+        lines.append("| " + " | ".join(map(str, shaded)) + " |")
+    lines.append("")
+    for profile in (CURRENT_PROFILE,):
+        lines += [f"### {profile}", "", "| Phase / ticks | HUD / stage mean ms | SECS | Lite | Classic | Morpeh | StaticEcs |",
+                  "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
+        for phase, i in hud_selection(runs, profile):
+            windows = [runs[profile, f]["HudWindows"][i] for f in FRAMEWORKS]
+            span = f"{phase} / {windows[0]['StartTick']}–{windows[0]['EndTick']}"
+            rows = [[span, "HUD total", *[Metric(f"{w['Timing']['MeanMs']:.4f}", comparison=w["Timing"]["MeanMs"])
+                                          for w in windows]]]
+            for j, stage in enumerate(STAGE_NAMES):
+                values = [w["Stages"][j]["Timing"]["MeanMs"] for w in windows]
+                rows.append([span, stage, *[Metric(f"{value:.4f}", comparison=value) for value in values]])
+            shaded = shade_rows(rows, range(2, 7), language=language, asset_path=asset_path)
+            lines += ["| " + " | ".join(map(str, row)) + " |" for row in shaded]
+        lines += ["", "| Phase / ticks | Mean ships | Mean projectiles | Mean debris | Mean particles | Mean turrets |",
+                  "| --- | ---: | ---: | ---: | ---: | ---: |"]
+        for phase, i in hud_selection(runs, profile):
+            window = runs[profile, "secs"]["HudWindows"][i]
+            lines.append("| " + " | ".join([f"{phase} / {window['StartTick']}–{window['EndTick']}",
+                *[f"{window['Mean' + key]:.2f}" for key in COUNTS]]) + " |")
+        lines += ["", ("Средняя численность совпадает во всех пяти ECS и показана один раз." if ru else
+                       "Mean counts match across all five ECS and are shown once."), ""]
+    return lines
+
+
 def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
-    if manifest.get("Format") == 2:
-        return render_format2(runs, manifest, hardware, directory, verify_ticks)
+    if manifest.get("Format") == 3:
+        return render_format3(runs, manifest, hardware, directory, verify_ticks)
     preset = manifest.get("Preset", "benchmark")
     report_base = report_base or ("GAME_REPORT" if preset == "game" else "REPORT")
     relative = directory.relative_to(DOCS).as_posix()
@@ -766,22 +756,21 @@ def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
         (DOCS / name).write_text("\n".join(lines), encoding="utf-8")
 
 
-def render_format2(runs, manifest, hardware, directory, verify_ticks):
+def render_format3(runs, manifest, hardware, directory, verify_ticks):
     relative = directory.relative_to(DOCS).as_posix()
     frameworks = list(FRAMEWORKS)
-    profiles = list(V2_PROFILES)
+    profiles = [CURRENT_PROFILE]
     cpu_data = hardware["Cpu"] if isinstance(hardware["Cpu"], list) else [hardware["Cpu"]]
     cpu = ", ".join(item["Name"].strip() for item in cpu_data)
     with (directory / "summary.csv").open("w", encoding="utf-8", newline="") as stream:
         writer = csv.writer(stream)
-        writer.writerow(["profile", "syntheticOpsPerTick", "framework", "hookMeanMs", "opening600MeanMs",
+        writer.writerow(["profile", "framework", "opening600MeanMs",
                          "opening2000MeanMs", "remainderMeanMs", "meanMs", "p95Ms", "p99Ms", "maxMs",
                          "budgetMisses", "managedBytesPerTick", "totalTickSeconds", "checksum"])
         for profile in profiles:
             for framework in frameworks:
                 run = runs[profile, framework]
-                writer.writerow([profile, V2_PROFILES[profile], framework,
-                                 run["Metadata"]["SyntheticChurn"]["Timing"]["MeanMs"],
+                writer.writerow([profile, framework,
                                  run["OpeningPhases"]["First600"]["Timing"]["MeanMs"],
                                  run["OpeningPhases"]["First2000"]["Timing"]["MeanMs"],
                                  run["OpeningPhases"]["RemainderAfter2000"]["Timing"]["MeanMs"],
@@ -793,73 +782,129 @@ def render_format2(runs, manifest, hardware, directory, verify_ticks):
         runs["high", f]["OpeningPhases"]["First2000"]["Timing"]["MeanMs"] >
         runs["high", f]["OpeningPhases"]["RemainderAfter2000"]["Timing"]["MeanMs"]
         for f in frameworks)
-    hook_means_us = [runs[p, f]["Metadata"]["SyntheticChurn"]["Timing"]["MeanMs"] * 1000
-                     for p in profiles[1:] for f in frameworks]
     pins = runs["high", "secs"]["Provenance"]["Sources"]
+    framework_pins = [("SECS", manifest["SourceRevision"]),
+                      ("LeoECS Lite", pins["Lite"]),
+                      ("LeoECS Classic", pins["Classic"]),
+                      ("Morpeh", pins["Morpeh"]),
+                      ("StaticEcs", pins["StaticEcs"])]
+    require(all(len(pin) == 40 and all(char in "0123456789abcdefABCDEF" for char in pin)
+                for _, pin in framework_pins), "Invalid framework source revision")
     for ru in (False, True):
         suffix = ".ru" if ru else ""
         name = "REPORT" + suffix + ".md"
+        language = "ru" if ru else "en"
+        asset_path = "../benchmarks/heatmap"
         lines = [f"English | [Русский](REPORT.ru.md)" if not ru else "[English](REPORT.md) | Русский", "",
-                 "# " + ("Space Battle — ECS high workload and synthetic churn" if not ru else
-                        "Space Battle — высокая нагрузка ECS и синтетический churn"), "",
-                 (f"Format 2 campaign: {manifest['StartedAt']} — {manifest['FinishedAt']}. Primary profile: `high` (0 synthetic operations/tick)." if not ru else
-                  f"Кампания формата 2: {manifest['StartedAt']} — {manifest['FinishedAt']}. Основной профиль: `high` (0 синтетических операций/тик)."), "",
-                 ("All profiles use the game preset with gameplay `ChurnMultiplier=2`. `high-churn-1` and `high-churn-4` add 1 and 4 inert Lifetime component transitions per tick from a fixed 32-entity pool. They do not alter gameplay state. The outer tick timer includes this pre-Step hook; Battle.LastTickMs and stage timers exclude it. Legacy low/nominal/high results used gameplay churn values 0.5/1/2 and a different matrix; their timings are not directly comparable." if not ru else
-                  "Во всех профилях используется игровой preset с игровым `ChurnMultiplier=2`. `high-churn-1` и `high-churn-4` добавляют 1 и 4 инертных перехода компонента Lifetime за тик из фиксированного пула 32 сущностей. Игровое состояние не меняется. Внешний таймер тика включает этот pre-Step hook; Battle.LastTickMs и таймеры стадий его не включают. Старые результаты low/nominal/high использовали игровые значения churn 0.5/1/2 и другую матрицу; их время напрямую несопоставимо."), "",
+                 "# " + ("Space Battle benchmarks — real-game high" if not ru else
+                        "Бенчмарки Space Battle — игровой high"), "",
+                 ("Preset: `game`." if not ru else "Preset: `game`."), "",
+                 (f"Current campaign: {manifest['StartedAt']} — {manifest['FinishedAt']}. Profile: `high`." if not ru else
+                  f"Актуальная кампания: {manifest['StartedAt']} — {manifest['FinishedAt']}. Профиль: `high`."), "",
+                 ("The current headless simulation was measured with five ECS implementations: SECS, LeoECS Lite, LeoECS Classic, Morpeh and StaticEcs. Gameplay system revisions: " if not ru else
+                  "Текущая headless-симуляция измерена на пяти ECS: SECS, LeoECS Lite, LeoECS Classic, Morpeh и StaticEcs. Ревизии игровых систем: ") +
+                 ", ".join(f"`{revision}`" for revision in RULES.values()) + ".", "",
+                 "## " + ("Ревизии фреймворков в замерах" if ru else "Framework revisions used"), "",
+                 ("Для сторонних ECS указаны точные коммиты исходников. Для SECS указан базовый коммит; хеши фактически измеренных исходников и DLL фиксируют манифест и JSON." if ru else
+                  "Third-party ECS rows show exact upstream commits. The SECS row shows the base commit; the manifest and JSON record hashes of the measured sources and DLLs."), "",
+                 ("| Фреймворк | Ревизия исходников |" if ru else "| Framework | Source revision |"),
+                 "| --- | --- |",
+                 *(f"| {framework} | `{pin}` |" for framework, pin in framework_pins), "",
+                 f"StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9); StaticPack source `{pins['StaticPack']}`.", "",
+                 "## " + ("Как читать результаты" if ru else "Reading the results"), "",
+                 ("The single `high` profile uses the real game preset with its normal `ChurnMultiplier=2`, seed 7331, 96 escorts and 3 carriers per team. The same simulation runs on all five ECS implementations. The archived low/nominal/high campaign used a different preset and gameplay workload; its timings are not directly comparable." if not ru else
+                  "Единственный профиль `high` использует игровой preset со штатным `ChurnMultiplier=2`, seed 7331, 96 эскортами и 3 носителями на команду. Один и тот же сценарий выполняется на пяти ECS. Архивная кампания low/nominal/high использовала другой preset и игровую нагрузку; её время напрямую не сравнивается."), "",
+                 ("Game preset: LightSwarm fleet, Tactical deployment, EndlessReinforcements=true and ReplenishCarriers=false. Runs use Release, tiered compilation disabled and no realtime pacing." if not ru else
+                  "Игровой preset: флот LightSwarm, расстановка Tactical, EndlessReinforcements=true и ReplenishCarriers=false. Прогоны выполняются в Release, без tiered compilation и realtime-пейсинга."), "",
                  ("The [archived finite campaign](REPORT_2026-10-14_FINITE.md) preserves the previous method and results." if not ru else
                   "[Архивная кампания конечного боя](REPORT_2026-10-14_FINITE.ru.md) сохраняет прежнюю методику и результаты."), "",
-                 ("The full-run mean covers 108,000 measured ticks after a separate 600-tick warmup battle. Desktop HUD Mean covers the latest up to 600 ticks and uses Battle.LastTickMs; the outer headless timer also includes synthetic churn. Compare desktop and headless only at matching gameplay settings and tick ranges." if not ru else
-                  "Среднее полного прогона охватывает 108 000 измеряемых тиков после отдельного прогрева боя на 600 тиков. Desktop HUD Mean охватывает последние до 600 тиков и использует Battle.LastTickMs; внешний headless-таймер дополнительно включает синтетический churn. Сравнивайте desktop и headless при одинаковых игровых настройках и диапазонах тиков."), "",
+                 ("The full-run mean covers 108,000 measured ticks after a separate 600-tick warmup battle. Desktop HUD Mean covers the latest up to 600 ticks and uses Battle.LastTickMs. The headless outer tick timer and HUD/stage timers have different boundaries; compare desktop and headless only at matching game settings and tick ranges." if not ru else
+                  "Среднее полного прогона охватывает 108 000 измеряемых тиков после отдельного прогрева боя на 600 тиков. Desktop HUD Mean охватывает последние до 600 тиков и использует Battle.LastTickMs. Границы внешнего headless-таймера и таймеров HUD/стадий различаются; сравнивайте desktop и headless при одинаковых игровых настройках и диапазонах тиков."), "",
+                 ("Each case is one independent run of 108,000 ticks (30 simulated minutes), at seed 7331 and 60 ticks/s. The 16.67 ms budget is a simulation budget, not FPS. Headless quantiles use sorted[ceil((N−1)×p)]; the live HUD uses nearest rank ceil(N×p)−1. One run per case does not establish a stable ranking or confidence interval." if not ru else
+                  "Каждый случай — один независимый прогон из 108 000 тиков (30 минут симуляции), seed 7331, 60 тиков/с. Бюджет 16.67 ms относится к симуляции, а не к FPS. Квантили headless используют sorted[ceil((N−1)×p)]; live HUD — nearest rank ceil(N×p)−1. Один прогон на случай не даёт устойчивого рейтинга или доверительного интервала."), "",
+                 *compact_legend(language, asset_path, f"../benchmarks/COLORS{suffix}.md"),
+                 (f"[Профиль Release-клиента и первые тики HUD](DESKTOP_TIMING{suffix}.md) отдельно проверяют холодный старт, tiering и paced replay." if ru else
+                  "The [Release client and initial HUD ticks](DESKTOP_TIMING.md) separately check cold startup, tiering and paced replay."), "",
                  ("## Validation" if not ru else "## Проверка"), "",
-                 ("Validation passed: 15 cases across five ECS implementations; 1,620,000 measured ticks; hashes and provenance match; gameplay checksums, counters, tactics, and entity traces match across ports and all three churn profiles. Synthetic operation totals match the configured rate. Store census includes the fixed 32-entity synthetic pool." if not ru else
-                  "Проверка пройдена: 15 случаев на пяти ECS; 1 620 000 измеренных тиков; хеши и происхождение данных совпадают; игровые checksum, счётчики, тактика и трассы сущностей совпадают между портами и тремя профилями churn. Число синтетических операций соответствует заданной частоте. Census хранилища включает фиксированный синтетический пул из 32 сущностей."), "",
-                 (("Локальные tick CSV проверены, включая синтетические операции, add/remove и время hook на каждом тике." if ru else
-                   "Local tick CSV files were checked, including synthetic operations, adds/removes and hook time on every tick.") if verify_ticks else
+                 ("Validation passed: five ECS cases, 540,000 measured ticks; hashes and provenance match; gameplay checksums, counters, tactics and entity traces match across ports. Store census contains gameplay entities only." if not ru else
+                  "Проверка пройдена: пять ECS-кейсов, 540 000 измеренных тиков; хеши и происхождение данных совпадают; игровые checksum, счётчики, тактика и трассы сущностей совпадают между портами. Census хранилища содержит только игровые сущности."), "",
+                 (("Локальные tick CSV проверены: время, стадии, HUD, аллокации и игровые счётчики." if ru else
+                   "Local tick CSV files were checked for timing, stages, HUD, allocations and gameplay counters.") if verify_ticks else
                   ("Проверены опубликованные JSON и хеши входных файлов. Локальные tick CSV в этом запуске не проверялись." if ru else
                    "Published JSON and input hashes were checked. Local tick CSV files were not verified in this run.")), "",
                  "## " + ("Время тика" if ru else "Tick time"), "",
-                 ("| Профиль | Синтетических операций/тик | ECS | Среднее hook, ms | Среднее внешнее время 1–600, ms | Среднее внешнее время 1–2000, ms | Среднее внешнее время 2001–108000, ms | Среднее внешнее время 1–108000, ms | P99 полного прогона, ms | Managed B/тик |" if ru else
-                  "| Profile | Synthetic ops/tick | ECS | Hook mean ms | Cumulative outer mean 1–600 ms | Cumulative outer mean 1–2,000 ms | Remainder outer mean 2,001–108,000 ms | Full outer mean 1–108,000 ms | Full P99 ms | Managed B/tick |"),
-                 "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
+                 ("Каждая цветная ячейка сравнивает пять ECS по одной метрике профиля high. Внешний тик включает игровые системы, физику и ECS commits; Managed B/тик не включает нативное хранилище ECS." if ru else
+                  "Each coloured cell compares five ECS for one metric in the high profile. The outer tick includes gameplay systems, physics and ECS commits; managed B/tick excludes native ECS storage."), "",
+                 ("| Профиль | ECS | Среднее ms | P95 ms | P99 ms | Max ms | >16.67 ms | Managed B/тик | Всего внешних тиков s |" if ru else
+                  "| Profile | ECS | Mean ms | P95 ms | P99 ms | Max ms | >16.67 ms | Managed B/tick | Total outer tick s |"),
+                 "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
+        timing_rows = []
         for profile in profiles:
             for framework in frameworks:
                 run = runs[profile, framework]
-                first = run["OpeningPhases"]["First600"]["Timing"]["MeanMs"]
-                initial = run["OpeningPhases"]["First2000"]["Timing"]["MeanMs"]
-                remainder_mean = run["OpeningPhases"]["RemainderAfter2000"]["Timing"]["MeanMs"]
                 full = run["Timing"]
-                marker = (" **основной**" if ru else " **primary**") if profile == "high" else ""
-                hook = run["Metadata"]["SyntheticChurn"]["Timing"]["MeanMs"]
-                lines.append(f"| {profile}{marker} | {V2_PROFILES[profile]} | {FRAMEWORKS[framework]} | {hook:.4f} | {first:.4f} | {initial:.4f} | {remainder_mean:.4f} | {full['MeanMs']:.4f} | {full['P99Ms']:.4f} | {run['AllocatedBytes']/TICKS:.1f} |")
-        lines += ["", (f"In the primary high profile, the first 2,000 ticks have a higher mean than the remainder for {early_more_expensive} of five ECS implementations. The direct synthetic hook means range from {min(hook_means_us):.2f} to {max(hook_means_us):.2f} µs/tick; full-run Mean differences are much larger and vary in direction. With one run per case, those differences do not isolate churn cost." if not ru else
-                       f"В основном профиле high первые 2 000 тиков дороже остатка у {early_more_expensive} из пяти ECS. Среднее время самого синтетического hook составляет от {min(hook_means_us):.2f} до {max(hook_means_us):.2f} мкс/тик; различия полного Mean гораздо больше и меняют направление. При одном прогоне на случай эти различия нельзя приписать одному churn."), "",
+                label = profile
+                timing_rows.append([profile, label, FRAMEWORKS[framework],
+                    *[Metric(f"{full[key]:.4f}", comparison=full[key])
+                      for key in ("MeanMs", "P95Ms", "P99Ms", "MaxMs")],
+                    Metric(str(full["BudgetMisses"]), comparison=full["BudgetMisses"]),
+                    Metric(f"{run['AllocatedBytes']/TICKS:.1f}", comparison=run["AllocatedBytes"]/TICKS),
+                    Metric(f"{full['MeanMs']*TICKS/1000:.6f}", comparison=full["MeanMs"]*TICKS/1000)])
+        timing_rows = shade_columns(timing_rows, range(3, 10), group_by=(0,), language=language, asset_path=asset_path)
+        lines += ["| " + " | ".join(map(str, row[1:])) + " |" for row in timing_rows]
+        lines += ["", f"![{'Среднее время тика' if ru else 'Mean tick time'}]({relative}/MeanMs.png)", "",
+                  f"![{'P99 времени тика' if ru else 'P99 tick time'}]({relative}/P99Ms.png)", "",
+                  "## " + ("Окна начала прогона" if ru else "Opening windows"), "",
+                  ("Окна 1–600 и 1–2 000 являются накопительными; остаток 2 001–108 000 их не перекрывает." if ru else
+                   "Windows 1–600 and 1–2,000 are cumulative; the remainder 2,001–108,000 is disjoint."), "",
+                  ("| Профиль | ECS | Накопительное среднее внешнее 1–600, ms | Накопительное среднее внешнее 1–2000, ms | Среднее внешнее 2001–108000, ms | Среднее внешнее 1–108000, ms |" if ru else
+                   "| Profile | ECS | Cumulative outer mean 1–600 ms | Cumulative outer mean 1–2,000 ms | Remainder outer mean 2,001–108,000 ms | Full outer mean 1–108,000 ms |"),
+                  "| --- | --- | ---: | ---: | ---: | ---: |"]
+        for profile in profiles:
+            for framework in frameworks:
+                run = runs[profile, framework]
+                early = run["OpeningPhases"]
+                values = [early["First600"]["Timing"]["MeanMs"], early["First2000"]["Timing"]["MeanMs"],
+                          early["RemainderAfter2000"]["Timing"]["MeanMs"], run["Timing"]["MeanMs"]]
+                lines.append(f"| {profile} | {FRAMEWORKS[framework]} | " +
+                             " | ".join(f"{value:.4f}" for value in values) + " |")
+        lines += ["", (f"The first 2,000 ticks have a higher mean than the remainder for {early_more_expensive} of five ECS implementations." if not ru else
+                       f"Первые 2 000 тиков дороже остатка у {early_more_expensive} из пяти ECS."), "",
                   f"[{'Сводная CSV-таблица' if ru else 'Summary CSV'}]({relative}/summary.csv)", "",
-                  "## " + ("Стадии основного high-профиля" if ru else "Primary high stage means"), "",
-                  ("| Стадия | SECS, ms | Lite, ms | Classic, ms | Morpeh, ms | StaticEcs, ms |" if ru else
-                   "| Stage | SECS ms | Lite ms | Classic ms | Morpeh ms | StaticEcs ms |"),
-                  "| --- | ---: | ---: | ---: | ---: | ---: |"]
-        for stage_index, stage_name in enumerate(STAGE_NAMES):
-            values = [runs["high", f]["Stages"][stage_index]["Timing"]["MeanMs"] for f in frameworks]
-            lines.append("| " + stage_name + " | " + " | ".join(f"{value:.4f}" for value in values) + " |")
-        lines.append("| " + ("Battle.LastTickMs" if ru else "Battle.LastTickMs") + " | " +
-                     " | ".join(f"{runs['high', f]['HudTiming']['MeanMs']:.4f}" for f in frameworks) + " |")
-        lines += ["", f"![{'Среднее время по профилям' if ru else 'Mean by profile'}]({relative}/MeanMs.png)", "",
-                  f"![{'P99 по профилям' if ru else 'P99 by profile'}]({relative}/P99Ms.png)", "",
                   f"![{'Окна 1–600, 1–2 000, остаток и полный прогон' if ru else 'Windows 1–600, 1–2,000, remainder and full run'}]({relative}/InitialWindows.png)", "",
-                  f"![{'Время синтетического hook' if ru else 'Synthetic hook time'}]({relative}/SyntheticChurnMs.png)", "",
-                  "## " + ("Совпадение игрового состояния" if ru else "Gameplay parity"), "",
-                  ("| Профиль | Синтетических операций/тик | Checksum | Кораблей | Турелей | Выстрелов | Попаданий | Создано | Уничтожено |" if ru else
-                   "| Profile | Synthetic ops/tick | Checksum | Ships | Turrets | Shots | Hits | Created | Destroyed |"),
-                  "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
+                  "## " + ("Состояние симуляции и стадии" if ru else "Simulation state and stages"), "",
+                  ("Состояние игры одинаково во всех пяти портах. Каждая стадия сравнивается между пятью ECS только в профиле high." if ru else
+                   "Gameplay state matches across all five ports. Each stage is compared across five ECS in the high profile."), "",
+                  "### " + ("Совпадение игрового состояния" if ru else "Gameplay parity"), "",
+                  ("| Профиль | Checksum | Кораблей | Турелей | Выстрелов | Попаданий | Создано | Уничтожено |" if ru else
+                   "| Profile | Checksum | Ships | Turrets | Shots | Hits | Created | Destroyed |"),
+                  "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
         for profile in profiles:
             run = runs[profile, "secs"]
             window, counters = run["Windows"][-1], run["Counters"]
-            lines.append(f"| {profile} | {V2_PROFILES[profile]} | {run['Checksum']} | {window['Ships']} | {window['Turrets']} | {counters['Shots']} | {counters['Hits']} | {counters['ShipsCreated']} | {counters['ShipsDestroyed']} |")
-        lines += ["", "## " + ("Стадии SECS: начало, остаток и полный прогон" if ru else "SECS stages: opening, remainder and full run"), "",
-                  ("Стадии измерены внутри Battle.Step; строка внешнего времени тика включает также pre-Step hook. При ненулевом churn она не равна сумме стадий." if ru else
-                   "Stages are measured inside Battle.Step; the outer tick row also includes the pre-Step hook. At nonzero churn it does not equal the sum of stage rows."), ""]
+            lines.append(f"| {profile} | {run['Checksum']} | {window['Ships']} | {window['Turrets']} | {counters['Shots']} | {counters['Hits']} | {counters['ShipsCreated']} | {counters['ShipsDestroyed']} |")
+        lines += ["", "### " + ("Средние стадий за полный прогон" if ru else "Full-run stage means"), ""]
         for profile in profiles:
-            lines += [f"### {profile} — {V2_PROFILES[profile]} " + ("синтетических операций/тик" if ru else "synthetic ops/tick"), "",
+            lines += [f"#### {profile}", "",
+                      ("| Стадия | SECS, ms | Lite, ms | Classic, ms | Morpeh, ms | StaticEcs, ms |" if ru else
+                       "| Stage | SECS ms | Lite ms | Classic ms | Morpeh ms | StaticEcs ms |"),
+                      "| --- | ---: | ---: | ---: | ---: | ---: |"]
+            stage_rows = []
+            for stage_index, stage_name in enumerate(STAGE_NAMES):
+                values = [runs[profile, f]["Stages"][stage_index]["Timing"]["MeanMs"] for f in frameworks]
+                stage_rows.append([stage_name, *[Metric(f"{value:.4f}", comparison=value) for value in values]])
+            values = [runs[profile, f]["HudTiming"]["MeanMs"] for f in frameworks]
+            stage_rows.append(["Battle.LastTickMs", *[Metric(f"{value:.4f}", comparison=value) for value in values]])
+            values = [runs[profile, f]["Timing"]["MeanMs"] for f in frameworks]
+            stage_rows.append(["Outer tick", *[Metric(f"{value:.4f}", comparison=value) for value in values]])
+            shaded = shade_rows(stage_rows, range(1, 6), language=language, asset_path=asset_path)
+            lines += ["| " + " | ".join(map(str, row)) + " |" for row in shaded]
+            lines.append("")
+        lines += ["### " + ("Стадии SECS: начало, остаток и полный прогон" if ru else "SECS stages: opening, remainder and full run"), "",
+                  ("Стадии измерены внутри Battle.Step; внешний таймер тика включает также накладные расходы между стадиями и commit ECS." if ru else
+                   "Stages are measured inside Battle.Step; the outer tick timer also includes work between stages and ECS commits."), ""]
+        for profile in profiles:
+            lines += [f"#### {profile}", "",
                       ("| Стадия | 1–600 ms | 1–2000 ms | 2001–108000 ms | 1–108000 ms |" if ru else
                        "| Stage | 1–600 ms | 1–2,000 ms | 2,001–108,000 ms | 1–108,000 ms |"),
                       "| --- | ---: | ---: | ---: | ---: |"]
@@ -869,16 +914,33 @@ def render_format2(runs, manifest, hardware, directory, verify_ticks):
                 lines.append(f"| {stage} | {early['First600']['Stages'][i]['Timing']['MeanMs']:.4f} | {early['First2000']['Stages'][i]['Timing']['MeanMs']:.4f} | {early['RemainderAfter2000']['Stages'][i]['Timing']['MeanMs']:.4f} | {run['Stages'][i]['Timing']['MeanMs']:.4f} |")
             lines.append(f"| {'Внешний тик' if ru else 'Outer tick'} | {early['First600']['Timing']['MeanMs']:.4f} | {early['First2000']['Timing']['MeanMs']:.4f} | {early['RemainderAfter2000']['Timing']['MeanMs']:.4f} | {run['Timing']['MeanMs']:.4f} |")
             lines.append("")
-        lines += ["## " + ("Происхождение данных" if ru else "Provenance"), "",
+        lines += current_hud_tables(runs, ru, asset_path)
+        lines += ["## " + ("Происхождение данных" if ru else "Data provenance"), "",
                   f"- CPU: {cpu}; RAM: {hardware['TotalPhysicalMemoryBytes']/1024**3:.2f} GiB.",
                   f"- Runtime: {runs['high', 'secs']['Metadata']['Runtime']}; OS: {runs['high', 'secs']['Metadata']['Os']}; tiered compilation: `0`.",
                   (f"- Базовый commit: `{manifest['SourceRevision']}`; хеши измеренных файлов отражают фактическое рабочее дерево и записаны в [{relative}/manifest.json]({relative}/manifest.json)." if ru else
                    f"- Base commit: `{manifest['SourceRevision']}`; measured file hashes describe the actual working tree and are recorded in [{relative}/manifest.json]({relative}/manifest.json)."),
-                  (f"- [JSON, локальные tick CSV и графики]({relative}/); [сводная CSV-таблица]({relative}/summary.csv); [оборудование]({relative}/hardware.json)." if ru else
-                   f"- [JSON, local tick CSV files and charts]({relative}/); [summary CSV]({relative}/summary.csv); [hardware details]({relative}/hardware.json)."),
+                  (f"- [Опубликованные JSON и графики]({relative}/); [сводная CSV-таблица]({relative}/summary.csv); [оборудование]({relative}/hardware.json). Локальные tick CSV остаются входом для проверки, их хеши записаны в манифесте." if ru else
+                   f"- [Published JSON and charts]({relative}/); [summary CSV]({relative}/summary.csv); [hardware details]({relative}/hardware.json). Local tick CSV files remain verification inputs; their hashes are in the manifest."),
                   f"- StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9), source `{pins['StaticEcs']}`; StaticPack source `{pins['StaticPack']}`.", "",
-                  ("One run per case describes this machine and does not establish a stable ranking or confidence interval. Outer tick time includes the synthetic hook, gameplay systems, physics, and ECS commits; Battle.LastTickMs and stage timings exclude the hook. Rendering and snapshot/report work are excluded. Managed allocation excludes native ECS storage." if not ru else
-                   "Один прогон на случай описывает эту машину и не даёт устойчивого рейтинга или доверительного интервала. Внешнее время тика включает синтетический hook, игровые системы, физику и ECS commit; Battle.LastTickMs и таймеры стадий hook исключают. Рендеринг и snapshots/отчёт не входят. Managed allocation не включает нативное хранилище ECS."), ""]
+                  ("One run per ECS describes this machine and does not establish a stable ranking or confidence interval. Outer tick time includes gameplay systems, physics and ECS commits; Battle.LastTickMs and stage timings cover their own narrower scopes. Rendering and snapshot/report work are excluded. Managed allocation excludes native ECS storage." if not ru else
+                   "Один прогон каждой ECS описывает эту машину и не даёт устойчивого рейтинга или доверительного интервала. Внешнее время тика включает игровые системы, физику и ECS commit; Battle.LastTickMs и таймеры стадий имеют более узкие границы. Рендеринг и snapshots/отчёт не входят. Managed allocation не включает нативное хранилище ECS."), "",
+                  "## " + ("Воспроизведение" if ru else "Reproduction"), "",
+                  ("Из корня проекта с .NET 8, SDK с поддержкой C# 13, локальным кешем NuGet, Python 3.12 и matplotlib. Команда run-suite перезаписывает выбранную директорию результатов: для нового эксперимента укажите другую директорию внутри проекта. Анализатор проверяет данные и строит оба отчёта и графики." if ru else
+                   "From the project root with .NET 8, a C# 13-capable SDK, the local NuGet cache, Python 3.12 and matplotlib. run-suite replaces the selected result directory: choose a different directory inside the project for a new experiment. The analyzer validates the data and builds both reports and charts."), "",
+                  "```powershell",
+                  "./tools/space-battle/run-suite.ps1 -Preset game -OutputDirectory docs/space-battle/current",
+                  "python tools/space-battle/analyze_current.py --data-dir docs/space-battle/current --preset game --verify-ticks",
+                  "```", "",
+                  ("Если локальные tick CSV недоступны, уберите --verify-ticks: анализатор проверит опубликованные JSON и хеши, но не повторит проверку CSV." if ru else
+                   "If local tick CSV files are unavailable, omit --verify-ticks: the analyzer validates published JSON and hashes but does not repeat CSV verification."), "",
+                  "## " + ("История и связанные документы" if ru else "History and related documents"), "",
+                  (f"- [Архив конечного боя 2026-10-14](REPORT_2026-10-14_FINITE{suffix}.md): прежняя матрица low/nominal/high, другая методика и игровой workload; время напрямую не сравнивается." if ru else
+                   "- [Archived finite battle, 2026-10-14](REPORT_2026-10-14_FINITE.md): the previous low/nominal/high matrix uses a different method and gameplay workload; timings are not directly comparable."),
+                  (f"- [Архив измерений 2026-10-11](REPORT_2026-10-11{suffix}.md), [архитектура](ARCHITECTURE{suffix}.md), [физика](PHYSICS{suffix}.md), [тактика](TACTICS_V3{suffix}.md)." if ru else
+                   "- [Archived 2026-10-11 campaign](REPORT_2026-10-11.md), [architecture](ARCHITECTURE.md), [physics](PHYSICS.md), [tactics](TACTICS_V3.md)."),
+                  (f"- [Микробенчмарки SECS](../../SECS.Benchmarks/README{suffix}.md): отдельная нагрузка без игровой логики." if ru else
+                   "- [SECS microbenchmarks](../../SECS.Benchmarks/README.md): a separate workload without gameplay logic."), ""]
         (DOCS / name).write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -901,7 +963,7 @@ def main():
         charts(runs, directory)
     render(runs, manifest, hardware, directory, args.verify_ticks, args.report_base)
     outputs = "bilingual reports and summary" if args.skip_charts else "bilingual reports, charts and summary"
-    print(f"PASS: 15 {manifest.get('Preset', 'benchmark')} cases; 1,620,000 ticks; canonical port parity; wrote {outputs}")
+    print(f"PASS: {len(runs)} {manifest.get('Preset', 'benchmark')} cases; {len(runs)*TICKS:,} ticks; canonical port parity; wrote {outputs}")
 
 
 if __name__ == "__main__":

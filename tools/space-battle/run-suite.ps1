@@ -41,13 +41,9 @@ function Get-SourceHashes {
     return $hashes
 }
 $sourceHashes = Get-SourceHashes
-$profiles = @(
-    [ordered]@{ Name = 'high'; SyntheticChurnOpsPerTick = 0; Primary = $true; Frameworks = @('secs','lite','classic','morpeh','static') },
-    [ordered]@{ Name = 'high-churn-1'; SyntheticChurnOpsPerTick = 1; Primary = $false; Frameworks = @('classic','morpeh','static','secs','lite') },
-    [ordered]@{ Name = 'high-churn-4'; SyntheticChurnOpsPerTick = 4; Primary = $false; Frameworks = @('static','secs','lite','classic','morpeh') }
-)
+$frameworks = @('secs','lite','classic','morpeh','static')
 $manifest = [ordered]@{
-    Format = 2
+    Format = 3
     Completed = $false
     StartedAt = [DateTimeOffset]::Now.ToString('O')
     SourceRevision = (git rev-parse HEAD)
@@ -56,22 +52,14 @@ $manifest = [ordered]@{
     WarmupTicks = $Warmup
     TieredCompilation = '0'
     Preset = $Preset
-    PrimaryProfile = 'high'
+    Profile = 'high'
+    FrameworkOrder = $frameworks
     Workload = [ordered]@{
         Preset = 'game'
         Seed = 7331
         ShipsPerTeam = 96
         GameplayChurnMultiplier = 2
-        SyntheticChurnUnit = 'Lifetime component add/remove transitions per tick on a fixed pool of inert entities'
     }
-    Profiles = @($profiles | ForEach-Object {
-        [ordered]@{
-            Name = $_.Name
-            Primary = $_.Primary
-            SyntheticChurnOpsPerTick = $_.SyntheticChurnOpsPerTick
-            FrameworkOrder = $_.Frameworks
-        }
-    })
     Command = "tools/space-battle/run-suite.ps1 -Ticks $Ticks -Warmup $Warmup -Preset $Preset -OutputDirectory $OutputDirectory"
     CsvPolicy = 'Tick CSVs are validated locally; their SHA256 hashes are published in manifest.json, not another copy of all raw tick rows.'
 }
@@ -79,25 +67,23 @@ $manifestPath = Join-Path $target 'manifest.json'
 $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $manifestPath -Encoding utf8
 & (Join-Path $PSScriptRoot 'capture-hardware.ps1') -Output (Join-Path $OutputDirectory 'hardware.json')
 $baseline = $null
-foreach ($profile in $profiles) {
-    foreach ($framework in $profile.Frameworks) {
-        $output = Join-Path $target "$($profile.Name)-$framework.json"
-        Write-Host "Starting $($profile.Name) / $framework : $Ticks ticks"
-        dotnet $dll --framework $framework --ticks $Ticks --warmup $Warmup --preset $Preset --seed 7331 --ships-per-team 96 --churn 2 --synthetic-churn $profile.SyntheticChurnOpsPerTick --output $output
-        if ($LASTEXITCODE -ne 0) { throw "Simulation failed: $output" }
-        $result = Get-Content -Raw -LiteralPath $output | ConvertFrom-Json
-        $signature = [ordered]@{
-            Checkpoints = $result.Checkpoints
-            Checksum = $result.Checksum
-            Counters = $result.Counters
-            Tactics = $result.Tactics
-            Windows = @($result.Windows | Select-Object StartTick, EndTick, Ships, Projectiles, Debris, Particles, Turrets, Counters)
-            HudWindows = @($result.HudWindows | Select-Object StartTick, EndTick, MeanShips, MeanProjectiles, MeanDebris, MeanParticles, MeanTurrets)
-        } | ConvertTo-Json -Depth 10 -Compress
-        if ($null -eq $baseline) { $baseline = $signature }
-        elseif ($signature -cne $baseline) { throw "Gameplay divergence across frameworks or synthetic churn profiles: $output" }
-        Write-Host "Verified $($profile.Name) / $framework : canonical gameplay state and counters match"
-    }
+foreach ($framework in $frameworks) {
+    $output = Join-Path $target "high-$framework.json"
+    Write-Host "Starting high / $framework : $Ticks ticks"
+    dotnet $dll --framework $framework --ticks $Ticks --warmup $Warmup --preset $Preset --seed 7331 --ships-per-team 96 --churn 2 --output $output
+    if ($LASTEXITCODE -ne 0) { throw "Simulation failed: $output" }
+    $result = Get-Content -Raw -LiteralPath $output | ConvertFrom-Json
+    $signature = [ordered]@{
+        Checkpoints = $result.Checkpoints
+        Checksum = $result.Checksum
+        Counters = $result.Counters
+        Tactics = $result.Tactics
+        Windows = @($result.Windows | Select-Object StartTick, EndTick, Ships, Projectiles, Debris, Particles, Turrets, Counters)
+        HudWindows = @($result.HudWindows | Select-Object StartTick, EndTick, MeanShips, MeanProjectiles, MeanDebris, MeanParticles, MeanTurrets)
+    } | ConvertTo-Json -Depth 10 -Compress
+    if ($null -eq $baseline) { $baseline = $signature }
+    elseif ($signature -cne $baseline) { throw "Gameplay divergence across frameworks: $output" }
+    Write-Host "Verified high / $framework : canonical gameplay state and counters match"
 }
 $finalHashes = Get-SourceHashes
 if (($sourceHashes | ConvertTo-Json -Compress) -cne ($finalHashes | ConvertTo-Json -Compress)) {
@@ -106,8 +92,8 @@ if (($sourceHashes | ConvertTo-Json -Compress) -cne ($finalHashes | ConvertTo-Js
 $manifest.Completed = $true
 $manifest['FinishedAt'] = [DateTimeOffset]::Now.ToString('O')
 $manifest['Files'] = [ordered]@{}
-foreach ($file in (Get-ChildItem -LiteralPath $target -File | Where-Object { $_.Name -ne 'manifest.json' -and ($_.Name -eq 'hardware.json' -or $_.Name -match '^high(?:-churn-[14])?-(secs|lite|classic|morpeh|static)\.(json|ticks\.csv)$') } | Sort-Object Name)) {
+foreach ($file in (Get-ChildItem -LiteralPath $target -File | Where-Object { $_.Name -ne 'manifest.json' -and ($_.Name -eq 'hardware.json' -or $_.Name -match '^high-(secs|lite|classic|morpeh|static)\.(json|ticks\.csv)$') } | Sort-Object Name)) {
     $manifest.Files[$file.Name] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
 }
 $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $manifestPath -Encoding utf8
-Write-Host 'Suite complete: all five native ECS ports match across frameworks and synthetic churn profiles.'
+Write-Host 'Suite complete: all five native ECS ports match on the high game profile.'

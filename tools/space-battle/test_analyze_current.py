@@ -35,47 +35,91 @@ def sample_run(preset=None, mean=1, hud=False):
 
 
 class CurrentCampaignTests(unittest.TestCase):
-    def test_format2_requires_exact_primary_and_churn_profiles(self):
-        manifest = {"Workload": {"Preset": "game", "Seed": 7331, "ShipsPerTeam": 96,
-                                  "GameplayChurnMultiplier": 2},
-                    "Profiles": [{"Name": name, "Primary": name == "high",
-                                  "SyntheticChurnOpsPerTick": rate,
-                                  "FrameworkOrder": list(report.V2_FRAMEWORK_ORDER[name])}
-                                 for name, rate in report.V2_PROFILES.items()]}
-        self.assertEqual(tuple(report.validate_v2_profiles(manifest)), tuple(report.V2_PROFILES))
-        manifest["Profiles"][1]["SyntheticChurnOpsPerTick"] = 2
-        with self.assertRaisesRegex(ValueError, "synthetic churn rate"):
-            report.validate_v2_profiles(manifest)
+    def current_manifest(self):
+        return {"Format": 3, "Profile": "high", "FrameworkOrder": list(report.FRAMEWORKS),
+                "Workload": {"Preset": "game", "Seed": 7331, "ShipsPerTeam": 96,
+                             "GameplayChurnMultiplier": 2}}
 
-    def test_format2_synthetic_metadata_checks_expected_count_and_scope(self):
-        metadata = {"OpsPerTick": 4, "PoolSize": 32, "Operations": 4 * report.TICKS,
-                    "Adds": 2 * report.TICKS, "Removes": 2 * report.TICKS,
-                    "Scope": "fixed pre-Step hook included in outer tick timer; excluded from Battle.LastTickMs and stage timings; pool setup excluded",
-                    "Timing": summary()}
-        report.validate_synthetic_metadata(metadata, 4, "sample")
-        metadata["Operations"] -= 1
-        with self.assertRaisesRegex(ValueError, "totals mismatch"):
-            report.validate_synthetic_metadata(metadata, 4, "sample")
-        metadata["Operations"] += 1
-        metadata["Adds"] += 33
-        metadata["Removes"] -= 33
-        with self.assertRaisesRegex(ValueError, "totals mismatch"):
-            report.validate_synthetic_metadata(metadata, 4, "sample")
+    def test_format3_requires_exact_single_game_profile_and_five_frameworks(self):
+        report.validate_current_profile(self.current_manifest())
+        for key, value in (("Format", 2), ("Profile", "high-churn-1"),
+                           ("Profiles", ["high"]), ("PrimaryProfile", "high"),
+                           ("FrameworkOrder", list(report.FRAMEWORKS)[:-1])):
+            with self.subTest(key=key):
+                manifest = self.current_manifest()
+                manifest[key] = value
+                with self.assertRaises(ValueError):
+                    report.validate_current_profile(manifest)
 
-    def test_format2_report_localizes_sections_and_compares_cumulative_windows_to_remainder(self):
+    def test_current_report_rejects_legacy_campaign_format(self):
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
+            root = Path(directory)
+            current = root / "current"
+            current.mkdir()
+            with patch.object(report, "DOCS", root):
+                for format_number in (1, 2):
+                    (current / "manifest.json").write_text(json.dumps({"Format": format_number}), encoding="utf-8")
+                    with self.assertRaisesRegex(ValueError, "single real-game high campaign"):
+                        report.validate(current, False)
+
+    def test_format3_rejects_workload_changes_and_synthetic_parameters(self):
+        for key, value in (("Preset", "benchmark"), ("GameplayChurnMultiplier", 1),
+                           ("Seed", 1), ("ShipsPerTeam", 32),
+                           ("SyntheticChurnOpsPerTick", 0), ("PoolSize", 32)):
+            with self.subTest(key=key):
+                manifest = self.current_manifest()
+                manifest["Workload"][key] = value
+                with self.assertRaisesRegex(ValueError, "real game high workload"):
+                    report.validate_current_profile(manifest)
+
+    def test_format3_rejects_synthetic_csv_columns_even_with_zero_operations(self):
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
+            path = Path(directory)
+            (path / "high-secs.ticks.csv").write_text(
+                ",".join(["tick", "tickMs", "hudMs", *report.STAGE_NAMES, "syntheticOperations"]) + "\n", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "synthetic CSV columns"):
+                report.validate_ticks(path, "high", "secs", sample_run("game", hud=True))
+
+    def test_format3_rejects_synthetic_metadata(self):
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
+            path = Path(directory)
+            manifest = {**self.current_manifest(), "Completed": True, "Ticks": report.TICKS,
+                        "WarmupTicks": 600, "Preset": "game", "SourceRevision": "test",
+                        "SourceHashes": {"source.cs": "hash"}, "Files": {}}
+            (path / "hardware.json").write_text("{}", encoding="utf-8")
+            for framework, name in report.FRAMEWORKS.items():
+                run = sample_run("game", hud=True)
+                run["Metadata"].update({"Framework": name, "WarmupTicks": 600,
+                    "TargetTickRate": 60, "SimulatedSeconds": 1800, "Realtime": False,
+                    "TieredCompilation": "0", "BudgetMs": report.BUDGET,
+                    "SyntheticChurn": {"OpsPerTick": 0}})
+                run["Metadata"]["Options"].update({"ChurnMultiplier": 2, "Seed": 7331,
+                    "ShipsPerTeam": 96, "CarriersPerTeam": 3})
+                (path / f"high-{framework}.json").write_text(json.dumps(run), encoding="utf-8")
+                manifest["Files"][f"high-{framework}.ticks.csv"] = "unpublished"
+            for file in path.glob("*.json"):
+                manifest["Files"][file.name] = report.digest(file)
+            with self.assertRaisesRegex(ValueError, "synthetic metadata is forbidden"):
+                report.validate_format3(path, manifest, False)
+
+    def test_format3_report_preserves_bilingual_structure_colours_and_five_ecs(self):
         runs = {}
-        for profile in report.V2_PROFILES:
+        for profile in (report.CURRENT_PROFILE,):
             for framework in report.FRAMEWORKS:
                 stages = [{"Name": name, "Timing": summary(.2)} for name in report.STAGE_NAMES]
                 phase = {"Timing": summary(1), "Stages": stages}
                 opening = {"First600": phase, "First2000": phase,
                            "RemainderAfter2000": phase}
                 runs[profile, framework] = {
-                    "Metadata": {"Runtime": "test runtime", "Os": "test OS",
-                                 "SyntheticChurn": {"Timing": summary(.01)}},
+                    "Metadata": {"Runtime": "test runtime", "Os": "test OS"},
                     "Timing": summary(1), "HudTiming": summary(1), "Stages": stages, "OpeningPhases": opening,
-                    "Provenance": {"Sources": {"StaticEcs": "a" * 40, "StaticPack": "b" * 40}},
-                    "HudWindows": [{"Timing": summary(.5), "MeanShips": 1}],
+                    "Provenance": {"Sources": {"Lite": "1" * 40, "Classic": "2" * 40,
+                                               "Morpeh": "3" * 40, "StaticEcs": "a" * 40,
+                                               "StaticPack": "b" * 40}},
+                    "HudWindows": [{"StartTick": i*600+1, "EndTick": (i+1)*600,
+                                    "Timing": summary(.5), "Stages": stages,
+                                    **{"Mean" + key: 1 for key in report.COUNTS}}
+                                   for i in range(2)],
                     "InitialWindow": {"Timing": summary(1)},
                     "Windows": [{"Ships": 1, "Turrets": 2}],
                     "Counters": {"Shots": 1, "Hits": 1, "ShipsCreated": 1, "ShipsDestroyed": 0},
@@ -88,13 +132,38 @@ class CurrentCampaignTests(unittest.TestCase):
             data = root / "current"
             data.mkdir()
             with patch.object(report, "DOCS", root):
-                report.render_format2(runs, manifest, hardware, data, True)
+                report.render_format3(runs, manifest, hardware, data, True)
             english = (root / "REPORT.md").read_text(encoding="utf-8")
             russian = (root / "REPORT.ru.md").read_text(encoding="utf-8")
             self.assertIn("Cumulative outer mean 1–600", english)
             self.assertIn("Remainder outer mean 2,001–108,000", english)
-            self.assertIn("## Совпадение игрового состояния", russian)
-            self.assertIn("## Стадии SECS: начало, остаток и полный прогон", russian)
+            self.assertIn("### Совпадение игрового состояния", russian)
+            self.assertIn("### Стадии SECS: начало, остаток и полный прогон", russian)
+            for label in ("Framework revisions used", "Reading the results", "### Colour scale",
+                          "Tick time", "Simulation state and stages", "HUD windows: 600 ticks each",
+                          "Data provenance", "Reproduction", "History and related documents"):
+                self.assertIn(label, english)
+            self.assertEqual(
+                [line for line in english.splitlines() if line.startswith("## ")],
+                ["## Framework revisions used", "## Reading the results", "## Validation",
+                 "## Tick time", "## Opening windows",
+                 "## Simulation state and stages", "## HUD windows: 600 ticks each",
+                 "## Data provenance", "## Reproduction", "## History and related documents"])
+            self.assertIn("../benchmarks/heatmap/", english.split("## Tick time", 1)[1].split("## Opening windows", 1)[0])
+            self.assertIn("../benchmarks/heatmap/", russian.split("## Время тика", 1)[1].split("## Окна начала прогона", 1)[0])
+            self.assertIn("../benchmarks/heatmap/", english.split("### Full-run stage means", 1)[1].split("### SECS stages", 1)[0])
+            self.assertIn("| P95 ms | P99 ms | Max ms | >16.67 ms |", english)
+            for text, tick_heading, opening_heading, legend, rules in (
+                    (english, "## Tick time", "## Opening windows", "### Colour scale", "COLORS.md"),
+                    (russian, "## Время тика", "## Окна начала прогона", "### Цветовая шкала", "COLORS.ru.md")):
+                self.assertIn(legend, text)
+                self.assertIn(rules, text)
+                timing = text.split(tick_heading, 1)[1].split(opening_heading, 1)[0]
+                for framework in report.FRAMEWORKS.values():
+                    self.assertEqual(timing.count("| high | " + framework + " |"), 1)
+                self.assertNotIn("high-churn", timing)
+                self.assertIn("../benchmarks/heatmap/", timing)
+            self.assertEqual(len((data / "summary.csv").read_text().splitlines()), 6)
             self.assertTrue((data / "summary.csv").exists())
     def test_campaign_preset_is_known_and_matches_requested_input(self):
         with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
