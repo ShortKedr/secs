@@ -42,6 +42,6 @@ membership while iterating a query or keep component references across
 structural changes. A `World` is not thread-safe and must be disposed to free
 its native storage.
 
-See the [API and lifetime guide](https://github.com/ShortKedr/ecs/blob/main/docs/secs/README.md).
+See the [API and lifetime guide](https://github.com/ShortKedr/secs/blob/main/docs/secs/README.md).
 
 License: MIT. Copyright (c) 2026 Nikolay Nakorkeshko.
