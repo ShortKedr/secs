@@ -1,4 +1,4 @@
-"""Validate and report the current 15-case SpaceBattle campaign, offline.
+"""Validate and report the current SpaceBattle campaign, offline.
 
 Tick CSVs are local verification inputs. Public evidence is the JSON matrix,
 summary CSV, charts and manifest with source/binary/input hashes.
@@ -20,6 +20,17 @@ PROFILES = {"low": 0.5, "nominal": 1, "high": 2}
 CURRENT_PROFILE = "high"
 FRAMEWORKS = {"secs": "SECS", "lite": "LeoECSLite", "classic": "LeoECS Classic",
               "morpeh": "Morpeh", "static": "StaticEcs 2.2.9"}
+VERIFIED_VERSIONS = {
+    ("SECS", "beca1e4c0277ca7f03b972a8d4ffef789b45ab19"): ("0.1.0", None),
+    ("LeoECS Lite", "5053141d7d663c6b1855c8409ac93dfac807b239"):
+        ("2024.5.22", "https://github.com/Leopotam/ecslite/releases/tag/2024.5.22"),
+    ("LeoECS Classic", "1213c31c9ef8325d48e74a52b345c4db242d038b"):
+        ("2023.6.22", "https://github.com/Leopotam/ecs/releases/tag/2023.6.22"),
+    ("Morpeh", "9f6369384792a01d74df24efd35b08ae313e4f12"):
+        ("2024.1.1", "https://github.com/scellecs/morpeh/releases/tag/2024.1.1"),
+    ("StaticEcs", "23b1cf36d89497e8a126d38459d688e2b0a5dea3"):
+        ("2.2.9", "https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9"),
+}
 RULES = {"Revision": "mounted-armament-v7", "TacticalRevision": "layered-squads-v3",
          "PhysicsRevision": "circle-kernel-v1", "DamageRevision": "layered-weapon-damage-v1"}
 BUDGET = 1000 / 60
@@ -36,6 +47,13 @@ PRESETS = {
 def require(condition, message):
     if not condition:
         raise ValueError(message)
+
+
+def version_cell(framework, pin):
+    version = VERIFIED_VERSIONS.get((framework, pin))
+    require(version is not None, f"No verified version for {framework} at {pin}")
+    number, url = version
+    return f"[{number}]({url})" if url else f"`{number}`"
 
 
 def read_json(path):
@@ -805,12 +823,13 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
                   "Текущая headless-симуляция измерена на пяти ECS: SECS, LeoECS Lite, LeoECS Classic, Morpeh и StaticEcs. Ревизии игровых систем: ") +
                  ", ".join(f"`{revision}`" for revision in RULES.values()) + ".", "",
                  "## " + ("Ревизии фреймворков в замерах" if ru else "Framework revisions used"), "",
-                 ("Для сторонних ECS указаны точные коммиты исходников. Для SECS указан базовый коммит; хеши фактически измеренных исходников и DLL фиксируют манифест и JSON." if ru else
-                  "Third-party ECS rows show exact upstream commits. The SECS row shows the base commit; the manifest and JSON record hashes of the measured sources and DLLs."), "",
-                 ("| Фреймворк | Ревизия исходников |" if ru else "| Framework | Source revision |"),
-                 "| --- | --- |",
-                 *(f"| {framework} | `{pin}` |" for framework, pin in framework_pins), "",
-                 f"StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9); StaticPack source `{pins['StaticPack']}`.", "",
+                 ("Для сторонних ECS указаны точные коммиты исходников и соответствующие им релизы. Для SECS указаны базовый коммит и версия проекта; хеши фактически измеренных исходников и DLL фиксируют манифест и JSON." if ru else
+                  "Third-party ECS rows show exact upstream commits and their matching releases. The SECS row shows the base commit and project version; the manifest and JSON record hashes of the measured sources and DLLs."), "",
+                 ("| Фреймворк | Ревизия исходников | Версия |" if ru else "| Framework | Source revision | Version |"),
+                 "| --- | --- | --- |",
+                 *(f"| {framework} | `{pin}` | {version_cell(framework, pin)} |" for framework, pin in framework_pins), "",
+                 (f"StaticEcs использует исходники StaticPack из коммита `{pins['StaticPack']}`." if ru else
+                  f"StaticEcs uses StaticPack source `{pins['StaticPack']}`."), "",
                  "## " + ("Как читать результаты" if ru else "Reading the results"), "",
                  ("The single `high` profile uses the real game preset with its normal `ChurnMultiplier=2`, seed 7331, 96 escorts and 3 carriers per team. The same simulation runs on all five ECS implementations. The archived low/nominal/high campaign used a different preset and gameplay workload; its timings are not directly comparable." if not ru else
                   "Единственный профиль `high` использует игровой preset со штатным `ChurnMultiplier=2`, seed 7331, 96 эскортами и 3 носителями на команду. Один и тот же сценарий выполняется на пяти ECS. Архивная кампания low/nominal/high использовала другой preset и игровую нагрузку; её время напрямую не сравнивается."), "",
@@ -922,7 +941,8 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
                    f"- Base commit: `{manifest['SourceRevision']}`; measured file hashes describe the actual working tree and are recorded in [{relative}/manifest.json]({relative}/manifest.json)."),
                   (f"- [Опубликованные JSON и графики]({relative}/); [сводная CSV-таблица]({relative}/summary.csv); [оборудование]({relative}/hardware.json). Локальные tick CSV остаются входом для проверки, их хеши записаны в манифесте." if ru else
                    f"- [Published JSON and charts]({relative}/); [summary CSV]({relative}/summary.csv); [hardware details]({relative}/hardware.json). Local tick CSV files remain verification inputs; their hashes are in the manifest."),
-                  f"- StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9), source `{pins['StaticEcs']}`; StaticPack source `{pins['StaticPack']}`.", "",
+                  (f"- Исходники StaticEcs: `{pins['StaticEcs']}`; исходники StaticPack: `{pins['StaticPack']}`." if ru else
+                   f"- StaticEcs source `{pins['StaticEcs']}`; StaticPack source `{pins['StaticPack']}`."), "",
                   ("One run per ECS describes this machine and does not establish a stable ranking or confidence interval. Outer tick time includes gameplay systems, physics and ECS commits; Battle.LastTickMs and stage timings cover their own narrower scopes. Rendering and snapshot/report work are excluded. Managed allocation excludes native ECS storage." if not ru else
                    "Один прогон каждой ECS описывает эту машину и не даёт устойчивого рейтинга или доверительного интервала. Внешнее время тика включает игровые системы, физику и ECS commit; Battle.LastTickMs и таймеры стадий имеют более узкие границы. Рендеринг и snapshots/отчёт не входят. Managed allocation не включает нативное хранилище ECS."), "",
                   "## " + ("Воспроизведение" if ru else "Reproduction"), "",

@@ -10,17 +10,17 @@ Preset: `game`.
 
 ## Ревизии фреймворков в замерах
 
-Для сторонних ECS указаны точные коммиты исходников. Для SECS указан базовый коммит; хеши фактически измеренных исходников и DLL фиксируют манифест и JSON.
+Для сторонних ECS указаны точные коммиты исходников и соответствующие им релизы. Для SECS указаны базовый коммит и версия проекта; хеши фактически измеренных исходников и DLL фиксируют манифест и JSON.
 
-| Фреймворк | Ревизия исходников |
-| --- | --- |
-| SECS | `beca1e4c0277ca7f03b972a8d4ffef789b45ab19` |
-| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` |
-| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` |
-| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` |
-| StaticEcs | `23b1cf36d89497e8a126d38459d688e2b0a5dea3` |
+| Фреймворк | Ревизия исходников | Версия |
+| --- | --- | --- |
+| SECS | `beca1e4c0277ca7f03b972a8d4ffef789b45ab19` | `0.1.0` |
+| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` | [2024.5.22](https://github.com/Leopotam/ecslite/releases/tag/2024.5.22) |
+| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` | [2023.6.22](https://github.com/Leopotam/ecs/releases/tag/2023.6.22) |
+| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` | [2024.1.1](https://github.com/scellecs/morpeh/releases/tag/2024.1.1) |
+| StaticEcs | `23b1cf36d89497e8a126d38459d688e2b0a5dea3` | [2.2.9](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9) |
 
-StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9); StaticPack source `7bfb6cf925901b9366dda884258d727a89fff76e`.
+StaticEcs использует исходники StaticPack из коммита `7bfb6cf925901b9366dda884258d727a89fff76e`.
 
 ## Как читать результаты
 
@@ -188,7 +188,7 @@ StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/rele
 - Runtime: .NET 8.0.32; OS: Microsoft Windows 10.0.26200; tiered compilation: `0`.
 - Базовый commit: `beca1e4c0277ca7f03b972a8d4ffef789b45ab19`; хеши измеренных файлов отражают фактическое рабочее дерево и записаны в [current/manifest.json](current/manifest.json).
 - [Опубликованные JSON и графики](current/); [сводная CSV-таблица](current/summary.csv); [оборудование](current/hardware.json). Локальные tick CSV остаются входом для проверки, их хеши записаны в манифесте.
-- StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9), source `23b1cf36d89497e8a126d38459d688e2b0a5dea3`; StaticPack source `7bfb6cf925901b9366dda884258d727a89fff76e`.
+- Исходники StaticEcs: `23b1cf36d89497e8a126d38459d688e2b0a5dea3`; исходники StaticPack: `7bfb6cf925901b9366dda884258d727a89fff76e`.
 
 Один прогон каждой ECS описывает эту машину и не даёт устойчивого рейтинга или доверительного интервала. Внешнее время тика включает игровые системы, физику и ECS commit; Battle.LastTickMs и таймеры стадий имеют более узкие границы. Рендеринг и snapshots/отчёт не входят. Managed allocation не включает нативное хранилище ECS.
 

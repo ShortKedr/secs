@@ -10,17 +10,17 @@ The current headless simulation was measured with five ECS implementations: SECS
 
 ## Framework revisions used
 
-Third-party ECS rows show exact upstream commits. The SECS row shows the base commit; the manifest and JSON record hashes of the measured sources and DLLs.
+Third-party ECS rows show exact upstream commits and their matching releases. The SECS row shows the base commit and project version; the manifest and JSON record hashes of the measured sources and DLLs.
 
-| Framework | Source revision |
-| --- | --- |
-| SECS | `beca1e4c0277ca7f03b972a8d4ffef789b45ab19` |
-| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` |
-| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` |
-| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` |
-| StaticEcs | `23b1cf36d89497e8a126d38459d688e2b0a5dea3` |
+| Framework | Source revision | Version |
+| --- | --- | --- |
+| SECS | `beca1e4c0277ca7f03b972a8d4ffef789b45ab19` | `0.1.0` |
+| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` | [2024.5.22](https://github.com/Leopotam/ecslite/releases/tag/2024.5.22) |
+| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` | [2023.6.22](https://github.com/Leopotam/ecs/releases/tag/2023.6.22) |
+| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` | [2024.1.1](https://github.com/scellecs/morpeh/releases/tag/2024.1.1) |
+| StaticEcs | `23b1cf36d89497e8a126d38459d688e2b0a5dea3` | [2.2.9](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9) |
 
-StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9); StaticPack source `7bfb6cf925901b9366dda884258d727a89fff76e`.
+StaticEcs uses StaticPack source `7bfb6cf925901b9366dda884258d727a89fff76e`.
 
 ## Reading the results
 
@@ -188,7 +188,7 @@ Mean counts match across all five ECS and are shown once.
 - Runtime: .NET 8.0.32; OS: Microsoft Windows 10.0.26200; tiered compilation: `0`.
 - Base commit: `beca1e4c0277ca7f03b972a8d4ffef789b45ab19`; measured file hashes describe the actual working tree and are recorded in [current/manifest.json](current/manifest.json).
 - [Published JSON and charts](current/); [summary CSV](current/summary.csv); [hardware details](current/hardware.json). Local tick CSV files remain verification inputs; their hashes are in the manifest.
-- StaticEcs: [2.2.9 release](https://github.com/Felid-Force-Studios/StaticEcs/releases/tag/v2.2.9), source `23b1cf36d89497e8a126d38459d688e2b0a5dea3`; StaticPack source `7bfb6cf925901b9366dda884258d727a89fff76e`.
+- StaticEcs source `23b1cf36d89497e8a126d38459d688e2b0a5dea3`; StaticPack source `7bfb6cf925901b9366dda884258d727a89fff76e`.
 
 One run per ECS describes this machine and does not establish a stable ranking or confidence interval. Outer tick time includes gameplay systems, physics and ECS commits; Battle.LastTickMs and stage timings cover their own narrower scopes. Rendering and snapshot/report work are excluded. Managed allocation excludes native ECS storage.
 

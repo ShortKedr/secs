@@ -113,8 +113,10 @@ class CurrentCampaignTests(unittest.TestCase):
                 runs[profile, framework] = {
                     "Metadata": {"Runtime": "test runtime", "Os": "test OS"},
                     "Timing": summary(1), "HudTiming": summary(1), "Stages": stages, "OpeningPhases": opening,
-                    "Provenance": {"Sources": {"Lite": "1" * 40, "Classic": "2" * 40,
-                                               "Morpeh": "3" * 40, "StaticEcs": "a" * 40,
+                    "Provenance": {"Sources": {"Lite": "5053141d7d663c6b1855c8409ac93dfac807b239",
+                                               "Classic": "1213c31c9ef8325d48e74a52b345c4db242d038b",
+                                               "Morpeh": "9f6369384792a01d74df24efd35b08ae313e4f12",
+                                               "StaticEcs": "23b1cf36d89497e8a126d38459d688e2b0a5dea3",
                                                "StaticPack": "b" * 40}},
                     "HudWindows": [{"StartTick": i*600+1, "EndTick": (i+1)*600,
                                     "Timing": summary(.5), "Stages": stages,
@@ -125,7 +127,8 @@ class CurrentCampaignTests(unittest.TestCase):
                     "Counters": {"Shots": 1, "Hits": 1, "ShipsCreated": 1, "ShipsDestroyed": 0},
                     "Checksum": "A" * 16, "AllocatedBytes": 0,
                 }
-        manifest = {"StartedAt": "start", "FinishedAt": "finish", "SourceRevision": "f" * 40}
+        manifest = {"StartedAt": "start", "FinishedAt": "finish",
+                    "SourceRevision": "beca1e4c0277ca7f03b972a8d4ffef789b45ab19"}
         hardware = {"Cpu": {"Name": "test CPU"}, "TotalPhysicalMemoryBytes": 1024**3}
         with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
             root = Path(directory)
@@ -135,6 +138,16 @@ class CurrentCampaignTests(unittest.TestCase):
                 report.render_format3(runs, manifest, hardware, data, True)
             english = (root / "REPORT.md").read_text(encoding="utf-8")
             russian = (root / "REPORT.ru.md").read_text(encoding="utf-8")
+            self.assertIn("| Framework | Source revision | Version |", english)
+            self.assertIn("| Фреймворк | Ревизия исходников | Версия |", russian)
+            for text in (english, russian):
+                self.assertIn("| SECS | `beca1e4c0277ca7f03b972a8d4ffef789b45ab19` | `0.1.0` |", text)
+                self.assertIn("| LeoECS Lite | `5053141d7d663c6b1855c8409ac93dfac807b239` | [2024.5.22]", text)
+                self.assertIn("| LeoECS Classic | `1213c31c9ef8325d48e74a52b345c4db242d038b` | [2023.6.22]", text)
+                self.assertIn("| Morpeh | `9f6369384792a01d74df24efd35b08ae313e4f12` | [2024.1.1]", text)
+                self.assertIn("| StaticEcs | `23b1cf36d89497e8a126d38459d688e2b0a5dea3` | [2.2.9]", text)
+                self.assertNotIn("| StaticEcs 2.2.9 | `23b1cf36d89497e8a126d38459d688e2b0a5dea3` |", text)
+                self.assertNotIn("StaticEcs: [2.2.9 release]", text)
             self.assertIn("Cumulative outer mean 1–600", english)
             self.assertIn("Remainder outer mean 2,001–108,000", english)
             self.assertIn("### Совпадение игрового состояния", russian)
@@ -165,6 +178,10 @@ class CurrentCampaignTests(unittest.TestCase):
                 self.assertIn("../benchmarks/heatmap/", timing)
             self.assertEqual(len((data / "summary.csv").read_text().splitlines()), 6)
             self.assertTrue((data / "summary.csv").exists())
+
+    def test_version_requires_matching_measured_source_pin(self):
+        with self.assertRaisesRegex(ValueError, "No verified version"):
+            report.version_cell("StaticEcs", "0" * 40)
     def test_campaign_preset_is_known_and_matches_requested_input(self):
         with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:
             path = Path(directory)
