@@ -6,7 +6,7 @@ Preset: `benchmark`.
 
 Current campaign: 2026-10-14T02:41:10.8503994+05:00 — 2026-10-14T02:48:16.8906668+05:00.
 
-Measured the current headless simulation on five ECS: `mounted-armament-v7`, `layered-squads-v3`, `circle-kernel-v1`, `layered-weapon-damage-v1`.
+The current headless simulation was measured with five ECS implementations: SECS, LeoEcsLite, LeoEcsClassic, Morpeh, and StaticEcs. Gameplay system revisions: `mounted-armament-v7`, `layered-squads-v3`, `circle-kernel-v1`, `layered-weapon-damage-v1`.
 
 **Validation passed:** 15 cases, 1,620,000 measured ticks. Within each profile all 30 checkpoints, final checksums, gameplay and tactical counters, and per-minute entity counts match.
 

@@ -8,9 +8,10 @@
 
 # SECS — ShortKedr ECS
 
-Небольшая архетипная ECS для .NET 8. SECS хранит unmanaged-компоненты в чанках,
-обновляет их типизированными запросами через `ref` и последовательно выполняет
-системы в `PreUpdate`, `Update` и `PostUpdate`. В репозитории есть тесты,
+Небольшая библиотека «сущность — компонент — система» (ECS) для .NET 8. SECS
+группирует сущности по набору компонентов и хранит компоненты без управляемых ссылок в чанках.
+Системы изменяют их через типизированные запросы с `ref` и выполняются по
+очереди: `PreUpdate`, `Update`, `PostUpdate`. В репозитории есть тесты,
 бенчмарки и автономный пример Space Battle.
 
 ## С чего начать
@@ -20,7 +21,7 @@
 | Использовать библиотеку | [Быстрый старт](#быстрый-старт) · [API и правила времени жизни](docs/secs/README.ru.md) · [Исходник примера](SECS.Sample/Program.cs) |
 | Развивать SECS | [Реализованные оптимизации](docs/SECS_OPTIMIZATION.ru.md) · [Планы развития](docs/README.ru.md#развитие-библиотеки) |
 | Прочитать или воспроизвести измерения | [Микробенчмарки](SECS.Benchmarks/README.ru.md) · [Сравнение пяти фреймворков](Benchmarks.Local/README.ru.md) · [Отчёт Space Battle](docs/space-battle/REPORT.ru.md) |
-| Запустить игру | [Desktop](SpaceBattle.Game/README.ru.md) · [Headless](docs/space-battle/REPORT.ru.md) · [Web](SpaceBattle.Web/README.ru.md) |
+| Запустить игру | [Desktop](SpaceBattle.Game/README.ru.md) · [Web](SpaceBattle.Web/README.ru.md) |
 
 ## Быстрый старт
 

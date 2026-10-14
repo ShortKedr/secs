@@ -20,7 +20,8 @@ Morpeh references its existing vendor project. StaticEcs references
 ## Contract
 
 - Components and query membership are stored only by the native frameworks.
-- `ForEach` uses native filters or StaticEcs query iterators for all three arities.
+- `ForEach` uses native filters or StaticEcs query iterators for queries with one,
+  two, or three component types.
 - Component arguments and `Get<T>` are live native storage references.
 - `Get<T>` throws on absent components or stale keys; it does not add components.
 - `Set<T>` adds or replaces; `Remove<T>` and `Destroy` ignore stale keys.
@@ -47,8 +48,8 @@ must be registered in the constructor callback, for example:
 using var store = new StaticEcsStore(r => r.Register<MyComponent>());
 ```
 
-Diagnostics reports the live entity count. Unmeasured vendor archetype, chunk
-and byte counters are unknown; the central report owns their presentation.
+Diagnostics reports the live entity count. Vendor archetype, chunk and byte
+counters are not measured; the central report shows them as unknown.
 
 ## Build and Validation
 

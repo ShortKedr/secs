@@ -24,7 +24,9 @@ Licenses are not uniformly unrestricted MIT: LeoECS Classic offers proprietary o
 
 ## Shared Workloads
 
-[Program.cs](Program.cs) registers all five base adapters. At 1,000 and 100,000 entities it runs Create, Iterate, Churn, and Destroy: Position/Velocity each contain two floats; movement adds velocity to position; churn adds then removes a one-float Mass component. Validation checks every entity before timing. Setup, seeding, world disposal, and forced GC are outside timings; Morpeh commits are included. Each case warms for at least 400 ms and retains 20 samples. Create/Destroy use one fresh batch per sample; Iterate/Churn target 30 ms with at most 1,000 repetitions.
+[Program.cs](Program.cs) registers all five base adapters. At 1,000 and 100,000 entities it runs Create, Iterate, Churn, and Destroy: Position/Velocity each contain two floats; movement adds velocity to position; churn adds then removes a one-float Mass component.
+
+Validation checks every entity before timing. Setup, seeding, world disposal, and forced GC are outside timings; Morpeh commits are included. Each case warms for at least 400 ms and retains 20 samples. Create/Destroy use one fresh batch per sample; Iterate/Churn target 30 ms with at most 1,000 repetitions.
 
 [StressRunner.cs](StressRunner.cs), [StressContract.cs](../SECS.Benchmarks/StressContract.cs), and [StressWorkload.cs](../SECS.Benchmarks/StressWorkload.cs) share initialized data, shape masks, and seeded operation orders across all five backends. The normal matrix is 100,000/1,000,000 entities, seven workloads, eight samples per case, at least 300 ms warmup, and up to 16 repetitions targeting 30 ms. MixedFrames uses one invocation per sample.
 
@@ -38,9 +40,13 @@ Licenses are not uniformly unrestricted MIT: LeoECS Classic offers proprietary o
 | Recycle10Percent | Destroy/recreate 10%, restoring logical data and layouts |
 | MixedFrames | 120 frames, each with full movement, 5% payload churn, 10% reads, 1% recycling |
 
-Stress uses 256 base masks from eight optional four-byte components, 12-byte Position/Velocity, and four-byte Hot on every hundredth entity. Intermediate transitions and Hot can create additional archetypes. MixedFrames repeats fixed subsets; it is not uniform random population replacement. RNG, sorting, setup, validation, disposal, and forced GC are untimed. Natural GC caused by measured operations remains included.
+Stress uses 256 base masks from eight optional four-byte components, 12-byte Position/Velocity, and four-byte Hot on every hundredth entity. Intermediate transitions and Hot can create additional archetypes. MixedFrames repeats fixed subsets; it is not uniform random population replacement.
 
-Equivalent logical work does not mean identical layouts, queries, or optimal APIs. Allocation fields measure managed thread allocations, excluding native storage, not total memory. Error bars represent sample standard deviation, not confidence intervals. Results apply to the recorded machine/runtime/revisions, not Unity/IL2CPP or a universal framework ranking. SECS-only optimized creation/accessor experiments are separate and do not replace the shared API comparison.
+RNG, sorting, setup, validation, disposal, and forced GC are untimed. Natural GC caused by measured operations remains included.
+
+Equivalent logical work does not mean identical layouts, queries, or optimal APIs.
+
+Allocation fields measure managed allocations on the measured thread. They exclude native storage and do not represent total memory. Error bars represent sample standard deviation, not confidence intervals. Results apply to the recorded machine/runtime/revisions, not Unity/IL2CPP or a universal framework ranking. SECS-only optimized creation/accessor experiments are separate and do not replace the shared API comparison.
 
 ## Current campaign
 

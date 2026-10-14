@@ -28,7 +28,7 @@ Host configuration matters: interactive clients explicitly choose LightSwarm, di
 
 ## One Tick: Nine Timed Stages
 
-[`Battle.Step`](../../SpaceBattle.Core/Battle.cs) increments `Tick`, then runs these stages in order. They are timing intervals containing processors and helper work. The default tick rate is 60; rendering and host scheduling are outside Step.
+[`Battle.Step`](../../SpaceBattle.Core/Battle.cs) increments `Tick`, then runs these stages in order. They are timing intervals containing processors and helper work. The default tick rate is 60 ticks per second; rendering and host scheduling are outside Step.
 
 | Stage | Responsibility |
 | --- | --- |

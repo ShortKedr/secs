@@ -25,14 +25,14 @@ The authoritative parameters live in [cover-settings.json](cover-settings.json),
 consumed by [cover.py](../../tools/space-battle/cover.py) and
 [the browser capture](../../tools/web/capture-cover.mjs). Change that configuration to change
 the scene; do not maintain a second set of capture constants in documentation
-or workflow commands. The intended preset is seed 7331, 96 ships per team,
+or workflow commands. The intended preset is seed 7331, 96 escorts per team,
 tick 180, 1600 x 1000 pixels and zoom 2. The settings file, not this description,
 is authoritative. The profile is nominal; the current web host supports exactly
 96 escorts per team. Other `ShipsPerTeam` values fail rather than being ignored.
 
 Local reproduction uses Python, Node.js, Playwright Chromium and the pinned
-.NET 8 SDK with its `wasm-tools` workload already available. Publish the same
-production AOT web frontend and use the helper with the settings JSON; this
+.NET 8 SDK with its `wasm-tools` workload already available. Build the same
+production AOT web frontend into a local directory and use the helper with the settings JSON; this
 is a capture-only flow, with no benchmark suite or report analysis. Capture is
 selected by simulation tick, not elapsed wall time: a slower renderer must still
 reach the configured tick before saving. Fixed settings make the scene

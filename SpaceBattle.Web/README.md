@@ -41,6 +41,8 @@ Open [localhost:8000](http://localhost:8000/) or [its Russian interface](http://
 
 Manual pan/zoom, Fit, deselection and reset cancel follow. Camera tools and collision outlines do not affect combat. The default fleet has 96 escorts and three carriers per side, with endless corner reinforcements; see [current gameplay](../docs/space-battle/README.md#current-gameplay).
 
+The **low**, **nominal**, and **high** profiles set combat activity to 0.5×, 1×, and 2×. The multiplier changes weapon cooldowns, carrier production intervals, and boost duration. It does not directly set the number of ships or double the actual workload: combat outcomes change as the battle runs. Changing profile starts a new battle.
+
 The footer and statistics panel describe this browser session. Render FPS, ticks/s, Step time and memory have different scopes; they are not interchangeable with desktop headless measurements.
 
 ## Development and Compatibility

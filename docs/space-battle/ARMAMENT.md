@@ -41,8 +41,7 @@ catalog rate changes its estimated DPS, not the tactical algorithm.
 
 Revision v7 disables projectile self hits for every weapon kind, including
 mounted guns and heavy hull cannons. The swept collision query excludes every
-fixture of the projectile's owner, including start-point overlaps and all five
-rays. It continues searching for the nearest other ship: an owner cannot block
+fixture of the projectile's owner, including start-point overlaps. In the Aether implementation used when v7 was introduced, this exclusion also covered all five offset rays; current [circle physics](PHYSICS.md) uses analytic sweeps. The query continues searching for the nearest other ship: an owner cannot block
 a shot aimed past it. Mounted projectiles use the parent ship as owner, not the
 turret entity. Lifetime-safe ECS keys resolve a live owner to its unique ship
 serial; recycled body/entity slots do not give another ship immunity.

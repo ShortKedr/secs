@@ -6,7 +6,7 @@ Preset: `benchmark`.
 
 Актуальная кампания: 2026-10-14T02:41:10.8503994+05:00 — 2026-10-14T02:48:16.8906668+05:00.
 
-Измерена текущая headless-симуляция на пяти ECS: `mounted-armament-v7`, `layered-squads-v3`, `circle-kernel-v1`, `layered-weapon-damage-v1`.
+Текущая headless-симуляция измерена на пяти ECS: SECS, LeoEcsLite, LeoEcsClassic, Morpeh и StaticEcs. Ревизии игровых систем: `mounted-armament-v7`, `layered-squads-v3`, `circle-kernel-v1`, `layered-weapon-damage-v1`.
 
 **Проверка пройдена:** 15 случаев, 1 620 000 измеренных тиков. В каждом профиле совпали все 30 контрольных точек, итоговые checksum, игровые и тактические счётчики и поминутная численность сущностей.
 

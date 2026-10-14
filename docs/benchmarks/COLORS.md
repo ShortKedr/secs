@@ -27,7 +27,9 @@ Population, gameplay events, checksum, input sizes, sample counts, parameters an
 
 ## Reported variability
 
-When real independent run summaries are available, the reference is the best median of those summaries. Colours beyond 5% require conservative separation of the observed min/max envelopes. An explicitly published interval may be used with its explicitly reported central value; endpoints are not invented as new runs. Overlapping envelopes, incomplete variability data and small separation stay grey. These envelopes are descriptive, not confidence intervals.
+When summaries of independent runs are available, the reference is the best median of those summaries. Differences beyond 5% are coloured only when the observed minimum-to-maximum ranges are sufficiently separated under the comparison rule. Overlapping ranges, incomplete variability data and small differences stay grey.
+
+An explicitly published interval may be used with its reported central value. Its endpoints are not treated as additional runs. These ranges describe the recorded variation; they are not confidence intervals.
 
 An absolute threshold is used only when its metric, units and reason are explicitly recorded. It supplements the relative rule and does not change the printed result. The existing SpaceBattle policy is [heatmap_policy.json](../../tools/space-battle/heatmap_policy.json); it currently has no absolute thresholds.
 

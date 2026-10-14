@@ -418,7 +418,8 @@ def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
                          ("Space Battle benchmarks — game preset" if preset == "game" else "Space Battle benchmarks — finite battle")), "",
                  f"Preset: `{preset}`.", "",
                  ("Актуальная кампания: " if ru else "Current campaign: ") + f"{manifest['StartedAt']} — {manifest['FinishedAt']}.", "",
-                 ("Измерена текущая headless-симуляция на пяти ECS: " if ru else "Measured the current headless simulation on five ECS: ") +
+                 ("Текущая headless-симуляция измерена на пяти ECS: SECS, LeoEcsLite, LeoEcsClassic, Morpeh и StaticEcs. Ревизии игровых систем: " if ru else
+                  "The current headless simulation was measured with five ECS implementations: SECS, LeoEcsLite, LeoEcsClassic, Morpeh, and StaticEcs. Gameplay system revisions: ") +
                  ", ".join(f"`{v}`" for v in RULES.values()) + ".", "",
                  ("**Проверка пройдена:** 15 случаев, 1 620 000 измеренных тиков. В каждом профиле совпали все 30 контрольных точек, итоговые checksum, игровые и тактические счётчики и поминутная численность сущностей." if ru else
                   "**Validation passed:** 15 cases, 1,620,000 measured ticks. Within each profile all 30 checkpoints, final checksums, gameplay and tactical counters, and per-minute entity counts match."), "",

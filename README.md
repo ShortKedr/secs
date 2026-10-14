@@ -8,10 +8,11 @@ English | [Русский](README.ru.md)
 
 # SECS — ShortKedr ECS
 
-A small archetype ECS for .NET 8. SECS stores unmanaged components in chunks,
-updates them through typed `ref` queries, and runs systems sequentially in
-`PreUpdate`, `Update`, and `PostUpdate`. This repository includes tests,
-benchmarks, and an autonomous Space Battle sample.
+A small entity-component-system (ECS) library for .NET 8. SECS groups entities
+by their component types and stores unmanaged component data in chunks. Systems update
+that data through typed `ref` queries and run sequentially in `PreUpdate`,
+`Update`, and `PostUpdate`. The repository includes tests, benchmarks, and an
+autonomous Space Battle sample.
 
 ## Start here
 
@@ -20,7 +21,7 @@ benchmarks, and an autonomous Space Battle sample.
 | Use the library | [Quickstart](#quickstart) · [API and lifetime rules](docs/secs/README.md) · [Sample source](SECS.Sample/Program.cs) |
 | Work on SECS | [Implemented optimizations](docs/SECS_OPTIMIZATION.md) · [Development plans](docs/README.md#library-development) |
 | Read or reproduce measurements | [Microbenchmarks](SECS.Benchmarks/README.md) · [Five-framework comparison](Benchmarks.Local/README.md) · [Space Battle report](docs/space-battle/REPORT.md) |
-| Run the game | [Desktop](SpaceBattle.Game/README.md) · [Headless](docs/space-battle/REPORT.md) · [Web](SpaceBattle.Web/README.md) |
+| Run the game | [Desktop](SpaceBattle.Game/README.md) · [Web](SpaceBattle.Web/README.md) |
 
 ## Quickstart
 

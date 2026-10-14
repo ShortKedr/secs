@@ -17,9 +17,13 @@ Local study, 2026-10-12. This is not a replacement for frozen five-ECS measureme
 
 ## Protocol
 
-Actual nominal gameplay: seed 7331, 96 escorts/team, LightSwarm, endless corner reinforcement, no carrier replacement, unchanged circle physics/armament/tactics revisions. Release native .NET 8.0.31 and Chromium 151 Mono AOT are separate comparisons. Native: separate 1200-tick warmup, three independent fresh 1200-tick replays per stage/port; browser: separate 600-tick warmup, three fresh replays, alternating version order. Four 300-tick windows. Report median [min,max] of independent run means; ticks are not independent repeats. Background desktop activity and tiering remain limitations, not statistical significance claims.
+The study uses the nominal gameplay scenario: seed 7331, 96 escorts per team, LightSwarm, endless reinforcements from the corners and no carrier replacement. Circle physics, armament and tactics revisions are unchanged between variants. Native Release .NET 8.0.31 and Chromium 151 Mono AOT results are compared separately.
 
-Native checksum, every gameplay/AI counter, mean/end population must match after each window on all five ports. Browser comparison includes checkpoint, exported gameplay/AI counters and all five populations. Native/browser checksums are not compared across runtimes. Uniform/7331 five-repeat replays and additional seed 27/low and seed 42/high cases are separate regression evidence, not substitutes for actual gameplay.
+Native measurements use a separate 1200-tick warmup and three independent fresh 1200-tick replays per stage and port. Browser measurements use a separate 600-tick warmup and three fresh replays, alternating version order. Each replay is divided into four 300-tick windows. Tables report the median of independent run means, followed by their [minimum, maximum]. Individual ticks are not independent repeats. Background desktop activity and tiered compilation can affect the results; no statistical significance is claimed.
+
+After each window, native checksums, every gameplay/AI counter and mean/end populations must match across all five ports. The browser comparison checks the checkpoint, exported gameplay/AI counters and all five populations. Checksums are not compared between native and browser runtimes.
+
+Five-repeat Uniform/7331 replays and the additional seed 27/low and seed 42/high cases provide separate regression evidence. They do not replace measurements of the nominal gameplay scenario.
 
 ## Stages And Costs
 
@@ -63,6 +67,8 @@ The experimental browser CoreCLR/R2R route has been retired and its host/tools r
 
 Pinned .NET 11 RC1 crossgen2 partial R2R builds run in real Chromium. Three independent 120-tick replays after 120-tick warmup: ticks 1-60 Step 112.048 ms [109.488,123.055] → 88.062 ms [87.272, 89.478]; 61-120: 159.483 ms [158.798,172.423] → 130.892 ms [129.452,132.338]. Checkpoints/counters/populations match. CPU sampling on 120 ticks finds interpreter leaf samples 84.927% before and 82.179% at stage 5. This is mixed execution, not a compiled-hot-path speed upgrade; longer windows and interpreter-free R2R remain unverified. [Separate R2R measurements](hardware-optimization/r2r-stage5.json).
 
-ComponentAccessor microprobe: direct reads 1.410 → 0.365 ms, but staged create/destroy 9.322 → 10.669 ms and extra 49,152 accessor bytes at 4096 slots. Not adopted in production without a whole-Battle comparison. Final-archetype creation microprobe 4.158 ms versus 9.322 ms for staged creation; code-audited birth row insertions 4 → 1/removals 3 → 0, while gameplay component additions remain 3. Copy bytes/swap repairs are not instrumented. Five-port typed creation/query-order equivalence is not proven, so no gameplay creation change or counter masking.
+A separate ComponentAccessor microprobe measured direct reads at 1.410 → 0.365 ms, but staged create/destroy at 9.322 → 10.669 ms, with an extra 49,152 accessor bytes at 4096 slots. The API was not adopted in production: a whole-Battle comparison is still needed.
+
+The final-archetype creation microprobe measured 4.158 ms versus 9.322 ms for staged creation. Code inspection shows birth row insertions falling from 4 to 1 and removals from 3 to 0; gameplay component additions remain 3. Copy bytes and reference repairs after swap-removal were not instrumented. Typed creation and query-order equivalence across all five ports are not proven, so gameplay creation and counters were not changed.
 
 Incremental Collect/Sort is deferred: external additions/removals and Serial/Transform changes through returned refs remain visible. A mutation counter cannot observe those writes. Maintaining a registry still needs reconciliation or a stronger public contract; current collection is retained. Tests cover five-port external edits, slot/native-ID reuse/divergence, epoch wrap/fallback, stale/disposal guards, exact grid oracles, ties, snapshot/live separation, self exclusion and friendly/debris damage. 16 SECS tests and 6 comparison tests pass. Native/browser battle images and real frontend controls were inspected; no assets or frozen reports changed by this work.

@@ -72,13 +72,13 @@ Both failed attempts are retained. These workarounds were not added to productio
 72 primary fresh-process replays: four variants, low/nominal/high, three
 independent repetitions, separately for core and frontend. Order rotates;
 four variants over three repetitions leave bounded position imbalance (at most
-one). Identical seed7331, LightSwarm roster, endless reinforcements and game
-settings; colliders off, viewport1440x900. Each replay warms a separate1200-tick
-battle, then resets. Core measures ticks1-1200, fixed300-tick phases; frontend
-measures301-600 after another reset/prelude. Ticks are not independent repeats.
+one). Identical seed 7331, LightSwarm roster, endless reinforcements and game
+settings; colliders off, viewport 1440x900. Each replay warms a separate 1200-tick
+battle, then resets. Core measures ticks 1-1200, fixed 300-tick phases; frontend
+measures 301-600 after another reset/prelude. Ticks are not independent repeats.
 
 18 confirmation replays: A/C/D, low/high, three fresh processes each, balanced
-three-variant order; separate3600-tick warmup then Reset, measured1-2400 with
+three-variant order; separate 3600-tick warmup then Reset, measured 1-2400 with
 600-tick phases. Builds, CPU profiling and throughput never overlap. Existing
 user processes were left alone; background activity, power and temperature were
 not controlled. Do not pool primary and confirmation windows or their warmups.
@@ -127,22 +127,22 @@ milliseconds. p95/p99 are medians of each run's percentiles over the identical
 | C | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.562 [6.450-6.700] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.316 [5.260-5.406] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 7.639 [7.314-7.668] |
 | D | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 6.806 [6.646-7.154] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 5.402 [5.357-6.428] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 8.762 [7.568-9.130] |
 
-Primary core runtime-ready medians: A335-344ms, B348-350ms, C343-367ms,
-D343-356ms across profile groups; app-ready respectively536-541,544-559,
-542-569,540-553ms. No confirmed startup improvement. Maximum linear-memory
-capacity: A/B121,044,992bytes; C/D120,848,384bytes, not live allocation totals.
+Primary core runtime-ready medians: A 335-344 ms, B 348-350 ms, C 343-367 ms,
+D 343-356 ms across profile groups; app-ready respectively 536-541, 544-559,
+542-569, 540-553 ms. No confirmed startup improvement. Maximum linear-memory
+capacity: A/B 121,044,992 bytes; C/D 120,848,384 bytes, not live allocation totals.
 All individual cold samples/ranges, client/export percentiles, fixed-phase
 p95/p99 and memory telemetry remain in the ignored JSON results.
 
 | Confirmation | A Step [range] | C Step [range] | D Step [range] |
 |---|---:|---:|---:|
-| low1-2400 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 3.147 [3.043-3.200] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.998 [2.987-3.151] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.997 [2.958-3.042] |
-| high1-2400 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.200 [3.952-5.007] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.018 [3.967-4.952] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.185 [3.872-4.943] |
+| low 1-2400 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 3.147 [3.043-3.200] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.998 [2.987-3.151] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 2.997 [2.958-3.042] |
+| high 1-2400 | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.200 [3.952-5.007] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.018 [3.967-4.952] | ![Neutral or insufficient separation](../../docs/benchmarks/heatmap/equal.svg "Neutral or insufficient separation") 4.185 [3.872-4.943] |
 
-D's primary high8.3% observed reduction becomes **0.35%** in confirmation,
-with broad range overlap. C's confirmation reductions are4.7% low /4.3% high,
-also overlapping; primary low went the other way. In confirmation high1-600,
-A/C/D means are4.513/4.562/4.926ms; p99 are13.5/16.1/14.0ms. Thus aggregate
+D's primary high 8.3% observed reduction becomes **0.35%** in confirmation,
+with broad range overlap. C's confirmation reductions are 4.7% low / 4.3% high,
+also overlapping; primary low went the other way. In confirmation high 1-600,
+A/C/D means are 4.513/4.562/4.926 ms; p99 are 13.5/16.1/14.0 ms. Thus aggregate
 means cannot conceal dense-phase/tail regressions. No p-value or universal
 causal speedup is claimed from these limited, variable observations.
 
@@ -151,7 +151,7 @@ causal speedup is claimed from these limited, variable observations.
 Separate Release/O2 build with `WasmNativeStrip=false`, `WasmEmitSymbolMap=true`;
 never a throughput or publish candidate. Chromium CDP samples synchronous
 `Advance(1)` including binary export, after separate warmup/Reset. Initial and
-late captures contain3112 and2745 samples respectively. Percentages below are
+late captures contain 3112 and 2745 samples respectively. Percentages below are
 **self leaf-sample counts**, not inclusive stack time or exact CPU-time shares.
 
 | Attribution | Ticks1-1200 | Ticks1201-2400 |
@@ -168,7 +168,7 @@ late captures contain3112 and2745 samples respectively. Percentages below are
 Costs include actual simulation/Capture work, `World.Get<T>_GSHAREDVT`, generic
 value-type ABI wrappers, `do_jit_call`, memory clearing/copying and interpreter
 execution. AOT does not imply an interpreter-free hot path. This is **not the
-old CoreCLR85% result**. The broad helper category is not a measurement of
+old CoreCLR 85% result**. The broad helper category is not a measurement of
 interface/delegate dispatch alone; named paths distinguish wrappers from library
 bodies, but inlining prevents exact source-level attribution. Opaque small WASM
 modules stay unknown; the main-module symbol map is not applied to them.
@@ -178,7 +178,7 @@ unaffected by the tested compile flag. No bounds-check/branch-miss claim is made
 
 ## Equivalence And Reproduction
 
-Primary:11,106 comparisons, zero mismatches. Confirmation:48 structural
+Primary: 11,106 comparisons, zero mismatches. Confirmation: 48 structural
 comparison groups, zero mismatches. Checkpoint checksum, all sampled tick
 counters/populations, visible composition, ship tactics and reinforcements match
 exactly within this browser/runtime. This is not native/WASM bitwise proof.
@@ -204,13 +204,13 @@ node --test tools/web/test-mono-compiler-study.mjs tools/web/test-profile-mono-c
 ./tools/web/test-build-mono-study.ps1
 ```
 
-Build/cache scripts target the installed Windows8.0.31 packs and refuse reuse.
+Build/cache scripts target the installed Windows 8.0.31 packs and refuse reuse.
 Set `PLAYWRIGHT_BROWSERS_PATH` to the existing project-local browser cache and
 `TEMP`/`TMP` inside Benchmarks.Local before comparisons; no automatic download.
 Pass the four sites, labels and the same frozen source root to the study CLI.
 Confirmation uses the exported `parseArgs`/`runStudy` API with
 `config.profiles=["low","high"]`, `config.modes=["core"]`,2400 ticks,
-600 phase ticks,3600 warmup ticks and A/C/D sites. The captured primary harness
+600 phase ticks, 3600 warmup ticks and A/C/D sites. The captured primary harness
 version is retained with its original hash.
 
 Accepted: isolated artifacts, source/command audits, independent replays,
@@ -219,21 +219,21 @@ B/C/D, blind interpreter removal, fast-math and reduced safety. IL stripping,
 compression and dependency removal were not CPU experiments; Brotli size is
 reported only as loading cost. No worker experiment or CPU-saving claim was made.
 Other hardware/browsers, production network cold start, actual RAF/GPU performance,
-longer multi-wave runs, .NET10 Mono and precise opaque-thunk attribution remain
+longer multi-wave runs, .NET 10 Mono and precise opaque-thunk attribution remain
 unmeasured. Results do not justify changing the stable production toolchain.
 
 ## Validation
 
 Normal local publish passed with actual -Oz/-O2 response files. Browser checks
 passed: three profiles, combat, reset parity, controls, responsive Canvas, realtime
-pause/resume. Standard action-client screenshots at ticks180/360 and the ordinary
-UI at tick600 were visually inspected: loaded assets, moving ships, impacts and
-warp effect, colliders off, no page errors. Tick360: SelfHits0, friendlyFireHits3201,
-debrisHits3975. These screenshots are validation, not throughput samples.
+pause/resume. Standard action-client screenshots at ticks 180/360 and the ordinary
+UI at tick 600 were visually inspected: loaded assets, moving ships, impacts and
+warp effect, colliders off, no page errors. Tick 360: SelfHits 0, friendlyFireHits 3201,
+debrisHits 3975. These screenshots are validation, not throughput samples.
 
 32 Node tests passed; one real-junction test skipped because the sandbox denies
 creation (mock metadata rejection passed). Six Python tests, three PowerShell
 parser checks and five pre-build path guards passed. Documentation checker:
-58 bilingual documents,1606 local links/anchors, numeric/code parity. Runtime
+58 bilingual documents, 1606 local links/anchors, numeric/code parity. Runtime
 source/config hashes still match the frozen input; only Web README links changed.
 CI was edited locally, not dispatched.

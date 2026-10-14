@@ -81,7 +81,7 @@ window are not. Check unchanged image loads over two resets, unchanged
 reload/recovery. Diagnostic fault injection is not an actual RAF test; the
 ordinary-query RAF fault case is separate.
 
-Commands below are a protocol for the main validator, not evidence of execution.
+Commands below describe the validation procedure; the completed checks are recorded separately in the Validation Ledger.
 Run from the repository root with an existing generated site; replace `<unique>`
 with a new identifier for every report. Never overwrite previous evidence.
 
@@ -92,7 +92,7 @@ node tools/web/run-ios-smoke.mjs --site Benchmarks.Local/tmp/ios-web-fix-2026101
 
 Use `--browser chromium` for the corresponding Chromium run. The final target
 is three fresh pages per mode at 60 ticks in each engine. Old-app before
-measurement is handled separately by main; do not assume the old app supports
+measurement must use a separate procedure; do not assume the old app supports
 the new diagnostic API. Desktop WebKit 26.5 is **not real iOS**.
 
 The verified desktop preview is loopback-only at `http://127.0.0.1:8062/`;

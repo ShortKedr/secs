@@ -67,11 +67,11 @@ label.
 
 The original source revision is `872e0df`. The preserved original DLL's SHA-256
 is `D7996FF91C3DFE4414E41E79D2E0CDE636DAE0DC706C6F8A2254F82B3C8678AC`.
-The optimized runtime is an uncommitted working-tree patch. Base cases retain
+At the time of measurement, the optimized runtime was an uncommitted working-tree patch. Base cases retain
 20 samples each; stress cases retain 8 samples each. The original fixtures and
 SECS adapter operations were not replaced with the new accessor/factory APIs.
 
-The latest optimization adds an accessor API, but the original benchmark
+The optimization measured here adds an accessor API, but the original benchmark
 fixtures do not register or exercise that API. Its packed address/version entry
 array is managed storage with a payload capacity of 8 + 4 bytes per ID on x64.
 `AccessorBufferBytes` measures that managed array payload and excludes array

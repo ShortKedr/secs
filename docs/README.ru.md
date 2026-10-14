@@ -22,7 +22,7 @@
 | Все наборы BenchmarkDotNet SECS и диагностика API | [Дополнительные результаты](benchmarks/current/SUPPLEMENT.ru.md) |
 | Воспроизведение микробенчмарков | [Точка входа](../SECS.Benchmarks/README.ru.md), [локальный harness](../Benchmarks.Local/README.ru.md) |
 | До и после оптимизаций среды выполнения | [Методология парных замеров](benchmarks/optimization-methodology.ru.md) |
-| Конечное сражение | [Отчёт Space Battle](space-battle/REPORT.ru.md) |
+| Конечное сражение с профилями активности low/nominal/high | [Отчёт Space Battle](space-battle/REPORT.ru.md) |
 | Бой с настройками desktop по умолчанию | [Игровой режим, стадии и окна HUD](space-battle/GAME_REPORT.ru.md) |
 | Старт desktop и Mean в HUD | [Сравнение Release с headless](space-battle/DESKTOP_TIMING.ru.md) |
 | Цветовые маркеры в отчётах и графиках | [Общая шкала сравнения](benchmarks/COLORS.ru.md) |

@@ -28,13 +28,13 @@ tuning, not balance proof. The estimator does not model this initial readiness.
 V5 passed mechanics validation and all five adapter replays; current correctness
 evidence is documented in [Armament](ARMAMENT.md). No measurements or historical studies are changed.
 
-This describes the implemented `tactical-lock-v2` in
+This describes the earlier `tactical-lock-v2` implementation. The source links below now resolve to current code and do not restore v2:
 [TacticalAi.cs](../../SpaceBattle.Core/TacticalAi.cs) and
 [Battle.cs](../../SpaceBattle.Core/Battle.cs), with firing/repair rules in
 [CombatSystems.cs](../../SpaceBattle.Core/CombatSystems.cs).
 The report's measured workload is the frozen `predictive-neutral-v1`, not this
-tactical revision. No new timing suite has been run for this AI; old charts are
-not performance measurements of the new AI. This document makes no measured
+tactical revision. At the time of this v2 description, no new timing suite had been run for it; the older charts therefore do
+not measure v2 performance. The later v2/v3 comparison is recorded in [Tactics v3](TACTICS_V3.md). This document makes no measured
 speed or tactical-superiority claim.
 
 ## Deterministic Reasoning

@@ -4,7 +4,7 @@ English | [Русский](RESEARCH.ru.md)
 
 [Current gameplay and launch guides](README.md) | [Current measured campaign](REPORT.md)
 
-Each study is evidence for its recorded source snapshot, scenario and runtime. Changes to the current game do not refresh old timings. Before/after checks within one runtime do not prove cross-platform determinism; diagnostic stage clocks are not full frontend FPS.
+Read each study with its recorded source revision, scenario and runtime. Later game changes do not update those measurements. Matching before/after results within one runtime do not prove cross-platform determinism. Stage timings measure parts of the simulation; they do not measure the complete client's FPS.
 
 ## Archived Campaign and Design
 

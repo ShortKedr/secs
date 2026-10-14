@@ -46,7 +46,7 @@ New debris is added to the working list immediately. Therefore debris created by
 
 ## Logical Component Catalogue
 
-The battle scenario actually attaches **22 distinct types**: **12 base ship types + 2 specializations + 5 optional states + 3 transient-object types**. One further independent type, `Lifetime`, is declared but not attached by current battle logic: **23 declared component types** in total if this reserve type is counted. The two nested inventory types are excluded from these counts.
+The historical battle scenario attached **22 distinct types**: **12 base ship types + 2 specializations + 5 optional states + 3 transient-object types**. One further independent type, `Lifetime`, was declared but not attached by that battle logic: **23 declared component types** in total if this reserve type is counted. The two nested inventory types are excluded from these counts.
 
 | Type | Purpose / main data | Where present |
 | --- | --- | --- |
@@ -100,9 +100,9 @@ The compositions below are stable after creation/commit completes, not during su
 | Light escort: `Interceptor`, `Fighter`, `Bomber`, `Gunship` | Ship base. | **12** | `Docked`, `Overheated`, `InCombat`, `Boosting`, `ShieldBroken`. |
 | Heavy/service escort: `Corvette`, `Frigate`, `Destroyer`, `Support` | Base + `SecondaryWeapon`. | **13** | The same five. |
 | Carrier: `LightCarrier`, `FleetCarrier`, `FoundryCarrier` | Base + `SecondaryWeapon` + `Carrier`. | **14** | `Overheated`, `InCombat`, `Boosting`, `ShieldBroken`; normal AI logic does not dock carriers. |
-| Projectile | `Transform`, `Motion`, `Projectile`. | **3** | None in the current implementation. |
-| Debris | `Transform`, `Motion`, `Debris`. | **3** | None in the current implementation. |
-| Particle | `Transform`, `Motion`, `Particle`. | **3** | None in the current implementation. |
+| Projectile | `Transform`, `Motion`, `Projectile`. | **3** | None in the historical implementation. |
+| Debris | `Transform`, `Motion`, `Debris`. | **3** | None in the historical implementation. |
+| Particle | `Transform`, `Motion`, `Particle`. | **3** | None in the historical implementation. |
 
 For a particular ship, the component count equals its class base plus the number of states actually present. Do not assume all possible states necessarily coexist. `Docked` does not remove base components, weapons or `PhysicsLink`: the ship remains in ECS, is excluded from the visual frame, skips AI/firing, and its external body is disabled during the physics step.
 

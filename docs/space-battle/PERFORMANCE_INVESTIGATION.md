@@ -20,12 +20,12 @@ Local diagnostic study, 2026-10-11. This is not a replacement for the published 
 These archived diagnostics predate [mounted armament](ARMAMENT.md). Their timings
 do not measure the current gun-enabled gameplay.
 
-For the current implementation and before/after results, see [spatial optimization](SPATIAL_OPTIMIZATION.md).
+The later [spatial optimization study](SPATIAL_OPTIMIZATION.md) records the next implementation and its before/after results. It is also a historical snapshot.
 
 ## Findings
 
 - The dense battle does reproduce roughly 24-27 ms of WASM simulation work, before frame export or drawing.
-- The latest tactical AI is not the dominant cost at the nominal population. It takes about 0.32 ms in the first 600 ticks. Hits, entity collection and lifecycle dominate.
+- The tactical AI measured here is not the dominant cost at the nominal population. It takes about 0.32 ms in the first 600 ticks. Hits, entity collection and lifecycle dominate.
 - This problem already exists before the tactical update. The new AI changes battle trajectories and populations, so revision timings are not identical-workload microbenchmarks.
 - Desktop is substantially faster, but has frame-time spikes. Its cold-start replay averages about 7.5 ms per CPU frame, with P95 around the 60 FPS budget.
 
@@ -59,9 +59,9 @@ Early browser P95: 25.5, 26.6 and 25.5 ms respectively. A 12.5 ms whole-window m
 
 Average populations in ticks 1-600, before versus after tactics: ships 121.6 versus 93.4, projectiles 316.6 versus 227.6, debris 805.8 versus 804.3, particles 1,855.3 versus 1,871.9. These are workload descriptors, not good/bad outcomes. Tactical targeting kills ships earlier in this seeded replay; lower later cost is not proof that the AI implementation itself is cheaper.
 
-## Current Bottlenecks
+## Bottlenecks in the Measured Revision
 
-Current WASM, ticks 1-600:
+WASM revision `d853ae7` (live statistics), ticks 1-600:
 
 | Stage | Median run mean, ms | Approximate share |
 | --- | ---: | ---: |

@@ -44,7 +44,7 @@ still screen behind healthier ships, recover and return through existing states.
 Defaults: 16384 spatial cell/membership visits and 8192 target-cost evaluations
 per phase, 2048 composition evaluations per review; 16 local targets, 8 rotating
 global probes, 6 formation targets, 16 recruits and 4096 projectile intents.
-Sealed indexes and reusable buffers avoid reserved hot-path allocations.
+Prepared indexes and reusable buffers avoid allocations in the hot path once their capacity has been reserved.
 Recruitment filters assigned/ineligible rows before filling the bounded sample,
 so an assigned prefix cannot permanently starve a dense cell. When spatial work
 is exhausted, a constant-sized neighboring serial window allows stable progress.
