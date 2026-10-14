@@ -77,10 +77,11 @@ license inventory. A future executable, NuGet package, or release archive needs
 its own dependency/license review and required notices for everything bundled.
 Generated frontend artwork has separate [provenance](SpaceBattle.Game/Assets/PROVENANCE.md).
 
-No new license is assigned here to SECS, this repository's adapters, tests,
-documentation, data, or artwork. Their publication license must be chosen by the
-rightsholder; the absence of a root license does not mean public-domain or MIT.
-Third-party terms above apply only to their covered code.
+The repository's original code (including SECS, adapters, and tests),
+documentation, data, and original artwork are licensed under the root
+[MIT license](LICENSE). This grant applies only to material owned by the
+project's rightsholder. Vendored sources and other third-party material retain
+their own licenses and notices listed here and in their original files.
 
 ## Browser Distribution
 

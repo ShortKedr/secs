@@ -68,8 +68,9 @@ node tools/web/node_modules/playwright/cli.js install chromium webkit
 node tools/web/check-web.mjs --base /secs/
 ```
 
-В опубликованном сайте есть [состав лицензионной поставки](wwwroot/licenses/NOTICE.txt)
-и оригинальные сторонние уведомления в `wwwroot/licenses/`.
+В опубликованном сайте есть [состав лицензионной поставки](wwwroot/licenses/NOTICE.txt),
+[лицензия MIT проекта](../LICENSE) и оригинальные сторонние уведомления
+в `wwwroot/licenses/`.
 
 ## Метрики и Воспроизведение
 

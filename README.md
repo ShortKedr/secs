@@ -63,5 +63,6 @@ Current unit tests and game checksums do not establish cross-platform or CPU/GPU
 parity. Benchmark results describe particular machines, revisions, and workloads;
 see each report for its method and limitations.
 
+[License: MIT for original project material](LICENSE) ·
 [Documentation map](docs/README.md) ·
 [Third-party licenses and pinned sources](THIRD_PARTY_NOTICES.md)

@@ -67,8 +67,9 @@ node tools/web/node_modules/playwright/cli.js install chromium webkit
 node tools/web/check-web.mjs --base /secs/
 ```
 
-The published site's [license inventory](wwwroot/licenses/NOTICE.txt) and original
-third-party notices are included in `wwwroot/licenses/`.
+The published site's [license inventory](wwwroot/licenses/NOTICE.txt),
+[project MIT license](../LICENSE), and original third-party notices are included
+in `wwwroot/licenses/`.
 
 ## Metrics and Reproduction
 

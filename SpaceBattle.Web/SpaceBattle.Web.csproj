@@ -18,6 +18,7 @@
     <DefineConstants>$(DefineConstants);WEB_INTERPRETER</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="../LICENSE" Link="wwwroot/licenses/MIT.txt" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.31" />
     <ProjectReference Include="../SpaceBattle.Core/SpaceBattle.Core.csproj" />
     <ProjectReference Include="../SpaceBattle.SECS/SpaceBattle.SECS.csproj" />

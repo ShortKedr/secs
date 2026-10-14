@@ -52,6 +52,7 @@ game-specific implementation and diagnostic history.
 
 ## Source and licenses
 
+[Original project code, documentation, data, and artwork](../LICENSE) are under MIT.
 [Third-party notices](../THIRD_PARTY_NOTICES.md) identify licenses and pinned
 sources. The four comparison frameworks are included in `Benchmarks.Local/vendor`.
 Consult the inventory before reuse, including LeoECS conditional MIT-Red terms.
