@@ -8,7 +8,7 @@ import {
   rewriteImports, rewriteIndex, safeFileKey, sha256, staticImports, validateSiteDirectory, versionUrl,
 } from "./finalize-web-site.mjs";
 
-const html = '<!doctype html>\r\n<base href="/secs/" />\r\n' +
+const html = '<!doctype html>\r\n<base href="/skecs/" />\r\n' +
   '<link rel="stylesheet" href="styles.css?theme=dark&amp;v=old" />\r\n' +
   '<script src="assets/lucide.min.js?v=old"></script>\r\n' +
   '<script autostart="false" src=\'_framework/blazor.webassembly.js\'></script>\r\n' +
@@ -58,7 +58,7 @@ test("index versions only four intended references, preserving base, attributes 
   const sources = fixtureSources(), hashes = Object.fromEntries(requiredFiles.map(file => [file, sha256(sources.get(file))]));
   const original = html + '<script src="unrelated.js?v=stay"></script>\r\n';
   const result = rewriteIndex(original, hashes);
-  assert.ok(result.includes('<base href="/secs/" />'));
+  assert.ok(result.includes('<base href="/skecs/" />'));
   assert.ok(result.includes('autostart="false"'));
   assert.ok(result.includes('<script src="unrelated.js?v=stay"></script>'));
   assert.ok(result.includes(`styles.css?theme=dark&amp;v=${hashes["styles.css"]}`));

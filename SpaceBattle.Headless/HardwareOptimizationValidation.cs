@@ -20,7 +20,7 @@ internal static class HardwareOptimizationValidation
         map.Add(first, 11);
         typeof(EntityIndexTable).GetField("epoch", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(map, uint.MaxValue);
         map.Clear(); Check(!map.TryGetValue(first, out _), "epoch wrap clears old generation");
-        ExternalEdits(static () => new SecsStore()); ExternalEdits(static () => new LeoEcsLiteStore());
+        ExternalEdits(static () => new SkecsStore()); ExternalEdits(static () => new LeoEcsLiteStore());
         ExternalEdits(static () => new LeoEcsClassicStore()); ExternalEdits(static () => new MorpehStore());
         ExternalEdits(static () => new StaticEcsStore());
         Console.WriteLine("PASS: generation-aware snapshot IDs, reuse, growth, epoch wrap, bounded fallback and external/ref/transient edits on five ports.");

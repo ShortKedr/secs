@@ -21,7 +21,7 @@
     <Content Include="../LICENSE" Link="wwwroot/licenses/MIT.txt" CopyToPublishDirectory="PreserveNewest" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.31" />
     <ProjectReference Include="../SpaceBattle.Core/SpaceBattle.Core.csproj" />
-    <ProjectReference Include="../SpaceBattle.SECS/SpaceBattle.SECS.csproj" />
+    <ProjectReference Include="../SpaceBattle.SKECS/SpaceBattle.SKECS.csproj" />
     <Content Include="../SpaceBattle.Game/Assets/ships-atlas.png" Link="wwwroot/assets/ships-atlas.png" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../SpaceBattle.Game/Assets/ships-atlas.json" Link="wwwroot/assets/ships-atlas.json" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../SpaceBattle.Game/Assets/guns-atlas.png" Link="wwwroot/assets/guns-atlas.png" CopyToPublishDirectory="PreserveNewest" />

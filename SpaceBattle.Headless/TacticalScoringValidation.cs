@@ -11,7 +11,7 @@ internal static partial class AiLocalityValidation
 {
     public static void RunScoring()
     {
-        RunScoring(static () => new SecsStore()); RunScoring(static () => new LeoEcsLiteStore());
+        RunScoring(static () => new SkecsStore()); RunScoring(static () => new LeoEcsLiteStore());
         RunScoring(static () => new LeoEcsClassicStore()); RunScoring(static () => new MorpehStore());
         RunScoring(static () => new StaticEcsStore());
         Console.WriteLine("PASS: tactical v3 readiness/pursuit/staggering, heat-limited volleys, intent confidence, overkill, separate suppression/losses, bounded candidates and allocation checks (five adapters).");

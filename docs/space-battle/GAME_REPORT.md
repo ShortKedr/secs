@@ -303,4 +303,4 @@ Without --verify-ticks the analyzer verifies published JSON and hashes and build
 
 - [Archived 2026-10-11 campaign](REPORT_2026-10-11.md): predictive-neutral-v1, Aether, old frontend replay and entity composition. Its values are not compared with this campaign because gameplay rules, physics and workload changed.
 - [Architecture](ARCHITECTURE.md), [physics](PHYSICS.md), [armament](ARMAMENT.md), [tactics](TACTICS_V3.md).
-- [SECS microbenchmarks](../../SECS.Benchmarks/README.md): separate workloads without gameplay logic.
+- [SKECS microbenchmarks](../../SKECS.Benchmarks/README.md): separate workloads without gameplay logic.

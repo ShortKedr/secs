@@ -42,11 +42,11 @@ try {
     [IO.Directory]::CreateDirectory($env:TEMP) | Out-Null
     Set-Location $destination
     # Only restore reads may need network; all build/test outputs stay in this copy.
-    Invoke-Checked @('build', 'SECS.sln', '-c', 'Release', '-m:1', '--nologo', '-p:NuGetAudit=false', '-p:RestoreIgnoreFailedSources=true')
-    Invoke-Checked @('test', 'SECS.Tests/SECS.Tests.csproj', '-c', 'Release', '--no-build', '--no-restore', '--nologo')
+    Invoke-Checked @('build', 'SKECS.sln', '-c', 'Release', '-m:1', '--nologo', '-p:NuGetAudit=false', '-p:RestoreIgnoreFailedSources=true')
+    Invoke-Checked @('test', 'SKECS.Tests/SKECS.Tests.csproj', '-c', 'Release', '--no-build', '--no-restore', '--nologo')
     Invoke-Checked @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', '--validate')
     Invoke-Checked @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', '--validate-stress')
-    Invoke-Checked @('SECS.OtherBenchmarks/bin/Release/net8.0/SECS.OtherBenchmarks.dll', '--validate')
+    Invoke-Checked @('SKECS.OtherBenchmarks/bin/Release/net8.0/SKECS.OtherBenchmarks.dll', '--validate')
     foreach ($mode in @('--validate-adapters', '--validate', '--validate-ports')) {
         Invoke-Checked @('SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll', $mode)
     }

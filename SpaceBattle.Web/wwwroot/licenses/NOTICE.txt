@@ -4,7 +4,7 @@ Original project code, documentation, data, and artwork:
 Copyright (c) 2026 Nikolay Nakorkeshko. MIT license: MIT.txt.
 Third-party material retains the separate terms listed below.
 
-This browser application bundles only SECS, SpaceBattle.Core, SpaceBattle.SECS,
+This browser application bundles only SKECS, SpaceBattle.Core, SpaceBattle.SKECS,
 .NET/Blazor WebAssembly, and Lucide icons. It does not bundle
 LeoECS, LeoECS Lite, Morpeh, StaticEcs, Silk.NET, or the benchmark/test tooling.
 

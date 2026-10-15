@@ -3,13 +3,13 @@
 **[Промо Space Battle: четыре записанных ролика](docs/promo/space-battle/README.ru.md)**
 
 <p align="center">
-  <img src="docs/branding/logo/shortkedr-ecs-200.png" width="200" height="200" alt="ShortKedr ECS — белка и кедровая шишка">
+  <img src="docs/branding/logo/shortkedr-ecs-200.png" width="200" height="200" alt="SKECS — белка и кедровая шишка">
 </p>
 
-# SECS — ShortKedr ECS
+# SKECS — ShortKedr ECS
 
 Небольшая библиотека «сущность — компонент — система» (ECS) со сборками для
-.NET Standard 2.0/2.1 и .NET 8. SECS
+.NET Standard 2.0/2.1 и .NET 8. SKECS
 группирует сущности по набору компонентов и хранит компоненты без управляемых ссылок в чанках.
 Системы изменяют их через типизированные запросы с `ref` и выполняются по
 очереди: `PreUpdate`, `Update`, `PostUpdate`. В репозитории есть тесты,
@@ -19,9 +19,9 @@
 
 | Ваша задача | Куда перейти |
 | --- | --- |
-| Использовать библиотеку | [Быстрый старт](#быстрый-старт) · [Установка пакета](docs/secs/INSTALL.ru.md) · [API и правила времени жизни](docs/secs/README.ru.md) · [Исходник примера](SECS.Sample/Program.cs) |
-| Развивать SECS | [Реализованные оптимизации](docs/SECS_OPTIMIZATION.ru.md) · [Тесты](SECS.Tests) |
-| Прочитать или воспроизвести измерения | [Микробенчмарки](SECS.Benchmarks/README.ru.md) · [Сравнение пяти фреймворков](Benchmarks.Local/README.ru.md) · [Отчёт Space Battle](docs/space-battle/REPORT.ru.md) |
+| Использовать библиотеку | [Быстрый старт](#быстрый-старт) · [Установка пакета](docs/skecs/INSTALL.ru.md) · [API и правила времени жизни](docs/skecs/README.ru.md) · [Исходник примера](SKECS.Sample/Program.cs) |
+| Развивать SKECS | [Реализованные оптимизации](docs/SKECS_OPTIMIZATION.ru.md) · [Тесты](SKECS.Tests) |
+| Прочитать или воспроизвести измерения | [Микробенчмарки](SKECS.Benchmarks/README.ru.md) · [Сравнение пяти фреймворков](Benchmarks.Local/README.ru.md) · [Отчёт Space Battle](docs/space-battle/REPORT.ru.md) |
 | Запустить игру | [Desktop](SpaceBattle.Game/README.ru.md) · [Web](SpaceBattle.Web/README.ru.md) |
 
 `Benchmarks.Local/` — публичный стенд сравнения пяти ECS: исходники, скрипты
@@ -38,12 +38,12 @@
 $env:DOTNET_CLI_HOME = "$PWD/Benchmarks.Local/.dotnet"
 $env:NUGET_PACKAGES = "$PWD/Benchmarks.Local/nuget-packages"
 
-dotnet run --project SECS.Sample/SECS.Sample.csproj -c Release
-dotnet test SECS.Tests/SECS.Tests.csproj -c Release
+dotnet run --project SKECS.Sample/SKECS.Sample.csproj -c Release
+dotnet test SKECS.Tests/SKECS.Tests.csproj -c Release
 ```
 
-Для использования SECS в своём приложении добавьте ссылку на проект
-[SECS.csproj](SECS/SECS.csproj). [Руководство библиотеки](docs/secs/README.ru.md)
+Для использования SKECS в своём приложении добавьте ссылку на проект
+[SKECS.csproj](SKECS/SKECS.csproj). [Руководство библиотеки](docs/skecs/README.ru.md)
 содержит минимальный пример запроса и объясняет владение сущностями, ссылки
 на компоненты, структурные изменения и обход чанков.
 
@@ -54,7 +54,7 @@ dotnet test SECS.Tests/SECS.Tests.csproj -c Release
 
 Автономные флоты используют управление через AI, стрельбу с упреждением,
 турели, щиты, производство, стыковку и ремонт на авианосцах. Desktop- и
-Web-клиенты работают на SECS; headless-хост также сравнивает LeoECS Lite,
+Web-клиенты работают на SKECS; headless-хост также сравнивает LeoECS Lite,
 LeoECS Classic, Morpeh и StaticEcs через адаптеры нативного хранения и запросов.
 
 [![Геймплей Space Battle](docs/space-battle/cover.png)](docs/space-battle/README.ru.md)

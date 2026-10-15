@@ -1,6 +1,7 @@
 import json
 import math
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -50,6 +51,49 @@ class CurrentCampaignTests(unittest.TestCase):
                 manifest[key] = value
                 with self.assertRaises(ValueError):
                     report.validate_current_profile(manifest)
+
+    def test_format3_accepts_skecs_identity_and_preserves_archived_secs_data(self):
+        historical = report.read_json(report.DOCS / "current" / "manifest.json")
+        self.assertEqual(tuple(historical["FrameworkOrder"]), tuple(report.FRAMEWORKS))
+        with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as temp:
+            root = Path(temp)
+            source = report.DOCS / "current"
+            old_data = root / "secs"
+            old_data.mkdir()
+            for path in source.glob("*.json"):
+                shutil.copy2(path, old_data / path.name)
+            manifest = report.read_json(old_data / "manifest.json")
+            for name in manifest["Files"]:
+                if (old_data / name).is_file():
+                    manifest["Files"][name] = report.digest(old_data / name)
+            (old_data / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            old_runs, _, _ = report.validate(old_data, False, "game")
+            self.assertIn(("high", "secs"), old_runs)
+
+            data = root / "skecs"
+            shutil.copytree(old_data, data)
+            manifest = report.read_json(data / "manifest.json")
+            manifest["FrameworkOrder"] = list(report.SKECS_FRAMEWORKS)
+            original = data / "high-secs.json"
+            run = report.read_json(original)
+            run["Metadata"]["Framework"] = "SKECS"
+            renamed = data / "high-skecs.json"
+            renamed.write_text(json.dumps(run), encoding="utf-8")
+            original.unlink()
+            files = manifest["Files"]
+            files.pop("high-secs.json")
+            files["high-skecs.json"] = report.digest(renamed)
+            files["high-skecs.ticks.csv"] = files.pop("high-secs.ticks.csv")
+            (data / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            runs, checked, hardware = report.validate(data, False, "game")
+            self.assertEqual(tuple(checked["FrameworkOrder"]), tuple(report.SKECS_FRAMEWORKS))
+            self.assertEqual(runs["high", "skecs"]["Metadata"]["Framework"], "SKECS")
+            with patch.object(report, "DOCS", root):
+                report.render_format3(runs, checked, hardware, data, False)
+            for filename in ("REPORT.md", "REPORT.ru.md"):
+                text = (root / filename).read_text(encoding="utf-8")
+                self.assertIn("SKECS", text)
+                self.assertNotIn("SECS", text)
 
     def test_current_report_rejects_legacy_campaign_format(self):
         with tempfile.TemporaryDirectory(dir=report.ROOT / "Benchmarks.Local/tmp") as directory:

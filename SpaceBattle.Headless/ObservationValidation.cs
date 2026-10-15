@@ -5,7 +5,7 @@ internal static partial class Validation
 {
     private static void ObservationChecks()
     {
-        ObservationReplay(static () => new SecsStore());
+        ObservationReplay(static () => new SkecsStore());
         ObservationReplay(static () => new LeoEcsLiteStore());
         ObservationReplay(static () => new LeoEcsClassicStore());
         ObservationReplay(static () => new MorpehStore());

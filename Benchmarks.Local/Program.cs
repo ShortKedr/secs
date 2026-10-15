@@ -8,13 +8,13 @@ if (OptimizedApiRunner.Handle(args)) return;
 
 var factories = new (string Name, Func<int, IWorkload> Create)[]
 {
-    ("SECS", n => new SecsWorkload(n)),
+    ("SKECS", n => new SkecsWorkload(n)),
     ("LeoECS Lite", n => new LiteWorkload(n)),
     ("LeoECS Classic", n => new ClassicWorkload(n)),
     ("Morpeh", n => new MorpehWorkload(n)),
     ("StaticEcs", n => new StaticWorkload(n))
 };
-if (args.Contains("--secs-only")) factories = factories.Where(f => f.Name == "SECS").ToArray();
+if (args.Contains("--skecs-only")) factories = factories.Where(f => f.Name == "SKECS").ToArray();
 var counts = new[] { 1_000, 100_000 };
 var scenarios = new[] { "Create", "Iterate", "Churn", "Destroy" };
 foreach (var factory in factories)
@@ -118,7 +118,7 @@ var metadata = new
     sampleCount,
     targetSampleNs,
     footer = "Release; tiering off; 20 samples; setup/forced GC excluded; Morpeh Commit included",
-    revisions = new { SECS = Environment.GetEnvironmentVariable("SECS_BENCHMARK_REVISION") ?? "working tree: lookup, chunk reuse, transition cache", classic = "1213c31c9ef8325d48e74a52b345c4db242d038b",
+    revisions = new { SKECS = Environment.GetEnvironmentVariable("SKECS_BENCHMARK_REVISION") ?? "working tree: lookup, chunk reuse, transition cache", classic = "1213c31c9ef8325d48e74a52b345c4db242d038b",
         lite = "5053141d7d663c6b1855c8409ac93dfac807b239", morpeh = "9f6369384792a01d74df24efd35b08ae313e4f12",
         staticEcs = "23b1cf36d89497e8a126d38459d688e2b0a5dea3", staticPack = "7bfb6cf925901b9366dda884258d727a89fff76e" }
 };

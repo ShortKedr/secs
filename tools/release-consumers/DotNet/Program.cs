@@ -1,5 +1,5 @@
 using System;
-using SECS;
+using SKECS;
 
 internal static class Program
 {
@@ -13,12 +13,12 @@ internal static class Program
 
             if (counter.Count != 1 || world.Get<Position>(entity).X != 3)
             {
-                Console.Error.WriteLine("SECS consumer smoke failed: query/Get disagreed.");
+                Console.Error.WriteLine("SKECS consumer smoke failed: query/Get disagreed.");
                 return 1;
             }
         }
 
-        Console.WriteLine("SECS_CONSUMER_OK");
+        Console.WriteLine("SKECS_CONSUMER_OK");
         return 0;
     }
 

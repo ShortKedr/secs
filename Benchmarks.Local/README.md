@@ -5,17 +5,17 @@ English | [Русский](README.ru.md)
 This directory is part of the public repository. It contains the reproducible
 five-framework comparison runner, adapters, scripts, and published measurements.
 "Local" refers to running benchmarks on a machine; internal development notes
-belong in `../secs-private/`.
+belong in `../skecs-private/`.
 
-[Repository](../README.md) | [Benchmark report](../SECS.Benchmarks/README.md) | [SpaceBattle report](../docs/space-battle/REPORT.md) | [Third-party notices](../THIRD_PARTY_NOTICES.md)
+[Repository](../README.md) | [Benchmark report](../SKECS.Benchmarks/README.md) | [SpaceBattle report](../docs/space-battle/REPORT.md) | [Third-party notices](../THIRD_PARTY_NOTICES.md)
 
-This directory contains the five-framework Stopwatch comparison harness, its adapters, stress backends, retained JSON measurements, and plotting scripts. BenchmarkDotNet suites live separately in `SECS.Benchmarks` and `SECS.OtherBenchmarks` and measure SECS, not all five frameworks.
+This directory contains the five-framework Stopwatch comparison harness, its adapters, stress backends, retained JSON measurements, and plotting scripts. BenchmarkDotNet suites live separately in `SKECS.Benchmarks` and `SKECS.OtherBenchmarks` and measure SKECS, not all five frameworks.
 
 ## Source Catalogue
 
 | Framework | Base workload implementation | Stress implementation | SpaceBattle native store | Runtime sources |
 | --- | --- | --- | --- | --- |
-| SECS | [SecsWorkload](Adapters.cs), wrapping [ComparisonWorkload](../SECS.Benchmarks/ComparisonWorkload.cs) | [SecsStressBackend](../SECS.Benchmarks/SecsStressBackend.cs) | [SecsStore](../SpaceBattle.SECS/SecsStore.cs) | [SECS](../SECS/) |
+| SKECS | [SkecsWorkload](Adapters.cs), wrapping [ComparisonWorkload](../SKECS.Benchmarks/ComparisonWorkload.cs) | [SkecsStressBackend](../SKECS.Benchmarks/SkecsStressBackend.cs) | [SkecsStore](../SpaceBattle.SKECS/SkecsStore.cs) | [SKECS](../SKECS/) |
 | LeoECS Lite | [LiteWorkload](Adapters.cs) | [LiteStressBackend](StressAdapters.cs) | [LeoEcsLiteStore](../SpaceBattle.Adapters/LeoEcsLiteStore.cs) | [ecslite/src](vendor/ecslite/src/) |
 | LeoECS Classic | [ClassicWorkload](Adapters.cs) | [ClassicStressBackend](StressAdapters.cs) | [LeoEcsClassicStore](../SpaceBattle.Adapters/LeoEcsClassicStore.cs) | [ecs/src](vendor/ecs/src/) |
 | Morpeh | [MorpehWorkload](Adapters.cs) | [MorpehStressBackend](StressAdapters.cs) | [MorpehStore](../SpaceBattle.Adapters/MorpehStore.cs) | [Morpeh Core](vendor/morpeh/Scellecs.Morpeh/Core/) |
@@ -33,7 +33,7 @@ Licenses are not uniformly unrestricted MIT: LeoECS Classic offers proprietary o
 
 Validation checks every entity before timing. Setup, seeding, world disposal, and forced GC are outside timings; Morpeh commits are included. Each case warms for at least 400 ms and retains 20 samples. Create/Destroy use one fresh batch per sample; Iterate/Churn target 30 ms with at most 1,000 repetitions.
 
-[StressRunner.cs](StressRunner.cs), [StressContract.cs](../SECS.Benchmarks/StressContract.cs), and [StressWorkload.cs](../SECS.Benchmarks/StressWorkload.cs) share initialized data, shape masks, and seeded operation orders across all five backends. The normal matrix is 100,000/1,000,000 entities, seven workloads, eight samples per case, at least 300 ms warmup, and up to 16 repetitions targeting 30 ms. MixedFrames uses one invocation per sample.
+[StressRunner.cs](StressRunner.cs), [StressContract.cs](../SKECS.Benchmarks/StressContract.cs), and [StressWorkload.cs](../SKECS.Benchmarks/StressWorkload.cs) share initialized data, shape masks, and seeded operation orders across all five backends. The normal matrix is 100,000/1,000,000 entities, seven workloads, eight samples per case, at least 300 ms warmup, and up to 16 repetitions targeting 30 ms. MixedFrames uses one invocation per sample.
 
 | Stress scenario | One operation |
 | --- | --- |
@@ -51,13 +51,13 @@ RNG, sorting, setup, validation, disposal, and forced GC are untimed. Natural GC
 
 Equivalent logical work does not mean identical layouts, queries, or optimal APIs.
 
-Allocation fields measure managed allocations on the measured thread. They exclude native storage and do not represent total memory. Error bars represent sample standard deviation, not confidence intervals. Results apply to the recorded machine/runtime/revisions, not Unity/IL2CPP or a universal framework ranking. SECS-only optimized creation/accessor experiments are separate and do not replace the shared API comparison.
+Allocation fields measure managed allocations on the measured thread. They exclude native storage and do not represent total memory. Error bars represent sample standard deviation, not confidence intervals. Results apply to the recorded machine/runtime/revisions, not Unity/IL2CPP or a universal framework ranking. SKECS-only optimized creation/accessor experiments are separate and do not replace the shared API comparison.
 
 The JSON `machine` field uses the anonymous label `local-machine`. CPU, OS,
 runtime, source revisions and measurement conditions remain recorded so the
 results can be interpreted without publishing the computer name.
 For a campaign combining different computers, set a distinct neutral
-`SECS_BENCHMARK_MACHINE_LABEL` on each one; the default label alone does not
+`SKECS_BENCHMARK_MACHINE_LABEL` on each one; the default label alone does not
 prove that two runs came from the same host.
 
 ## Current campaign
@@ -92,12 +92,12 @@ dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --validate-stress
 
 Base validation checks entity data and lifetime at both measured entity counts. Stress preflight uses 257/4,097 entities, seven scenarios repeated three times, payload round-trip and retired-handle checks. Every measured stress case also validates its full population after warmup and samples. These checks validate this repository's workload/adapter contract; they are not complete upstream test suites.
 
-## All SECS suites
+## All SKECS suites
 
-The [supplemental campaign](../docs/benchmarks/current/SUPPLEMENT.md) covers every default SECS BenchmarkDotNet case, the legacy suite and direct API/storage diagnostics. Run `./Benchmarks.Local/run_supplement.ps1`, then `python Benchmarks.Local/report_supplement.py docs/benchmarks/current`. The runner uses the same project-local cache/temp paths and runs each workload sequentially; `supplement.json` records source and input hashes.
+The [supplemental campaign](../docs/benchmarks/current/SUPPLEMENT.md) covers every default SKECS BenchmarkDotNet case, the legacy suite and direct API/storage diagnostics. Run `./Benchmarks.Local/run_supplement.ps1`, then `python Benchmarks.Local/report_supplement.py docs/benchmarks/current`. The runner uses the same project-local cache/temp paths and runs each workload sequentially; `supplement.json` records source and input hashes.
 
 ## Retained experiments
 
 The [SECS optimization methodology](../docs/benchmarks/optimization-methodology.md) explains preserved baseline/optimized binaries and paired datasets. `results-all-updated.json` / `stress-all-updated.json` and `docs/benchmarks/updated` are the previous complete five-framework run. Other `results*.json`, storage/accessor experiments and BenchmarkDotNet smoke outputs retain their own metadata and scope. Do not mix competitor observations across campaigns or use Dry/smoke timings as a full performance ranking.
 
-BenchmarkDotNet launch instructions are in [SECS.Benchmarks](../SECS.Benchmarks/README.md). The separate end-to-end simulation and its reproduction live in the [SpaceBattle report](../docs/space-battle/REPORT.md).
+BenchmarkDotNet launch instructions are in [SKECS.Benchmarks](../SKECS.Benchmarks/README.md). The separate end-to-end simulation and its reproduction live in the [SpaceBattle report](../docs/space-battle/REPORT.md).

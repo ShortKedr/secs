@@ -13,7 +13,7 @@ internal static class FleetDeploymentValidation
         Require(FleetDeploymentRules.EscortClearance == 2.4f && FleetDeploymentRules.CarrierClearance == 4,
             "deployment surface clearance contract");
         PlannerChecks();
-        var expected = PortChecks(static () => new SecsStore());
+        var expected = PortChecks(static () => new SkecsStore());
         Check(PortChecks(static () => new LeoEcsLiteStore()), "Lite");
         Check(PortChecks(static () => new LeoEcsClassicStore()), "Classic");
         Check(PortChecks(static () => new MorpehStore()), "Morpeh");
@@ -21,7 +21,7 @@ internal static class FleetDeploymentValidation
         Console.WriteLine("PASS: tactical deployment geometry, reflection, fleet attributes, exact legacy positions and repeated 0/120/360/720 checkpoints across all five ports.");
 
         void Check(ulong[] actual, string name) => Require(expected.SequenceEqual(actual),
-            $"{name}: tactical replay matches SECS at every checkpoint");
+            $"{name}: tactical replay matches SKECS at every checkpoint");
     }
 
     private static BattleConfig Config(int count, int carriers, FleetComposition composition, uint seed = 27) => new()

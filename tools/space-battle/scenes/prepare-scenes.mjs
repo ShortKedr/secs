@@ -40,7 +40,7 @@ export function instrumentSources(sources, template) {
 
 export async function sourceIdentity() {
   const paths = [];
-  for (const dir of ['SECS', 'SpaceBattle.Core', 'SpaceBattle.SECS', 'SpaceBattle.Web', 'SpaceBattle.Game/Assets'])
+  for (const dir of ['SKECS', 'SpaceBattle.Core', 'SpaceBattle.SKECS', 'SpaceBattle.Web', 'SpaceBattle.Game/Assets'])
     paths.push(...await filesBelow(path.join(projectRoot, dir)));
   const files = {};
   for (const file of paths.sort()) files[path.relative(projectRoot, file).split(path.sep).join('/')] = sha256(await fs.readFile(file));

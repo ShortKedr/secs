@@ -1,0 +1,242 @@
+name: SKECS release
+
+on:
+  push:
+    tags:
+      - "skecs-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skecs-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Verify tag and main ancestry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Check tag, version and main ancestry
+        shell: bash
+        run: |
+          python tools/release/prepare_release.py check-tag --tag "$GITHUB_REF_NAME"
+          test "$(git rev-parse 'HEAD^{commit}')" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main
+      - name: Reject an existing release, including a draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME")
+          if [ "$status" != 404 ]; then
+            echo "Release lookup returned HTTP $status. Existing releases are immutable; inspect any draft manually."
+            exit 1
+          fi
+
+  verify:
+    needs: preflight
+    uses: ./.github/workflows/skecs-ci.yml
+    with:
+      require-unity: true
+    permissions:
+      contents: read
+
+  publish:
+    name: Attach and publish verified release
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v8
+        with:
+          name: skecs-build-${{ github.run_id }}
+          path: artifacts/release
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: skecs-evidence-*-${{ github.run_id }}
+          path: artifacts/release/evidence
+          merge-multiple: true
+      - name: Resolve version and release artwork
+        shell: bash
+        run: |
+          version=$(python tools/release/prepare_release.py check-tag --tag "$GITHUB_REF_NAME")
+          cover=$(python tools/release/prepare_release.py name --version "$version")
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "COVER=$cover" >> "$GITHUB_ENV"
+      - name: Recheck remote tag and release absence
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          refs=$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME" "refs/tags/$GITHUB_REF_NAME^{}")
+          remote_commit=$(printf '%s\n' "$refs" | awk '$2 ~ /\^\{\}$/ {print $1}')
+          if [ -z "$remote_commit" ]; then
+            remote_commit=$(printf '%s\n' "$refs" | awk '$2 !~ /\^\{\}$/ {print $1}')
+          fi
+          test "$remote_commit" = "$GITHUB_SHA"
+          status=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME")
+          test "$status" = 404
+      - name: Verify the downloaded package and prepare release files
+        shell: bash
+        run: |
+          python tools/release/verify_package.py "artifacts/release/ShortKedr.SKECS.$VERSION.nupkg" --version "$VERSION" --commit "$GITHUB_SHA"
+          python tools/release/verify_unity_zip.py \
+            --package "artifacts/release/ShortKedr.SKECS.$VERSION.nupkg" \
+            --unity-zip "artifacts/release/SKECS.Unity.$VERSION.zip" \
+            --version "$VERSION" --commit "$GITHUB_SHA"
+          python tools/release/finalize_unity_zip.py \
+            --package "artifacts/release/ShortKedr.SKECS.$VERSION.nupkg" \
+            --provisional "artifacts/release/SKECS.Unity.$VERSION.zip" \
+            --output "artifacts/release/final/SKECS.Unity.$VERSION.zip" \
+            --evidence-dir artifacts/release/evidence --run-id "$GITHUB_RUN_ID" \
+            --version "$VERSION" --commit "$GITHUB_SHA"
+          mv "artifacts/release/final/SKECS.Unity.$VERSION.zip" "artifacts/release/SKECS.Unity.$VERSION.zip"
+          python tools/release/verify_unity_zip.py \
+            --package "artifacts/release/ShortKedr.SKECS.$VERSION.nupkg" \
+            --unity-zip "artifacts/release/SKECS.Unity.$VERSION.zip" \
+            --version "$VERSION" --commit "$GITHUB_SHA" \
+            --final --evidence-dir artifacts/release/evidence --run-id "$GITHUB_RUN_ID"
+          cp "docs/branding/releases/$COVER.png" "artifacts/release/$COVER.png"
+          python tools/release/prepare_release.py create \
+            --tag "$GITHUB_REF_NAME" --commit "$GITHUB_SHA" \
+            --package "artifacts/release/ShortKedr.SKECS.$VERSION.nupkg" \
+            --unity-zip "artifacts/release/SKECS.Unity.$VERSION.zip" \
+            --cover "artifacts/release/$COVER.png" \
+            --evidence-dir artifacts/release/evidence --run-id "$GITHUB_RUN_ID" \
+            --output artifacts/release/metadata
+          cp artifacts/release/metadata/SHA256SUMS.txt artifacts/release/SHA256SUMS.txt
+      - name: Create draft with all four assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          extra=()
+          if [[ "$VERSION" == *-* ]]; then extra+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" \
+            "artifacts/release/ShortKedr.SKECS.$VERSION.nupkg" \
+            "artifacts/release/SKECS.Unity.$VERSION.zip" \
+            artifacts/release/SHA256SUMS.txt \
+            "artifacts/release/$COVER.png" \
+            --draft --verify-tag "${extra[@]}" \
+            --title "$(cat artifacts/release/metadata/title.txt)" \
+            --notes-file artifacts/release/metadata/notes.md
+      - name: Download draft assets and compare every checksum
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p artifacts/release/downloaded
+          gh release view "$GITHUB_REF_NAME" --json isDraft,assets > artifacts/release/draft-state.json
+          python tools/release/verify_draft.py artifacts/release/draft-state.json --version "$VERSION" --cover "$COVER"
+          gh release download "$GITHUB_REF_NAME" --dir artifacts/release/downloaded
+          cmp artifacts/release/SHA256SUMS.txt artifacts/release/downloaded/SHA256SUMS.txt
+          (cd artifacts/release/downloaded && sha256sum --check SHA256SUMS.txt)
+          python tools/release/verify_unity_zip.py \
+            --package "artifacts/release/downloaded/ShortKedr.SKECS.$VERSION.nupkg" \
+            --unity-zip "artifacts/release/downloaded/SKECS.Unity.$VERSION.zip" \
+            --version "$VERSION" --commit "$GITHUB_SHA" \
+            --final --evidence-dir artifacts/release/evidence --run-id "$GITHUB_RUN_ID"
+      - name: Publish the verified draft
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Refresh the title's Qyzylorda publication date if verification crossed midnight.
+          refs=$(git ls-remote origin "refs/tags/$GITHUB_REF_NAME" "refs/tags/$GITHUB_REF_NAME^{}")
+          remote_commit=$(printf '%s\n' "$refs" | awk '$2 ~ /\^\{\}$/ {print $1}')
+          if [ -z "$remote_commit" ]; then
+            remote_commit=$(printf '%s\n' "$refs" | awk '$2 !~ /\^\{\}$/ {print $1}')
+          fi
+          test "$remote_commit" = "$GITHUB_SHA"
+          gh release view "$GITHUB_REF_NAME" --json isDraft,assets > artifacts/release/draft-state.json
+          python tools/release/verify_draft.py artifacts/release/draft-state.json --version "$VERSION" --cover "$COVER"
+          python tools/release/prepare_release.py create \
+            --tag "$GITHUB_REF_NAME" --commit "$GITHUB_SHA" \
+            --package "artifacts/release/ShortKedr.SKECS.$VERSION.nupkg" \
+            --unity-zip "artifacts/release/SKECS.Unity.$VERSION.zip" \
+            --cover "artifacts/release/$COVER.png" \
+            --evidence-dir artifacts/release/evidence --run-id "$GITHUB_RUN_ID" \
+            --output artifacts/release/metadata
+          gh release edit "$GITHUB_REF_NAME" --draft=false \
+            --title "$(cat artifacts/release/metadata/title.txt)"
+
+  verify-published:
+    name: Download and install published assets
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: skecs-evidence-unity-*-${{ github.run_id }}
+          path: artifacts/published/evidence
+          merge-multiple: true
+      - name: Download public release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python tools/release/prepare_release.py check-tag --tag "$GITHUB_REF_NAME")
+          cover=$(python tools/release/prepare_release.py name --version "$version")
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "COVER=$cover" >> "$GITHUB_ENV"
+          mkdir -p artifacts/published
+          gh release view "$GITHUB_REF_NAME" --json isDraft,assets > artifacts/published/release-state.json
+          python tools/release/verify_draft.py artifacts/published/release-state.json \
+            --version "$version" --cover "$cover" --published
+          gh release download "$GITHUB_REF_NAME" --dir artifacts/published
+      - name: Check public bytes against published SHA-256 and source
+        shell: bash
+        run: |
+          (cd artifacts/published && sha256sum --check SHA256SUMS.txt)
+          python tools/release/verify_package.py "artifacts/published/ShortKedr.SKECS.$VERSION.nupkg" \
+            --version "$VERSION" --commit "$GITHUB_SHA"
+          python tools/release/verify_unity_zip.py \
+            --package "artifacts/published/ShortKedr.SKECS.$VERSION.nupkg" \
+            --unity-zip "artifacts/published/SKECS.Unity.$VERSION.zip" \
+            --version "$VERSION" --commit "$GITHUB_SHA" \
+            --final --evidence-dir artifacts/published/evidence --run-id "$GITHUB_RUN_ID"
+      - name: Install downloaded package in a fresh .NET 8 consumer
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-DotNetSmoke.ps1 -PackageDirectory artifacts/published -Framework net8.0 -Version "$env:VERSION"
+      - name: Record published acceptance result
+        if: always()
+        shell: bash
+        run: |
+          echo "Published release: https://github.com/$GITHUB_REPOSITORY/releases/tag/$GITHUB_REF_NAME" >> "$GITHUB_STEP_SUMMARY"
+          echo 'See this job for public asset checksums and package-backed .NET 8 installation.' >> "$GITHUB_STEP_SUMMARY"

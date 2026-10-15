@@ -52,7 +52,7 @@ internal static partial class Validation
             allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
             Require(allocated == 0, $"warmed reusable collider capture allocates zero bytes, got {allocated}");
         }
-        ColliderReplay(static () => new SecsStore());
+        ColliderReplay(static () => new SkecsStore());
         ColliderReplay(static () => new LeoEcsLiteStore());
         ColliderReplay(static () => new LeoEcsClassicStore());
         ColliderReplay(static () => new MorpehStore());

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate local SECS release evidence against the exact clean checkout.
+"""Validate local SKECS release evidence against the exact clean checkout.
 
 The report lives under an ignored artifacts directory. Validation is read-only;
 it does not run the checks or create the evidence it validates.
@@ -18,23 +18,25 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
+from prepare_release import name_for
+
 
 CHECK_MARKERS = {
-    "library-build": "SECS_LIBRARY_BUILD_OK",
-    "unit-tests": "SECS_UNIT_TESTS_OK",
-    "package-content": "SECS_PACKAGE_CONTENT_OK",
-    "unity-zip-content": "SECS_UNITY_ZIP_CONTENT_OK",
-    "documentation": "SECS_DOCUMENTATION_OK",
-    "dotnet8-consumer": "SECS_CONSUMER_OK",
-    "dotnet10-consumer": "SECS_CONSUMER_OK",
-    "net48-consumer": "SECS_CONSUMER_OK",
-    "godot45-consumer": "SECS_GODOT_OK",
-    "unity-2022.3-editor": "SECS_UNITY_EDITOR_OK",
-    "unity-2022.3-mono": "SECS_UNITY_OK",
-    "unity-2022.3-il2cpp": "SECS_UNITY_OK",
-    "unity-6-editor": "SECS_UNITY_EDITOR_OK",
-    "unity-6-mono": "SECS_UNITY_OK",
-    "unity-6-il2cpp": "SECS_UNITY_OK",
+    "library-build": "SKECS_LIBRARY_BUILD_OK",
+    "unit-tests": "SKECS_UNIT_TESTS_OK",
+    "package-content": "SKECS_PACKAGE_CONTENT_OK",
+    "unity-zip-content": "SKECS_UNITY_ZIP_CONTENT_OK",
+    "documentation": "SKECS_DOCUMENTATION_OK",
+    "dotnet8-consumer": "SKECS_CONSUMER_OK",
+    "dotnet10-consumer": "SKECS_CONSUMER_OK",
+    "net48-consumer": "SKECS_CONSUMER_OK",
+    "godot45-consumer": "SKECS_GODOT_OK",
+    "unity-2022.3-editor": "SKECS_UNITY_EDITOR_OK",
+    "unity-2022.3-mono": "SKECS_UNITY_OK",
+    "unity-2022.3-il2cpp": "SKECS_UNITY_OK",
+    "unity-6-editor": "SKECS_UNITY_EDITOR_OK",
+    "unity-6-mono": "SKECS_UNITY_OK",
+    "unity-6-il2cpp": "SKECS_UNITY_OK",
 }
 PLAYER_BACKENDS = {
     "unity-2022.3-mono": "Mono",
@@ -89,21 +91,22 @@ def relative_file(repo: Path, name: object, label: str) -> Path:
 
 
 def project_version(repo: Path) -> str:
-    project = repo / "SECS" / "SECS.csproj"
+    project = repo / "SKECS" / "SKECS.csproj"
     require(project.is_file(), f"missing project: {project}")
     values = [node.text.strip() for node in ET.parse(project).iter("Version") if node.text]
     require(len(values) == 1 and bool(re.fullmatch(r"\d+\.\d+\.\d+", values[0])),
-            "SECS.csproj must contain one numeric Version")
+            "SKECS.csproj must contain one numeric Version")
     return values[0]
 
 
 def validate_artifacts(report: dict, repo: Path, report_path: Path, version: str, head: str) -> None:
     artifacts = report.get("artifacts")
     require(isinstance(artifacts, list), "artifacts must be an array")
+    cover = f"{name_for(version).lower()}.png"
     expected = {
-        f"ShortKedr.SECS.{version}.nupkg",
-        f"SECS.Unity.{version}.zip",
-        "cone.png",
+        f"ShortKedr.SKECS.{version}.nupkg",
+        f"SKECS.Unity.{version}.zip",
+        cover,
     }
     paths: dict[str, Path] = {}
     for entry in artifacts:
@@ -121,8 +124,8 @@ def validate_artifacts(report: dict, repo: Path, report_path: Path, version: str
         paths[name] = path
     require(expected.issubset(paths), f"missing required artifacts: {sorted(expected - paths.keys())}")
 
-    package = paths[f"ShortKedr.SECS.{version}.nupkg"]
-    unity_zip = paths[f"SECS.Unity.{version}.zip"]
+    package = paths[f"ShortKedr.SKECS.{version}.nupkg"]
+    unity_zip = paths[f"SKECS.Unity.{version}.zip"]
     try:
         with zipfile.ZipFile(package) as archive:
             nuspecs = [name for name in archive.namelist() if name.endswith(".nuspec")]
@@ -130,26 +133,26 @@ def validate_artifacts(report: dict, repo: Path, report_path: Path, version: str
             nuspec = ET.fromstring(archive.read(nuspecs[0]))
             metadata = nuspec.find("{*}metadata")
             require(metadata is not None, "package nuspec lacks metadata")
-            require(metadata.findtext("{*}id") == "ShortKedr.SECS", "package ID mismatch")
+            require(metadata.findtext("{*}id") == "ShortKedr.SKECS", "package ID mismatch")
             require(metadata.findtext("{*}version") == version, "package version mismatch")
             repository = metadata.find("{*}repository")
             require(repository is not None and repository.get("commit") == head,
                     "package repository commit differs from HEAD")
-            dll = archive.read("lib/netstandard2.1/SECS.dll")
+            dll = archive.read("lib/netstandard2.1/SKECS.dll")
         with zipfile.ZipFile(unity_zip) as archive:
             manifest = json.loads(archive.read("manifest.json"))
-            require(manifest.get("package") == "ShortKedr.SECS", "Unity manifest package mismatch")
+            require(manifest.get("package") == "ShortKedr.SKECS", "Unity manifest package mismatch")
             require(manifest.get("version") == version, "Unity manifest version mismatch")
             require(manifest.get("sourceCommit") == head, "Unity manifest commit differs from HEAD")
             files = manifest.get("files")
             require(isinstance(files, dict), "Unity manifest lacks file hashes")
-            for name in ("INSTALL.md", "LICENSE", "lib/netstandard2.1/SECS.dll"):
+            for name in ("INSTALL.md", "LICENSE", "lib/netstandard2.1/SKECS.dll"):
                 require(isinstance(files.get(name), str) and SHA256.fullmatch(files[name]) is not None,
                         f"Unity manifest lacks SHA-256 for {name}")
                 require(sha256(archive.read(name)) == files[name], f"Unity ZIP hash mismatch: {name}")
-            require(archive.read("lib/netstandard2.1/SECS.dll") == dll,
+            require(archive.read("lib/netstandard2.1/SKECS.dll") == dll,
                     "Unity DLL differs from package netstandard2.1 DLL")
-            require(archive.read("INSTALL.md") == read_nonempty(repo / "docs" / "secs" / "INSTALL.md"),
+            require(archive.read("INSTALL.md") == read_nonempty(repo / "docs" / "skecs" / "INSTALL.md"),
                     "Unity guide differs from checked-out INSTALL.md")
             require(archive.read("LICENSE") == read_nonempty(repo / "LICENSE"),
                     "Unity LICENSE differs from checked-out LICENSE")
@@ -195,7 +198,7 @@ def validate_checks(report: dict, repo: Path) -> None:
             build_log = relative_file(repo, entry.get("buildLog"), f"{check_id}.buildLog")
             build_content = read_nonempty(build_log).decode("utf-8", errors="replace")
             backend = PLAYER_BACKENDS[check_id]
-            require(f"SECS_UNITY_BUILD_OK {backend}" in build_content,
+            require(f"SKECS_UNITY_BUILD_OK {backend}" in build_content,
                     f"missing Unity {backend} build marker: {check_id}")
         else:
             require("buildLog" not in entry, f"unexpected buildLog: {check_id}")
@@ -218,8 +221,8 @@ def validate(report_path: Path, repo: Path) -> None:
     version = project_version(repo)
     require(type(report.get("schemaVersion")) is int and report["schemaVersion"] == 1,
             "unsupported schemaVersion")
-    require(report.get("release") == f"SECS v{version} — Cone", "release/version mismatch")
-    require(report.get("candidateTag") == f"secs-v{version}", "candidateTag/version mismatch")
+    require(report.get("release") == f"SKECS v{version} — {name_for(version)}", "release/version mismatch")
+    require(report.get("candidateTag") == f"skecs-v{version}", "candidateTag/version mismatch")
     require(report.get("headCommit") == head, "report headCommit differs from HEAD")
     for key in ("workingTreeClean", "trackedSourceClean", "sourceIdentityVerified", "releaseReady"):
         require(report.get(key) is True, f"{key} must be true")

@@ -1,0 +1,10 @@
+<Project Sdk="Godot.NET.Sdk/4.5.0">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <SKECSVersion Condition="'$(SKECSVersion)' == ''">0.2.0</SKECSVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ShortKedr.SKECS" Version="$(SKECSVersion)" />
+  </ItemGroup>
+</Project>

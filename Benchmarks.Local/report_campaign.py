@@ -32,7 +32,11 @@ for data, count in ((base, 20), (stress, 8)):
     require(data['metadata']['tieredCompilation'] == '0', 'Tiering must be disabled')
     require(data['metadata']['runtime'] == base['metadata']['runtime'], 'Mixed runtimes')
 date = manifest['started'][:10]
-frameworks = ('SECS', 'LeoECS Lite', 'LeoECS Classic', 'Morpeh', 'StaticEcs')
+products = {row['framework'] for data in (base, stress) for row in data['results']
+            if row['framework'] in ('SECS', 'SKECS')}
+require(len(products) == 1, 'Campaign must measure exactly one SECS/SKECS product identity')
+product = products.pop()
+frameworks = (product, 'LeoECS Lite', 'LeoECS Classic', 'Morpeh', 'StaticEcs')
 vendor_path = root / 'Benchmarks.Local/vendor-manifest.json'
 require(hashlib.sha256(vendor_path.read_bytes()).hexdigest() ==
         manifest['sourceHashes']['Benchmarks.Local/vendor-manifest.json'],
@@ -43,7 +47,7 @@ for name, key in (('StaticEcs', 'staticEcs'), ('StaticPack', 'staticPack')):
     require(stress['metadata']['revisions'][key] == vendor[name], f'Stress {name} revision differs from vendor manifest')
 static_version = stress['metadata']['versions']['staticEcs']
 static_pack_version = stress['metadata']['versions']['staticPack']
-pin_rows = '\n'.join(f'| {name} | `{manifest["sourceRevision"] if name == "SECS" else vendor[name]}` |'
+pin_rows = '\n'.join(f'| {name} | `{manifest["sourceRevision"] if name == product else vendor[name]}` |'
                      for name in frameworks)
 def table(data, language):
     indexed = {(r['scenario'], r['entityCount'], r['framework']): r for r in data['results']}
@@ -65,7 +69,7 @@ en = f'''English | [Русский](REPORT.ru.md)
 
 # ECS comparison — {date}
 
-[Benchmark overview](../../../SECS.Benchmarks/README.md) | [Harness and reproduction](../../../Benchmarks.Local/README.md)
+[Benchmark overview](../../../SKECS.Benchmarks/README.md) | [Harness and reproduction](../../../Benchmarks.Local/README.md)
 
 [Complete SECS suites and API measurements](SUPPLEMENT.md) include 34 current and 51 legacy BenchmarkDotNet cases, plus creation/accessor and retained-storage diagnostics.
 
@@ -75,7 +79,7 @@ Environment: {base['metadata']['runtime']}, {base['metadata']['architecture']}, 
 
 ## Framework revisions used
 
-Third-party rows show exact upstream commits, not guessed release numbers. The SECS row shows the campaign's repository revision; [campaign metadata](campaign.json) also records hashes of the measured source and assemblies. Third-party commits come from the hash-verified [vendor manifest](../../../Benchmarks.Local/vendor-manifest.json).
+Third-party rows show exact upstream commits, not guessed release numbers. The {product} row shows the campaign's repository revision; [campaign metadata](campaign.json) also records hashes of the measured source and assemblies. Third-party commits come from the hash-verified [vendor manifest](../../../Benchmarks.Local/vendor-manifest.json).
 
 StaticEcs is release **{static_version}**. Its compiled StaticPack dependency is **{static_pack_version}**, pinned to commit `{vendor['StaticPack']}`. The manifest records SHA-256 for every included upstream source file.
 
@@ -111,7 +115,7 @@ ru = f'''[English](REPORT.md) | Русский
 
 # Сравнение ECS — {date}
 
-[Обзор бенчмарков](../../../SECS.Benchmarks/README.ru.md) | [Раннер и воспроизведение](../../../Benchmarks.Local/README.ru.md)
+[Обзор бенчмарков](../../../SKECS.Benchmarks/README.ru.md) | [Раннер и воспроизведение](../../../Benchmarks.Local/README.ru.md)
 
 [Полные наборы SECS и замеры API](SUPPLEMENT.ru.md): 34 актуальных и 51 legacy-кейс BenchmarkDotNet, создание/аксессоры и диагностика сохранённого хранилища.
 
@@ -121,7 +125,7 @@ ru = f'''[English](REPORT.md) | Русский
 
 ## Ревизии фреймворков в замерах
 
-Для сторонних ECS указаны точные коммиты исходных репозиториев, а не предполагаемые номера релизов. Для SECS указана ревизия репозитория кампании; [метаданные](campaign.json) также содержат хеши измеренных исходников и сборок. Коммиты сторонних ECS взяты из проверенного по хешу [манифеста](../../../Benchmarks.Local/vendor-manifest.json).
+Для сторонних ECS указаны точные коммиты исходных репозиториев, а не предполагаемые номера релизов. Для {product} указана ревизия репозитория кампании; [метаданные](campaign.json) также содержат хеши измеренных исходников и сборок. Коммиты сторонних ECS взяты из проверенного по хешу [манифеста](../../../Benchmarks.Local/vendor-manifest.json).
 
 StaticEcs соответствует релизу **{static_version}**. Его зависимость StaticPack **{static_pack_version}** собрана из коммита `{vendor['StaticPack']}`. Манифест содержит SHA-256 каждого включённого файла исходников.
 

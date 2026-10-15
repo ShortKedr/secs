@@ -13,8 +13,8 @@ internal static partial class Validation
     private static void FleetCompositionChecks()
     {
         FleetCycleChecks();
-        var expected = FleetStoreChecks(static () => new SecsStore());
-        Check(FleetStoreChecks(static () => new SecsStore()), "SECS repeat");
+        var expected = FleetStoreChecks(static () => new SkecsStore());
+        Check(FleetStoreChecks(static () => new SkecsStore()), "SKECS repeat");
         Check(FleetStoreChecks(static () => new LeoEcsLiteStore()), "Lite");
         Check(FleetStoreChecks(static () => new LeoEcsClassicStore()), "Classic");
         Check(FleetStoreChecks(static () => new MorpehStore()), "Morpeh");
@@ -22,7 +22,7 @@ internal static partial class Validation
         Console.WriteLine("PASS: fleet composition cycles, smooth prefixes, legacy defaults, initial swarms, weighted production and varied warp waves across all five ports.");
 
         void Check(ulong[] actual, string name) => Require(expected.SequenceEqual(actual),
-            $"{name}: fleet composition matches SECS at all {expected.Length} deterministic checkpoints");
+            $"{name}: fleet composition matches SKECS at all {expected.Length} deterministic checkpoints");
     }
 
     private static void FleetCycleChecks()

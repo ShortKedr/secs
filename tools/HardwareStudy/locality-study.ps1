@@ -47,7 +47,7 @@ foreach ($profile in @(@('low','.5'), @('nominal','1'), @('high','2'))) {
             $file = Join-Path $destination "$name.json"
             $plan += @{profile=$profile[0]; label=$Labels[$variant]; repeat=$repeat; position=$position; output=$file}
             # Each process warms a separate full-length battle and creates a fresh measured one.
-            & "$sdk/dotnet.exe" $binaries[$variant] --game --port secs --ticks $Ticks --phase-ticks $PhaseTicks --repeats 1 --seed $Seed --churn $profile[1] --output $file
+            & "$sdk/dotnet.exe" $binaries[$variant] --game --port skecs --ticks $Ticks --phase-ticks $PhaseTicks --repeats 1 --seed $Seed --churn $profile[1] --output $file
             if ($LASTEXITCODE -ne 0) { throw "Replay failed: $name" }
         }
         $round++
@@ -57,5 +57,5 @@ foreach ($profile in @(@('low','.5'), @('nominal','1'), @('high','2'))) {
   tieredCompilation=$env:DOTNET_TieredCompilation; readyToRun=$env:DOTNET_ReadyToRun;
   binaries=@($binaries | ForEach-Object { @{path=$_; sha256=(Get-FileHash -LiteralPath $_).Hash;
     coreSha256=(Get-FileHash -LiteralPath (Join-Path (Split-Path $_) 'SpaceBattle.Core.dll')).Hash;
-    secsSha256=(Get-FileHash -LiteralPath (Join-Path (Split-Path $_) 'SpaceBattle.SECS.dll')).Hash} })
+    skecsSha256=(Get-FileHash -LiteralPath (Join-Path (Split-Path $_) 'SpaceBattle.SKECS.dll')).Hash} })
 } | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $destination 'manifest.json')

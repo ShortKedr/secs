@@ -1,5 +1,5 @@
 using Godot;
-using SECS;
+using SKECS;
 
 public partial class Smoke : Node
 {
@@ -28,13 +28,13 @@ public partial class Smoke : Node
             world.Query<Position>().ForEach(ref counter);
             if (counter.Count != 1 || world.Get<Position>(entity).X != 3)
             {
-                GD.PushError("SECS Godot consumer smoke failed.");
+                GD.PushError("SKECS Godot consumer smoke failed.");
                 GetTree().Quit(1);
                 return;
             }
         }
 
-        GD.Print("SECS_GODOT_OK");
+        GD.Print("SKECS_GODOT_OK");
         GetTree().Quit(0);
     }
 }

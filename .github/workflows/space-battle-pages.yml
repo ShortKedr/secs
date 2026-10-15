@@ -6,8 +6,8 @@ on:
     paths:
       - "SpaceBattle.Web/**"
       - "SpaceBattle.Core/**"
-      - "SpaceBattle.SECS/**"
-      - "SECS/**"
+      - "SpaceBattle.SKECS/**"
+      - "SKECS/**"
       - "SpaceBattle.Game/Assets/**"
       - "tools/build-space-battle-web.ps1"
       - "tools/web/**"
@@ -17,8 +17,8 @@ on:
     paths:
       - "SpaceBattle.Web/**"
       - "SpaceBattle.Core/**"
-      - "SpaceBattle.SECS/**"
-      - "SECS/**"
+      - "SpaceBattle.SKECS/**"
+      - "SKECS/**"
       - "SpaceBattle.Game/Assets/**"
       - "tools/build-space-battle-web.ps1"
       - "tools/web/**"

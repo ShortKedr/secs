@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using FFS.Libraries.StaticEcs;
-using SECS.Benchmarks;
+using SKECS.Benchmarks;
 using BW = FFS.Libraries.StaticEcs.World<StaticBasicWorld>;
 using SW = FFS.Libraries.StaticEcs.World<StaticStressWorld>;
 

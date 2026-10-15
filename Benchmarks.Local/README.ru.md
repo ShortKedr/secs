@@ -5,17 +5,17 @@
 Эта папка — часть публичного репозитория. Здесь находятся воспроизводимый
 раннер сравнения пяти ECS, адаптеры, скрипты и опубликованные замеры. `Local`
 относится к запуску бенчмарков на машине; внутренние заметки по разработке
-хранятся в `../secs-private/`.
+хранятся в `../skecs-private/`.
 
-[Репозиторий](../README.ru.md) | [Отчёт о бенчмарках](../SECS.Benchmarks/README.ru.md) | [Отчёт SpaceBattle](../docs/space-battle/REPORT.ru.md) | [Уведомления о сторонних компонентах](../THIRD_PARTY_NOTICES.ru.md)
+[Репозиторий](../README.ru.md) | [Отчёт о бенчмарках](../SKECS.Benchmarks/README.ru.md) | [Отчёт SpaceBattle](../docs/space-battle/REPORT.ru.md) | [Уведомления о сторонних компонентах](../THIRD_PARTY_NOTICES.ru.md)
 
-Здесь находятся сравнительный Stopwatch-раннер пяти фреймворков, адаптеры, стресс-бэкенды, сохранённые JSON-замеры и скрипты графиков. Наборы BenchmarkDotNet расположены отдельно в `SECS.Benchmarks` и `SECS.OtherBenchmarks` и измеряют SECS, а не все пять фреймворков.
+Здесь находятся сравнительный Stopwatch-раннер пяти фреймворков, адаптеры, стресс-бэкенды, сохранённые JSON-замеры и скрипты графиков. Наборы BenchmarkDotNet расположены отдельно в `SKECS.Benchmarks` и `SKECS.OtherBenchmarks` и измеряют SKECS, а не все пять фреймворков.
 
 ## Каталог исходников
 
 | Фреймворк | Реализация базовой нагрузки | Стресс-реализация | Нативное хранилище SpaceBattle | Исходники runtime |
 | --- | --- | --- | --- | --- |
-| SECS | [SecsWorkload](Adapters.cs), обёртка [ComparisonWorkload](../SECS.Benchmarks/ComparisonWorkload.cs) | [SecsStressBackend](../SECS.Benchmarks/SecsStressBackend.cs) | [SecsStore](../SpaceBattle.SECS/SecsStore.cs) | [SECS](../SECS/) |
+| SKECS | [SkecsWorkload](Adapters.cs), обёртка [ComparisonWorkload](../SKECS.Benchmarks/ComparisonWorkload.cs) | [SkecsStressBackend](../SKECS.Benchmarks/SkecsStressBackend.cs) | [SkecsStore](../SpaceBattle.SKECS/SkecsStore.cs) | [SKECS](../SKECS/) |
 | LeoECS Lite | [LiteWorkload](Adapters.cs) | [LiteStressBackend](StressAdapters.cs) | [LeoEcsLiteStore](../SpaceBattle.Adapters/LeoEcsLiteStore.cs) | [ecslite/src](vendor/ecslite/src/) |
 | LeoECS Classic | [ClassicWorkload](Adapters.cs) | [ClassicStressBackend](StressAdapters.cs) | [LeoEcsClassicStore](../SpaceBattle.Adapters/LeoEcsClassicStore.cs) | [ecs/src](vendor/ecs/src/) |
 | Morpeh | [MorpehWorkload](Adapters.cs) | [MorpehStressBackend](StressAdapters.cs) | [MorpehStore](../SpaceBattle.Adapters/MorpehStore.cs) | [Morpeh Core](vendor/morpeh/Scellecs.Morpeh/Core/) |
@@ -33,7 +33,7 @@
 
 Перед замерами проверяются все сущности. Подготовка, заполнение мира, его освобождение и принудительный GC не измеряются; commit Morpeh включён. Каждый случай прогревается минимум 400 мс и сохраняет 20 выборок. Create/Destroy выполняют один свежий пакет на выборку; Iterate/Churn стремятся к 30 мс, максимум 1 000 повторов.
 
-[StressRunner.cs](StressRunner.cs), [StressContract.cs](../SECS.Benchmarks/StressContract.cs) и [StressWorkload.cs](../SECS.Benchmarks/StressWorkload.cs) используют одинаковые начальные данные, маски состава и порядки операций с фиксированным seed для всех пяти бэкендов. Обычная матрица: 100 000/1 000 000 сущностей, семь нагрузок, восемь выборок на случай, прогрев минимум 300 мс, до 16 повторов с целевыми 30 мс. MixedFrames выполняется один раз на выборку.
+[StressRunner.cs](StressRunner.cs), [StressContract.cs](../SKECS.Benchmarks/StressContract.cs) и [StressWorkload.cs](../SKECS.Benchmarks/StressWorkload.cs) используют одинаковые начальные данные, маски состава и порядки операций с фиксированным seed для всех пяти бэкендов. Обычная матрица: 100 000/1 000 000 сущностей, семь нагрузок, восемь выборок на случай, прогрев минимум 300 мс, до 16 повторов с целевыми 30 мс. MixedFrames выполняется один раз на выборку.
 
 | Стресс-сценарий | Одна операция |
 | --- | --- |
@@ -51,13 +51,13 @@ RNG, сортировка, подготовка, проверки, освобо�
 
 Одинаковая логическая работа не означает одинаковую раскладку памяти, запросы или оптимальные API.
 
-Поля аллокаций измеряют управляемые выделения в измеряемом потоке. Они исключают нативное хранилище и не отражают полный объём памяти. Погрешности на графиках показывают выборочное стандартное отклонение, не доверительные интервалы. Результаты относятся к записанной машине/runtime/ревизиям, а не к Unity/IL2CPP или универсальному рейтингу. Эксперименты с оптимизированным созданием/accessor SECS выделены отдельно и не заменяют сравнение общих API.
+Поля аллокаций измеряют управляемые выделения в измеряемом потоке. Они исключают нативное хранилище и не отражают полный объём памяти. Погрешности на графиках показывают выборочное стандартное отклонение, не доверительные интервалы. Результаты относятся к записанной машине/runtime/ревизиям, а не к Unity/IL2CPP или универсальному рейтингу. Эксперименты с оптимизированным созданием/accessor SKECS выделены отдельно и не заменяют сравнение общих API.
 
 Поле `machine` в JSON содержит обезличенную метку `local-machine`. Данные о
 процессоре, ОС, runtime, ревизиях исходников и условиях замера сохранены для
 интерпретации результатов без публикации имени компьютера.
 При объединении замеров с разных компьютеров задавайте для каждого отдельную
-нейтральную метку через `SECS_BENCHMARK_MACHINE_LABEL`: значение по умолчанию
+нейтральную метку через `SKECS_BENCHMARK_MACHINE_LABEL`: значение по умолчанию
 само по себе не доказывает, что запуски выполнены на одном хосте.
 
 ## Текущая кампания
@@ -92,12 +92,12 @@ dotnet Benchmarks.Local/bin/Release/net8.0/Comparison.dll --validate-stress
 
 Базовая проверка проверяет данные и жизненный цикл при обоих измеряемых размерах популяции. Стресс-проверка использует 257/4,097 сущностей, семь сценариев по три повтора, добавление/удаление payload и устаревшие handles. Каждый измеренный стресс-кейс также проверяет всю популяцию после прогрева и замеров. Эти проверки подтверждают контракт нагрузки/адаптеров в этом репозитории; они не являются полными upstream-наборами тестов.
 
-## Все наборы SECS
+## Все наборы SKECS
 
-[Дополнительная кампания](../docs/benchmarks/current/SUPPLEMENT.ru.md) покрывает все стандартные кейсы BenchmarkDotNet SECS, legacy-набор и диагностику прямых API/storage. Запуск: `./Benchmarks.Local/run_supplement.ps1`, затем `python Benchmarks.Local/report_supplement.py docs/benchmarks/current`. Раннер использует локальные каталоги cache/temp проекта и выполняет нагрузки последовательно; `supplement.json` фиксирует хеши исходников и входных данных.
+[Дополнительная кампания](../docs/benchmarks/current/SUPPLEMENT.ru.md) покрывает все стандартные кейсы BenchmarkDotNet SKECS, legacy-набор и диагностику прямых API/storage. Запуск: `./Benchmarks.Local/run_supplement.ps1`, затем `python Benchmarks.Local/report_supplement.py docs/benchmarks/current`. Раннер использует локальные каталоги cache/temp проекта и выполняет нагрузки последовательно; `supplement.json` фиксирует хеши исходников и входных данных.
 
 ## Сохранённые эксперименты
 
 [Методология оптимизации SECS](../docs/benchmarks/optimization-methodology.ru.md) описывает сохранённые бинарники baseline/optimized и парные данные. `results-all-updated.json` / `stress-all-updated.json` и `docs/benchmarks/updated` — предыдущий полный прогон пяти фреймворков. Остальные `results*.json`, эксперименты storage/accessor и BenchmarkDotNet smoke сохраняют свои метаданные и границы применимости. Не смешивайте наблюдения конкурентов из разных кампаний и не используйте времена Dry/smoke как полный рейтинг производительности.
 
-Инструкции запуска BenchmarkDotNet находятся в [SECS.Benchmarks](../SECS.Benchmarks/README.ru.md). Отдельная сквозная симуляция и её воспроизведение — в [отчёте SpaceBattle](../docs/space-battle/REPORT.ru.md).
+Инструкции запуска BenchmarkDotNet находятся в [SKECS.Benchmarks](../SKECS.Benchmarks/README.ru.md). Отдельная сквозная симуляция и её воспроизведение — в [отчёте SpaceBattle](../docs/space-battle/REPORT.ru.md).

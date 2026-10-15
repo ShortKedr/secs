@@ -12,7 +12,7 @@ $env:NUGET_PACKAGES = "$root/Benchmarks.Local/nuget-packages"
 $env:TEMP = "$root/Benchmarks.Local/tmp"
 $env:TMP = $env:TEMP
 $env:DOTNET_TieredCompilation = '0'
-$env:SECS_STRESS_EXTREME = '0'
+$env:SKECS_STRESS_EXTREME = '0'
 $env:MSBuildEnableWorkloadResolver = 'false'
 $env:DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE = 'true'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
@@ -23,16 +23,16 @@ function Run-Dotnet([string[]]$Arguments) {
     if ($LASTEXITCODE -ne 0) { throw "dotnet failed: $Arguments" }
 }
 if (!$SkipBuild) {
-    foreach ($project in @('Benchmarks.Local/Comparison.csproj', 'SECS.Benchmarks/SECS.Benchmarks.csproj', 'SECS.OtherBenchmarks/SECS.OtherBenchmarks.csproj')) {
+    foreach ($project in @('Benchmarks.Local/Comparison.csproj', 'SKECS.Benchmarks/SKECS.Benchmarks.csproj', 'SKECS.OtherBenchmarks/SKECS.OtherBenchmarks.csproj')) {
         Run-Dotnet @('build', $project, '-c', 'Release', '--no-restore', '-m:1', '-nr:false', '-p:GeneratePackageOnBuild=false', '-p:UseSharedCompilation=false', '-p:NuGetAudit=false')
     }
 }
 $revision = (git rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Cannot read local revision.' }
-$env:SECS_BENCHMARK_REVISION = $revision
+$env:SKECS_BENCHMARK_REVISION = $revision
 $campaignStarted = [DateTimeOffset]::Now.ToString('O')
 $sourceHashes = [ordered]@{}
-foreach ($file in (git ls-files --cached --others --exclude-standard -- SECS SECS.Benchmarks SECS.OtherBenchmarks Benchmarks.Local | Where-Object { $_ -match '\.(cs|csproj|props|targets)$' } | Sort-Object -Unique)) {
+foreach ($file in (git ls-files --cached --others --exclude-standard -- SKECS SKECS.Benchmarks SKECS.OtherBenchmarks Benchmarks.Local | Where-Object { $_ -match '\.(cs|csproj|props|targets)$' } | Sort-Object -Unique)) {
     $sourceHashes[$file] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
 }
 if (!$ResumeArtifacts) {
@@ -41,7 +41,7 @@ if (!$ResumeArtifacts) {
 } elseif (!(Test-Path -LiteralPath "$target/optimized-api.json") -or !(Test-Path -LiteralPath "$target/storage.json")) {
     throw 'Resuming requires the original API and storage inputs.'
 }
-Run-Dotnet @('SECS.OtherBenchmarks/bin/Release/net8.0/SECS.OtherBenchmarks.dll', '--validate')
+Run-Dotnet @('SKECS.OtherBenchmarks/bin/Release/net8.0/SKECS.OtherBenchmarks.dll', '--validate')
 $artifacts = Join-Path $env:TEMP ('bdn-' + [DateTimeOffset]::Now.ToString('yyyyMMdd-HHmmss'))
 if ($ResumeArtifacts) {
     $artifacts = [IO.Path]::GetFullPath($ResumeArtifacts, $root)
@@ -51,7 +51,7 @@ if ($ResumeArtifacts) {
 }
 $snapshotPath = Join-Path $artifacts 'source-snapshot.json'
 $assemblyHashes = [ordered]@{}
-foreach ($dll in @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', 'Benchmarks.Local/bin/Release/net8.0/SECS.dll', 'SECS.Benchmarks/bin/Release/net8.0/SECS.Benchmarks.dll', 'SECS.OtherBenchmarks/bin/Release/net8.0/SECS.OtherBenchmarks.dll')) {
+foreach ($dll in @('Benchmarks.Local/bin/Release/net8.0/Comparison.dll', 'Benchmarks.Local/bin/Release/net8.0/SKECS.dll', 'SKECS.Benchmarks/bin/Release/net8.0/SKECS.Benchmarks.dll', 'SKECS.OtherBenchmarks/bin/Release/net8.0/SKECS.OtherBenchmarks.dll')) {
     $assemblyHashes[$dll] = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
 }
 if ($ResumeArtifacts) {
@@ -68,8 +68,8 @@ if ($ResumeArtifacts) {
         ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $snapshotPath -Encoding utf8
 }
 foreach ($suite in @(
-    @{ Name = 'secs'; Project = 'SECS.Benchmarks'; Expected = 34 },
-    @{ Name = 'legacy'; Project = 'SECS.OtherBenchmarks'; Expected = 51 }
+    @{ Name = 'skecs'; Project = 'SKECS.Benchmarks'; Expected = 34 },
+    @{ Name = 'legacy'; Project = 'SKECS.OtherBenchmarks'; Expected = 51 }
 )) {
     $dll = "$($suite.Project)/bin/Release/net8.0/$($suite.Project).dll"
     $assemblyHash = (Get-FileHash -LiteralPath $dll -Algorithm SHA256).Hash
@@ -113,7 +113,7 @@ foreach ($file in $sourceHashes.Keys) {
     }
 }
 $inputs = [ordered]@{}
-foreach ($name in @('optimized-api.json', 'storage.json', 'bdn-secs.json', 'bdn-legacy.json')) {
+foreach ($name in @('optimized-api.json', 'storage.json', 'bdn-skecs.json', 'bdn-legacy.json')) {
     $inputs[$name] = (Get-FileHash -LiteralPath (Join-Path $target $name) -Algorithm SHA256).Hash
 }
 [ordered]@{

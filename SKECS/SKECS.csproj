@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net8.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <Version>0.2.0</Version>
+    <PackageId>ShortKedr.SKECS</PackageId>
+    <Authors>Nikolay Nakorkeshko</Authors>
+    <Description>A small chunk-based entity-component-system library for C# applications and games.</Description>
+    <PackageTags>ecs;entity-component-system;game-development</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/ShortKedr/skecs</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ShortKedr/skecs</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" Version="4.5.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="PACKAGE_README.md" Pack="true" PackagePath="README.md" />
+    <None Include="../LICENSE" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+</Project>

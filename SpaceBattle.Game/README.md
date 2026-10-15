@@ -2,7 +2,7 @@ English | [Русский](README.ru.md)
 
 # SpaceBattle Desktop
 
-Watch an autonomous fleet battle in the Silk.NET/OpenGL client. It runs the shared C# simulation with SECS. You control the view and simulation speed; the AI controls the ships.
+Watch an autonomous fleet battle in the Silk.NET/OpenGL client. It runs the shared C# simulation with SKECS. You control the view and simulation speed; the AI controls the ships.
 
 [SpaceBattle overview](../docs/space-battle/README.md) | [Current benchmark report](../docs/space-battle/REPORT.md) | [Engineering guide](DEVELOPMENT.md)
 

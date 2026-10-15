@@ -35,7 +35,7 @@ export function classifyFrame(frame) {
   if (/^(?:_?mono_interp_|interp_exec|interp_execute|InterpExecMethod)/i.test(name)) return "mono-interpreter";
   if (/wrapper_(?:managed_to_native|native_to_managed)|^_?mono_wasm_|^_?emscripten_|^System[._]Runtime[._]InteropServices|^SystemJS_|^invoke_[a-z]+$|^js_to_mono|^mono_to_js/i.test(name)) return "interop";
   if (/wrapper_(?:delegate|runtime_invoke|other|gsharedvt)|aot_wrapper_gsharedvt|^(?:_?mono_|ves_icall_|rgctx_|gsharedvt_|do_jit_call$|[a-z_]*trampoline_|llvm_|_*memcpy$|_*memmove$|_*memset$|malloc$|free$)/i.test(name)) return "dispatch-runtime-helpers";
-  if (frame.wasm && /^(?:aot_instances_)?(?:SpaceBattle|SECS)[._:]/.test(name)) return "managed-own-simulation";
+  if (frame.wasm && /^(?:aot_instances_)?(?:SpaceBattle|SKECS)[._:]/.test(name)) return "managed-own-simulation";
   if (frame.wasm && /^(?:(?:corlib|aot_instances)_)?System[._]/i.test(name)) return "managed-library-compute";
   if (frame.wasm || !name || /^\((?:root|idle|program)\)$/.test(name)) return "unknown";
   return "other-js-renderer";

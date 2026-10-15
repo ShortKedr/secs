@@ -14,15 +14,15 @@ flowchart LR
     Game[Game: Silk.NET / OpenGL] --> Battle
     Web[Web: Mono AOT / Canvas] --> Battle
     Battle --> Store[IEcsStore]
-    Store --> SECS[SECS store]
+    Store --> SKECS[SKECS store]
     Store --> Adapters[Lite / Classic / Morpeh / StaticEcs]
     Battle --> Physics[Core circle physics]
     Battle --> Frame[BattleFrame / browser render buffer]
 ```
 
-[Core](../../SpaceBattle.Core/Battle.cs) contains configuration, ship catalogue, AI, weapons, damage, physics and lifecycle. [SECS integration](../../SpaceBattle.SECS/SecsStore.cs) and [native adapters](../../SpaceBattle.Adapters/README.md) implement the same [store contract](../../SpaceBattle.Core/EcsContract.cs) using each framework's native storage and queries. `EntityKey` carries a store-local ID and generation; gameplay serials provide stable ordering independently of native entity IDs.
+[Core](../../SpaceBattle.Core/Battle.cs) contains configuration, ship catalogue, AI, weapons, damage, physics and lifecycle. [SKECS integration](../../SpaceBattle.SKECS/SkecsStore.cs) and [native adapters](../../SpaceBattle.Adapters/README.md) implement the same [store contract](../../SpaceBattle.Core/EcsContract.cs) using each framework's native storage and queries. `EntityKey` carries a store-local ID and generation; gameplay serials provide stable ordering independently of native entity IDs.
 
-[Headless](../../SpaceBattle.Headless/Program.cs) runs `Step`, records timing/counters/checkpoints and serializes results after measurement. [Game](../../SpaceBattle.Game/README.md) and [Web](../../SpaceBattle.Web/README.md) use SECS. They call shared simulation and presentation APIs; the web bridge prepares a reused binary render buffer for Canvas. `Capture` builds a presentation view with separate ship/turret lists and omits docked ships from visible ship rows. Rendered, ship and total ECS counts therefore describe different populations.
+[Headless](../../SpaceBattle.Headless/Program.cs) runs `Step`, records timing/counters/checkpoints and serializes results after measurement. [Game](../../SpaceBattle.Game/README.md) and [Web](../../SpaceBattle.Web/README.md) use SKECS. They call shared simulation and presentation APIs; the web bridge prepares a reused binary render buffer for Canvas. `Capture` builds a presentation view with separate ship/turret lists and omits docked ships from visible ship rows. Rendered, ship and total ECS counts therefore describe different populations.
 
 Host configuration matters: interactive clients explicitly choose LightSwarm, dispersed deployment and endless reinforcements. The default `BattleConfig` uses Uniform and legacy deployment, enables carrier replacement and leaves endless warp reinforcements off. Read the [current report](REPORT.md) for the measured headless configuration.
 
@@ -65,7 +65,7 @@ Turrets are separate ECS entities bound to a parent hull, with their own targeti
 
 `ForEach` exposes live component refs. Processors may update existing values and append requests; store guards reject `Create`, `Destroy`, `Set`, `Remove`, `Commit` and disposal while a query is active. Outside queries, direct structural work occurs in shot flushing, hit effects, lifecycle and warp spawning. Reacquire refs after structural changes; never keep them across mutation or disposal.
 
-`Commit` makes staged native changes available before subsequent queries. Morpeh needs its staged flush; the other stores use immediate changes with the same guarded boundary. The optimized SECS `ForEachComponents` path traverses native columns for work that does not need the current row's entity key; the other adapters use the keyed fallback. Both retain the mutation guard.
+`Commit` makes staged native changes available before subsequent queries. Morpeh needs its staged flush; the other stores use immediate changes with the same guarded boundary. The optimized SKECS `ForEachComponents` path traverses native columns for work that does not need the current row's entity key; the other adapters use the keyed fallback. Both retain the mutation guard.
 
 Tactical snapshots and sorted views are temporary read structures; they do not replace ECS storage. Physics keeps body/contact/query state synchronized with ship components. Presentation, statistics and explicit checksum requests have separate scopes. Matching recorded checksums is bounded replay evidence, not a complete snapshot or proof of cross-platform determinism.
 

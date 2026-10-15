@@ -4,7 +4,7 @@ English | [Русский](README.ru.md)
 
 # SpaceBattle
 
-SpaceBattle is an AI fleet battle and a realistic ECS comparison workload. Desktop and browser clients share the C# simulation; the headless runner can use SECS, LeoECS Lite, LeoECS Classic, Morpeh or StaticEcs.
+SpaceBattle is an AI fleet battle and a realistic ECS comparison workload. Desktop and browser clients share the C# simulation; the headless runner can use SKECS, LeoECS Lite, LeoECS Classic, Morpeh or StaticEcs.
 
 ## Start Here
 
@@ -41,8 +41,13 @@ Run from the repository root. Build and validate before measurement; finish othe
 
 Published JSON uses the anonymous `Machine` label `local-machine`; hardware
 details, runtime and source revisions remain recorded for interpretation.
-Use distinct neutral `SECS_BENCHMARK_MACHINE_LABEL` values when combining runs
+Use distinct neutral `SKECS_BENCHMARK_MACHINE_LABEL` values when combining runs
 from different computers; the default label does not establish host identity.
+
+The preserved benchmark artifacts predate the product rename. Their `SECS`
+framework labels, JSON/CSV names, chart labels, and source hashes identify the
+measured historical build and remain unchanged; current documentation calls the
+product SKECS.
 
 The current suite measures five ECS implementations on exactly one real game workload: profile `high`, preset `game`, and gameplay `ChurnMultiplier=2`. It adds no synthetic churn, diagnostic profiles, inert entity pool, or pre-Step churn hook. Each case measures 108000 ticks after 600 separate warmup ticks:
 

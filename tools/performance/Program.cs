@@ -20,14 +20,14 @@ if (!output.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.Director
 if (ticks < 1 || phaseTicks < 1 || repeats < 1) throw new ArgumentException("Positive counts required.");
 var config = new BattleConfig { Seed = 7331 };
 // Warm up code on a separate battle, not by changing the measured starting state.
-using (var warmup = new Battle<SecsStore>(new(), config))
+using (var warmup = new Battle<SkecsStore>(new(), config))
     for (var i = 0; i < ticks; i++) warmup.Step();
 var runs = new List<object>();
 for (var run = 0; run < repeats; run++)
 {
-    using var battle = new Battle<SecsStore>(new(), config);
+    using var battle = new Battle<SkecsStore>(new(), config);
     var duration = new double[ticks];
-    var stages = Battle<SecsStore>.StageNames.Select(_ => new double[ticks]).ToArray();
+    var stages = Battle<SkecsStore>.StageNames.Select(_ => new double[ticks]).ToArray();
     var allocated = new long[ticks];
     var counts = new int[ticks][];
     var phases = new List<object>();
@@ -47,7 +47,7 @@ for (var run = 0; run < repeats; run++)
         phases.Add(new
         {
             StartTick = start + 1, EndTick = i + 1, CoreStep = Stats(duration.Skip(start).Take(length)),
-            Stages = Battle<SecsStore>.StageNames.Select((name, s) => new { Name = name, Timing = Stats(stages[s].Skip(start).Take(length)) }).ToArray(),
+            Stages = Battle<SkecsStore>.StageNames.Select((name, s) => new { Name = name, Timing = Stats(stages[s].Skip(start).Take(length)) }).ToArray(),
             AllocatedBytes = allocated.Skip(start).Take(length).Sum(),
             MeanCounts = Enumerable.Range(0, 4).Select(c => counts.Skip(start).Take(length).Average(row => row[c])).ToArray(),
             FinalCounts = counts[i], Store = battle.Store.Diagnostics(),

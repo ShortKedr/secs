@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using SECS;
-using SECS.Benchmarks;
+using SKECS;
+using SKECS.Benchmarks;
 
 static class OptimizedApiRunner
 {

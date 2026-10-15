@@ -21,7 +21,7 @@ BUILD_FILES = {
     "web-atlases.js", "build-identity.json", "assets/web-atlases.json", "assets/lucide.min.js",
     "_framework/blazor.boot.json", "_framework/blazor.webassembly.js", "_framework/dotnet.native.wasm",
     "_framework/SpaceBattle.Web.wasm", "_framework/SpaceBattle.Core.wasm",
-    "_framework/SpaceBattle.SECS.wasm", "_framework/SECS.wasm",
+    "_framework/SpaceBattle.SKECS.wasm", "_framework/SKECS.wasm",
 }
 ATLAS_SLOTS = {
     "ships": ("ships-team-0", "ships-team-1"),

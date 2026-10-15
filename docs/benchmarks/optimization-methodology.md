@@ -52,7 +52,7 @@ reports repeated samples. Setup, disposal, and forced garbage collection are
 excluded from the measured interval; collection caused by the operation is
 included. The stress harness uses the same fixed workload inputs and seeded
 orders for each framework, with its own sample and warmup policy. See
-[`SECS.Benchmarks/README.md`](../../SECS.Benchmarks/README.md) for the complete
+[`SKECS.Benchmarks/README.md`](../../SKECS.Benchmarks/README.md) for the complete
 workload definitions and harness details.
 
 Both the original baseline and optimized implementation execute the SECS native
@@ -156,7 +156,7 @@ The million-entity lookup SDs are 9.250 and 11.044 ms respectively, so the
 accessor's benefit is not stable enough here to promise a fixed speedup. Its
 retained entry payload is 1.5 MiB at 100,000 IDs and 12 MiB at 1,000,000 IDs.
 Structural maintenance cost and accessor construction are not measured by this
-lookup-only fixture. See [API tradeoffs](../SECS_OPTIMIZATION.md).
+lookup-only fixture. See [API tradeoffs](../SKECS_OPTIMIZATION.md).
 
 ### Retained native storage
 

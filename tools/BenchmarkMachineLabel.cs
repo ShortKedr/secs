@@ -4,7 +4,7 @@ internal static class BenchmarkMachineLabel
     {
         get
         {
-            var label = Environment.GetEnvironmentVariable("SECS_BENCHMARK_MACHINE_LABEL");
+            var label = Environment.GetEnvironmentVariable("SKECS_BENCHMARK_MACHINE_LABEL");
             if (label is null or { Length: < 1 or > 64 } || !label.All(IsAsciiLabelCharacter))
                 return "local-machine";
 

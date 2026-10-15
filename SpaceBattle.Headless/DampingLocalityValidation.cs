@@ -8,7 +8,7 @@ internal static class DampingLocalityValidation
     public static void Run()
     {
         CacheChecks();
-        StoreChecks(static () => new SecsStore());
+        StoreChecks(static () => new SkecsStore());
         StoreChecks(static () => new LeoEcsLiteStore());
         StoreChecks(static () => new LeoEcsClassicStore());
         StoreChecks(static () => new MorpehStore());

@@ -915,7 +915,7 @@ import { verifyBuild, loadAtlasBundle, browserContract } from "./web-atlases.js"
       $("stage-" + key).textContent = number(m.stages[i], 3);
     });
     $("stats-runtime").textContent =
-      `SECS · ${runtimeMode} · ${snapshot.revision}`;
+      `SKECS · ${runtimeMode} · ${snapshot.revision}`;
   }
   function showStatistics(value) {
     $("simulation-stats").hidden = !value;

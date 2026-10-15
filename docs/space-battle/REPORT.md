@@ -207,4 +207,4 @@ If local tick CSV files are unavailable, omit --verify-ticks: the analyzer valid
 
 - [Archived finite battle, 2026-10-14](REPORT_2026-10-14_FINITE.md): the previous low/nominal/high matrix uses a different method and gameplay workload; timings are not directly comparable.
 - [Archived 2026-10-11 campaign](REPORT_2026-10-11.md), [architecture](ARCHITECTURE.md), [physics](PHYSICS.md), [tactics](TACTICS_V3.md).
-- [SECS microbenchmarks](../../SECS.Benchmarks/README.md): a separate workload without gameplay logic.
+- [SKECS microbenchmarks](../../SKECS.Benchmarks/README.md): a separate workload without gameplay logic.

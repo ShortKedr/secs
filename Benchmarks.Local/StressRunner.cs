@@ -1,13 +1,13 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using SECS.Benchmarks;
+using SKECS.Benchmarks;
 
 static class StressRunner
 {
     private static readonly (string Name, Func<int, IStressBackend> Factory)[] Backends =
     [
-        ("SECS", n => new SecsStressBackend(n)),
+        ("SKECS", n => new SkecsStressBackend(n)),
         ("LeoECS Lite", n => new LiteStressBackend(n)),
         ("LeoECS Classic", n => new ClassicStressBackend(n)),
         ("Morpeh", n => new MorpehStressBackend(n)),
@@ -19,7 +19,7 @@ static class StressRunner
         if (!args.Contains("--stress") && !args.Contains("--validate-stress")) return false;
         if (Marshal.SizeOf<StressPayload>() != 256 || Marshal.SizeOf<StressPosition>() != 12 || Marshal.SizeOf<StressVelocity>() != 12)
             throw new InvalidOperationException("Stress component layout mismatch");
-        var backends = args.Contains("--secs-only") ? Backends.Where(b => b.Name == "SECS").ToArray() : Backends;
+        var backends = args.Contains("--skecs-only") ? Backends.Where(b => b.Name == "SKECS").ToArray() : Backends;
         foreach (var backend in backends)
         foreach (var count in new[] { 257, 4_097 })
         {
@@ -42,7 +42,7 @@ static class StressRunner
 
         const int sampleCount = 8;
         var results = new List<object>();
-        var scenarios = Environment.GetEnvironmentVariable("SECS_BENCHMARK_SCENARIOS")?.Split(',') ?? StressWorkload.Scenarios;
+        var scenarios = Environment.GetEnvironmentVariable("SKECS_BENCHMARK_SCENARIOS")?.Split(',') ?? StressWorkload.Scenarios;
         if (scenarios.Any(s => !StressWorkload.Scenarios.Contains(s))) throw new ArgumentException("Unknown stress scenario filter");
         var cases = (from backend in backends from count in new[] { 100_000, 1_000_000 }
                      from scenario in scenarios select (backend, count, scenario)).ToArray();
@@ -97,7 +97,7 @@ static class StressRunner
             hotStride = StressData.HotStride, mixedFrames = StressWorkload.MixedFrameCount,
             tieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
             footer = "Release; single thread; 8 samples; setup/forced GC excluded; Morpeh Commit included",
-            versions = new { SECS = Environment.GetEnvironmentVariable("SECS_BENCHMARK_REVISION") ?? "working tree: lookup, chunk reuse, transition cache", lite = "2024.5.22", classic = "2023.6.22",
+            versions = new { SKECS = Environment.GetEnvironmentVariable("SKECS_BENCHMARK_REVISION") ?? "working tree: lookup, chunk reuse, transition cache", lite = "2024.5.22", classic = "2023.6.22",
                 morpeh = "2024.1.1", staticEcs = "2.2.9", staticPack = "1.2.6" },
             revisions = new { classic = "1213c31c9ef8325d48e74a52b345c4db242d038b", lite = "5053141d7d663c6b1855c8409ac93dfac807b239",
                 morpeh = "9f6369384792a01d74df24efd35b08ae313e4f12", staticEcs = "23b1cf36d89497e8a126d38459d688e2b0a5dea3",

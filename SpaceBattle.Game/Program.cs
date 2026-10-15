@@ -14,7 +14,7 @@ internal sealed class BattleApp : IDisposable
 {
     private readonly IWindow window;
     private readonly BattleConfig config;
-    private Battle<SecsStore> battle;
+    private Battle<SkecsStore> battle;
     private readonly BattleFrame frame = new();
     private readonly List<DebugCollider> colliders = new();
     private bool collidersVisible;
@@ -42,7 +42,7 @@ internal sealed class BattleApp : IDisposable
     private float zoom = 1, speed = 1;
     private Vector2 center, previousMouse;
     private double accumulator;
-    private readonly SimulationStatistics statistics = new(Battle<SecsStore>.StageNames.Length);
+    private readonly SimulationStatistics statistics = new(Battle<SkecsStore>.StageNames.Length);
     private bool statisticsVisible;
     private long rateStart;
     private long statisticsRefreshAt;
@@ -138,12 +138,12 @@ internal sealed class BattleApp : IDisposable
             EndlessReinforcements=!args.Contains("--finite"), ReplenishCarriers=false,
             FleetComposition=FleetComposition.LightSwarm,
             Deployment=args.Contains("--legacy-deployment")?FleetDeployment.LegacyRandom:FleetDeployment.Tactical };config.Validate();
-        battle=new(new SecsStore(),config);
+        battle=new(new SkecsStore(),config);
         var options=WindowOptions.Default;
         int width=Number("--width",1440), height=Number("--height",900);
         if(width<960||height<540)throw new ArgumentException("Window size must be at least 960 x 540.");
         options.Size=new Vector2D<int>(width,height);
-        options.Title="Space Battle | SECS"; options.API=new GraphicsAPI(ContextAPI.OpenGL,ContextProfile.Core,ContextFlags.ForwardCompatible,new APIVersion(3,3));
+        options.Title="Space Battle | SKECS"; options.API=new GraphicsAPI(ContextAPI.OpenGL,ContextProfile.Core,ContextFlags.ForwardCompatible,new APIVersion(3,3));
         options.IsVisible=!hidden&&(!(validateEffects||validateGunTints||validateSceneStyle)||args.Contains("--visible"))&&(capture is null || args.Contains("--visible")); options.VSync=profileFrames==0&&capture is null;
         if(profileFrames>0) {options.FramesPerSecond=profilePaced?config.TickRate:0;options.UpdatesPerSecond=0;}
         window=Window.Create(options);window.Load+=Load;window.Update+=Update;window.Render+=Render;window.Closing+=DisposeGraphics;
@@ -307,7 +307,7 @@ internal sealed class BattleApp : IDisposable
         if(collidersVisible)battle.CaptureColliders(colliders,refreshEntities:false);
         else colliders.Clear();
     }
-    private void Restart() { StopFollow();battle.Dispose();battle=new(new SecsStore(),config);accumulator=0;selected=-1;statistics.Reset();statisticsRefreshAt=0;ResetRates();battle.Capture(frame); }
+    private void Restart() { StopFollow();battle.Dispose();battle=new(new SkecsStore(),config);accumulator=0;selected=-1;statistics.Reset();statisticsRefreshAt=0;ResetRates();battle.Capture(frame); }
     private void Step(bool live=false)
     {
         battle.Step();
@@ -435,14 +435,14 @@ internal sealed class BattleApp : IDisposable
             var checkpoint=battle.Checksum().ToString("X16",System.Globalization.CultureInfo.InvariantCulture);
             var coreHash=FrontendProfiler.AssemblyHash(typeof(Battle<>).Assembly);
             var gameHash=FrontendProfiler.AssemblyHash(typeof(BattleApp).Assembly);
-            var secsHash=FrontendProfiler.AssemblyHash(typeof(SecsStore).Assembly);
+            var skecsHash=FrontendProfiler.AssemblyHash(typeof(SkecsStore).Assembly);
             PngCapture.Save(capture!,w,h,pixels);
             var parentSerials=frame.Ships.Select(ship=>ship.Serial).ToHashSet();
             bool countsValid=AliveEntities==battle.Store.Diagnostics().Entities&&population.Cyan+population.Red==battle.ShipCount&&renderedShips<=frame.Ships.Count&&frame.Ships.Count<=battle.ShipCount&&frame.Turrets.Count<=battle.TurretCount&&frame.Turrets.All(t=>parentSerials.Contains(t.ParentSerial));
             bool statisticsValid=statistics.SampleCount==Math.Min(battle.Tick,SimulationStatistics.WindowCapacity)&&
-                statistics.StageMeanMs.Length==Battle<SecsStore>.StageNames.Length&&ticksPerSecond==0&&
+                statistics.StageMeanMs.Length==Battle<SkecsStore>.StageNames.Length&&ticksPerSecond==0&&
                 double.IsFinite(statistics.MeanMs)&&statistics.MeanMs>=0&&statistics.P95Ms<=statistics.P99Ms&&statistics.P99Ms<=statistics.MaximumMs;
-            var stats=new {frame.Tick,Width=w,Height=h,Zoom=zoom,ConfiguredShipsPerTeam=config.ShipsPerTeam,Ships=frame.Ships.Count,RenderedShips=renderedShips,AliveCyan=population.Cyan,AliveRed=population.Red,Projectiles=frame.Projectiles.Count,Debris=frame.Debris.Count,Particles=frame.Particles.Count,BrightPixels=bright,UniqueColors=colors.Count,SceneBrightPixels=sceneBright,SceneUniqueColors=sceneColors.Count,Nonblank=ok,Atlas=renderer.HasAtlas,ControlsVerified=controlsVerified,BattleChecksum=checkpoint,CoreDllSha256=coreHash,GameDllSha256=gameHash,SecsAdapterDllSha256=secsHash,LastTickMs=frame.LastTickMs,P99=statistics.P99Ms,
+            var stats=new {frame.Tick,Width=w,Height=h,Zoom=zoom,ConfiguredShipsPerTeam=config.ShipsPerTeam,Ships=frame.Ships.Count,RenderedShips=renderedShips,AliveCyan=population.Cyan,AliveRed=population.Red,Projectiles=frame.Projectiles.Count,Debris=frame.Debris.Count,Particles=frame.Particles.Count,BrightPixels=bright,UniqueColors=colors.Count,SceneBrightPixels=sceneBright,SceneUniqueColors=sceneColors.Count,Nonblank=ok,Atlas=renderer.HasAtlas,ControlsVerified=controlsVerified,BattleChecksum=checkpoint,CoreDllSha256=coreHash,GameDllSha256=gameHash,SkecsAdapterDllSha256=skecsHash,LastTickMs=frame.LastTickMs,P99=statistics.P99Ms,
                 GunAtlas=renderer.HasGunAtlas,EffectsAtlas=renderer.HasEffectsAtlas,AliveEntities,AliveShips=battle.ShipCount,DockedShips=battle.ShipCount-frame.Ships.Count,Turrets=frame.Turrets.Count,AliveTurrets=battle.TurretCount,DockedTurrets=battle.TurretCount-frame.Turrets.Count,
                 TurretPoses=frame.Turrets.Select(t=>new {t.Serial,t.ParentSerial,t.Team,t.Kind,X=t.Position.X,Y=t.Position.Y,t.Angle,t.Radius,t.Heat,t.Recoil}),
                 HeavyShots=frame.Counters.HeavyShots,TurretShots=frame.Counters.TurretShots,GameplayRevision=ArmamentRules.Revision,CountsValid=countsValid,StatisticsValid=statisticsValid,
@@ -455,7 +455,7 @@ internal sealed class BattleApp : IDisposable
                 Camera=new {CenterX=center.X,CenterY=center.Y,Scale,Zoom=zoom,SafeViewport=new {Left=14,Top=140,Right=w-(statisticsVisible?392:14),Bottom=h-80},Main=spectator.Following?CameraShip(spectator.Main):null,Target=spectator.Target is { } cameraTarget?CameraShip(cameraTarget):null},
                 battle.Counters.ReinforcementWaves,battle.Counters.ReinforcementShips,
                 Reinforcements=Enumerable.Range(0,2).Select(team=> {var wave=battle.Reinforcement(team);return new {Team=team,wave.Wave,wave.Corner,wave.Composition,wave.PendingShips,wave.ArrivalTick,wave.NextSpawnTick,wave.EndTick,X=wave.Position.X,Y=wave.Position.Y,wave.Active};}).ToArray(),
-                Statistics=new {statistics.SampleCount,Capacity=SimulationStatistics.WindowCapacity,statistics.LastMs,statistics.MeanMs,statistics.P95Ms,statistics.P99Ms,statistics.MaximumMs,StageNames=Battle<SecsStore>.StageNames,statistics.StageMeanMs,WallTicksPerSecond=ticksPerSecond,RenderFps=renderFps,RenderSubmissionCpuMs=renderCpuMs,TickBudgetMs,MeanBudgetPercent=statistics.MeanMs/TickBudgetMs*100,Paused=paused,PanelVisible=statisticsVisible,OfflineCapture=true}};
+                Statistics=new {statistics.SampleCount,Capacity=SimulationStatistics.WindowCapacity,statistics.LastMs,statistics.MeanMs,statistics.P95Ms,statistics.P99Ms,statistics.MaximumMs,StageNames=Battle<SkecsStore>.StageNames,statistics.StageMeanMs,WallTicksPerSecond=ticksPerSecond,RenderFps=renderFps,RenderSubmissionCpuMs=renderCpuMs,TickBudgetMs,MeanBudgetPercent=statistics.MeanMs/TickBudgetMs*100,Paused=paused,PanelVisible=statisticsVisible,OfflineCapture=true}};
             File.WriteAllText(capture+".json",System.Text.Json.JsonSerializer.Serialize(stats,new System.Text.Json.JsonSerializerOptions{WriteIndented=true}));
             Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(stats));captured=true;ResetRates();
             if(validate&&!ok)throw new InvalidOperationException("Framebuffer validation failed.");
@@ -507,8 +507,8 @@ internal sealed class BattleApp : IDisposable
             r.Text(x+12,y+54,$"SAMPLES {statistics.SampleCount}/{SimulationStatistics.WindowCapacity}",White);
             r.Text(x+12,y+72,$"BUDGET {TickBudgetMs:0.00} MS {statistics.MeanMs/TickBudgetMs*100:0.0}%",White);
             r.Text(x+12,y+96,"STAGE MEAN MS",Cyan);
-            for(int i=0;i<Battle<SecsStore>.StageNames.Length;i++)
-                r.Text(x+12,y+116+i*18,$"{Battle<SecsStore>.StageNames[i]} {statistics.StageMeanMs[i]:0.000}",White);
+            for(int i=0;i<Battle<SkecsStore>.StageNames.Length;i++)
+                r.Text(x+12,y+116+i*18,$"{Battle<SkecsStore>.StageNames[i]} {statistics.StageMeanMs[i]:0.000}",White);
             r.Text(x+12,y+284,$"SHOTS {frame.Counters.Shots} HITS {frame.Counters.Hits}",White,1);
             r.Text(x+12,y+296,$"HEAVY {frame.Counters.HeavyShots} TURRET {frame.Counters.TurretShots}",White,1);
         }

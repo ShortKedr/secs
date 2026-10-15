@@ -33,7 +33,7 @@ if (-not $SkipBuild) {
 $dll = Join-Path $root 'SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll'
 function Get-SourceHashes {
     $hashes = [ordered]@{}
-    $files = git ls-files --cached --others --exclude-standard -- SECS SpaceBattle.Core SpaceBattle.SECS SpaceBattle.Adapters SpaceBattle.Headless Benchmarks.Local/vendor Benchmarks.Local/vendor-manifest.json Benchmarks.Local/StaticLibrary.csproj Benchmarks.Local/MorpehLibrary.csproj tools/space-battle/run-suite.ps1
+    $files = git ls-files --cached --others --exclude-standard -- SKECS SpaceBattle.Core SpaceBattle.SKECS SpaceBattle.Adapters SpaceBattle.Headless Benchmarks.Local/vendor Benchmarks.Local/vendor-manifest.json Benchmarks.Local/StaticLibrary.csproj Benchmarks.Local/MorpehLibrary.csproj tools/space-battle/run-suite.ps1
     if ($LASTEXITCODE -ne 0) { throw 'Cannot identify measured source files.' }
     foreach ($file in ($files | Where-Object { $_ -match '\.(cs|csproj|props|targets|json|ps1)$' -and (Test-Path -LiteralPath (Join-Path $root $_) -PathType Leaf) } | Sort-Object -Unique)) {
         $hashes[$file] = (Get-FileHash -LiteralPath (Join-Path $root $file) -Algorithm SHA256).Hash
@@ -41,7 +41,7 @@ function Get-SourceHashes {
     return $hashes
 }
 $sourceHashes = Get-SourceHashes
-$frameworks = @('secs','lite','classic','morpeh','static')
+$frameworks = @('skecs','lite','classic','morpeh','static')
 $manifest = [ordered]@{
     Format = 3
     Completed = $false
@@ -92,7 +92,7 @@ if (($sourceHashes | ConvertTo-Json -Compress) -cne ($finalHashes | ConvertTo-Js
 $manifest.Completed = $true
 $manifest['FinishedAt'] = [DateTimeOffset]::Now.ToString('O')
 $manifest['Files'] = [ordered]@{}
-foreach ($file in (Get-ChildItem -LiteralPath $target -File | Where-Object { $_.Name -ne 'manifest.json' -and ($_.Name -eq 'hardware.json' -or $_.Name -match '^high-(secs|lite|classic|morpeh|static)\.(json|ticks\.csv)$') } | Sort-Object Name)) {
+foreach ($file in (Get-ChildItem -LiteralPath $target -File | Where-Object { $_.Name -ne 'manifest.json' -and ($_.Name -eq 'hardware.json' -or $_.Name -match '^high-(skecs|lite|classic|morpeh|static)\.(json|ticks\.csv)$') } | Sort-Object Name)) {
     $manifest.Files[$file.Name] = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash
 }
 $manifest | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $manifestPath -Encoding utf8

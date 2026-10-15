@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Reflection;
 using System.Text.Json;
-using SECS;
-using SECS.Benchmarks;
+using SKECS;
+using SKECS.Benchmarks;
 
 static class StorageRunner
 {
@@ -48,7 +48,7 @@ static class StorageRunner
         File.WriteAllText(output, JsonSerializer.Serialize(new
         {
             metadata = new { entityCount = entities.Length, passes = 20, payloadBytes = 256,
-                revision = Environment.GetEnvironmentVariable("SECS_BENCHMARK_REVISION") ?? "optimized working tree",
+                revision = Environment.GetEnvironmentVariable("SKECS_BENCHMARK_REVISION") ?? "optimized working tree",
                 note = "Retained native column storage only, excluding managed arrays and allocator overhead; not timed" }, samples
         }, new JsonSerializerOptions { WriteIndented = true }));
         return true;

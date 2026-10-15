@@ -102,7 +102,7 @@ directory. Tick fast-forward runs before rendering
 and is not charged to the wall-time accumulator. The PNG is read from the actual
 OpenGL framebuffer; its adjacent JSON contains entity counts and nonblank pixel
 statistics. Capture metadata also records the battle checkpoint checksum as a
-16-digit hex string and SHA-256 hashes of the loaded Core, Game and SECS adapter assemblies
+16-digit hex string and SHA-256 hashes of the loaded Core, Game and SKECS adapter assemblies
 for provenance. Repeat with ticks 0, 900 and 3600. `--ships-per-team`, `--seed`,
 `--width` and `--height` customize a run. `--zoom` sets the initial runtime/capture
 zoom (finite values from 0.25 through 24, default 1); Home/Fit still fits the arena.

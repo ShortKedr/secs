@@ -15,19 +15,19 @@ internal static partial class Validation
         WarpProductionCheck();
         WarpLegacyRespawnCheck();
         WarpBlockedArrivalCheck();
-        var expected = WarpRepeatedWaves(static () => new SecsStore(), 1);
-        Require(expected.SequenceEqual(WarpRepeatedWaves(static () => new SecsStore(), 1)),
+        var expected = WarpRepeatedWaves(static () => new SkecsStore(), 1);
+        Require(expected.SequenceEqual(WarpRepeatedWaves(static () => new SkecsStore(), 1)),
             "warp deterministic same-seed repeat");
         Check(WarpRepeatedWaves(static () => new LeoEcsLiteStore(), 1), "Lite");
         Check(WarpRepeatedWaves(static () => new LeoEcsClassicStore(), 1), "Classic");
         Check(WarpRepeatedWaves(static () => new MorpehStore(), 1), "Morpeh");
         Check(WarpRepeatedWaves(static () => new StaticEcsStore(), 1), "Static");
-        WarpRepeatedWaves(static () => new SecsStore(), 0);
+        WarpRepeatedWaves(static () => new SkecsStore(), 0);
         WarpParticleBudgetCheck();
         Console.WriteLine("PASS: endless warp opt-in, count/strength triggers, warning, stagger, corners, survivors, caps, repeat waves, effects and all five ports.");
 
         void Check(ulong[] actual, string name) => Require(expected.SequenceEqual(actual),
-            $"{name}: warp reinforcement replay matches SECS at every checkpoint");
+            $"{name}: warp reinforcement replay matches SKECS at every checkpoint");
     }
 
     private static BattleConfig WarpConfig(int particles = 0) => new()
@@ -131,7 +131,7 @@ internal static partial class Validation
 
     private static void WarpModeChecks()
     {
-        using (var off = WarpBattle(static () => new SecsStore(), WarpConfig() with
+        using (var off = WarpBattle(static () => new SkecsStore(), WarpConfig() with
                { EndlessReinforcements = false, ReplenishCarriers = false }))
         {
             var survivors = WarpDeplete(off, 0);
@@ -140,13 +140,13 @@ internal static partial class Validation
                 WarpFrame(off).Ships.Count(s => s.Team == 0) == survivors.Length,
                 "warp disabled does not schedule waves or spawn ships");
         }
-        using (var healthy = WarpBattle(static () => new SecsStore(), WarpConfig()))
+        using (var healthy = WarpBattle(static () => new SkecsStore(), WarpConfig()))
         {
             WarpUntil(healthy, 240);
             Require(healthy.Counters.ReinforcementWaves == 0 && healthy.Counters.ReinforcementShips == 0,
                 "warp healthy fleets do not schedule reinforcement");
         }
-        using var on = WarpBattle(static () => new SecsStore(), WarpConfig(1));
+        using var on = WarpBattle(static () => new SkecsStore(), WarpConfig(1));
         var original = WarpFrame(on).Ships.ToArray();
         var survivorsOn = WarpDeplete(on, 0);
         var survivor = survivorsOn.Single();
@@ -190,7 +190,7 @@ internal static partial class Validation
 
     private static void WarpStrengthAndCapacityChecks()
     {
-        using var battle = WarpBattle(static () => new SecsStore(), WarpConfig());
+        using var battle = WarpBattle(static () => new SkecsStore(), WarpConfig());
         var initial = WarpFrame(battle);
         var victim = initial.Ships.First(s => s.Team == 0 && s.Kind == (int)ShipClass.Interceptor);
         Require(battle.TryFindShip(victim.Serial, out var doomed), "warp strength victim lookup");
@@ -216,7 +216,7 @@ internal static partial class Validation
 
     private static void WarpProductionCheck()
     {
-        using var battle = WarpBattle(static () => new SecsStore(), WarpConfig());
+        using var battle = WarpBattle(static () => new SkecsStore(), WarpConfig());
         var initial = WarpFrame(battle);
         var victim = initial.Ships.First(s => s.Team == 0 && s.Kind == (int)ShipClass.Interceptor);
         Require(battle.TryFindShip(victim.Serial, out var e), "warp production victim lookup");
@@ -232,7 +232,7 @@ internal static partial class Validation
 
     private static void WarpLegacyRespawnCheck()
     {
-        using var battle = WarpBattle(static () => new SecsStore(), WarpConfig() with { EndlessReinforcements = false });
+        using var battle = WarpBattle(static () => new SkecsStore(), WarpConfig() with { EndlessReinforcements = false });
         var carrier = WarpFrame(battle).Ships.First(s => s.Team == 0 && ShipCatalog.IsCarrier((ShipClass)s.Kind));
         Require(battle.TryFindShip(carrier.Serial, out var e), "warp legacy carrier lookup");
         battle.Damage(e, 1000000, false, false);
@@ -249,7 +249,7 @@ internal static partial class Validation
 
     private static void WarpBlockedArrivalCheck()
     {
-        using var battle = WarpBattle(static () => new SecsStore(), WarpConfig() with
+        using var battle = WarpBattle(static () => new SkecsStore(), WarpConfig() with
         {
             ShipsPerTeam = 32, ReinforcementCheckIntervalTicks = 1, ReinforcementWarmupTicks = 2,
             ReinforcementSpawnIntervalTicks = 3, ReinforcementCooldownTicks = 60
@@ -370,7 +370,7 @@ internal static partial class Validation
 
     private static void WarpParticleBudgetCheck()
     {
-        using var battle = WarpBattle(static () => new SecsStore(), WarpConfig(8) with { MaxParticles = 3 });
+        using var battle = WarpBattle(static () => new SkecsStore(), WarpConfig(8) with { MaxParticles = 3 });
         WarpDeplete(battle, 0, 1);
         WarpUntil(battle, 210);
         Require(battle.Counters.ReinforcementShips > 0, "warp exhausted tiny effect budget cannot suppress ships");

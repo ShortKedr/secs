@@ -22,7 +22,7 @@ python tools/HardwareStudy/compare.py Benchmarks.Local/tmp/my-before.json Benchm
 
 Without `StudyAssemblies`, build current project references. Never copy changed assemblies over the preserved baseline. Output must be new and project-local.
 
-`--port` selects `secs`, `lite`, `classic`, `morpeh`, `static`, or `all`. `--seed`, `--ships`, `--churn`, `--ticks`, `--phase-ticks` and `--repeats` control matching workloads.
+`--port` selects `skecs`, `lite`, `classic`, `morpeh`, `static`, or `all`. `--seed`, `--ships`, `--churn`, `--ticks`, `--phase-ticks` and `--repeats` control matching workloads.
 
 `--game` matches the nominal frontend: LightSwarm, endless reinforcement, no carrier replacement. Without it, the legacy Uniform workload remains a separate regression scenario. Warmup is a separate full-length replay. Independent measured battles start at zero.
 
@@ -30,7 +30,7 @@ Checksum, all gameplay/AI counters and population means/endpoints must match aft
 
 `--physics-timings` enables opt-in contact-candidate/solver/hit-candidate/narrow-phase clocks. This instrumentation has overhead; never compare instrumented with uninstrumented runs.
 
-`--store-probes` runs fresh-world native SECS accessor and final-archetype microprobes instead of battles. It does not establish an end-to-end speedup or change gameplay counters. Birth row-operation counts are code-audited, not instrumented copy-byte/repair counts.
+`--store-probes` runs fresh-world native SKECS accessor and final-archetype microprobes instead of battles. It does not establish an end-to-end speedup or change gameplay counters. Birth row-operation counts are code-audited, not instrumented copy-byte/repair counts.
 
 Browser measurements require production stable .NET 8 Mono AOT builds and use `tools/web/profile-revisions.mjs --sites <comma-separated-wwwroot-directories> --labels <matching-labels> --repeats 3 --output <new-project-local-json>`.
 

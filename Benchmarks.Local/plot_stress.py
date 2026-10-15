@@ -156,10 +156,10 @@ def render_count(metadata: dict[str, Any], results: dict[tuple[str, str, int], d
         method_ax.text(0.04, 0.29, "\n".join(version_lines), transform=method_ax.transAxes, fontsize=8,
                        color="#4B5563", va="top", linespacing=1.5)
 
-    secs_revision = str(metadata.get("versions", {}).get("SECS", ""))
+    skecs_revision = str(metadata.get("versions", {}).get("SKECS", metadata.get("versions", {}).get("SECS", "")))
     title = f"ECS Stress Benchmarks: {count:,} entities"
-    if "working tree" in secs_revision:
-        title += " | Optimized SECS"
+    if "working tree" in skecs_revision:
+        title += " | Optimized SKECS"
     fig.suptitle(title, fontsize=16, fontweight="bold", y=0.98, color="#20252B")
     fig.text(0.5, 0.942, "Error bars: +/-1 SD   |   256 layouts   |   256-byte payload   |   1% hot entities   |   MixedFrames: 120 frames / operation",
              ha="center", va="top", fontsize=8.5, color="#4B5563")

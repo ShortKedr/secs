@@ -2,6 +2,9 @@ English | [Русский](MONO_COMPILER_STUDY.ru.md)
 
 # Stable Mono AOT Compiler Study
 
+This 2026-10-12 study measured the library under its former SECS name. SECS
+labels below identify that historical build; the current product is SKECS.
+
 <!-- research-colors:start -->
 ### Colour scale
 

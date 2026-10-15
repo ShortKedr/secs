@@ -5,8 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="SpaceBattle.Core"><HintPath>../../../SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Core.dll</HintPath></Reference>
-    <Reference Include="SpaceBattle.SECS"><HintPath>../../../SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.SECS.dll</HintPath></Reference>
-    <Reference Include="SECS"><HintPath>../../../SpaceBattle.Headless/bin/Release/net8.0/SECS.dll</HintPath></Reference>
+    <Reference Include="SpaceBattle.SKECS"><HintPath>../../../SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.SKECS.dll</HintPath></Reference>
+    <Reference Include="SKECS"><HintPath>../../../SpaceBattle.Headless/bin/Release/net8.0/SKECS.dll</HintPath></Reference>
     <Reference Include="Aether.Physics2D"><HintPath>../../../SpaceBattle.Headless/bin/Release/net8.0/Aether.Physics2D.dll</HintPath></Reference>
   </ItemGroup>
 </Project>

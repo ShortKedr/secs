@@ -12,7 +12,7 @@ internal static class StoreProbes
         for (var run = 0; run < 5; run++) Probe(run);
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
         File.WriteAllText(output, JsonSerializer.Serialize(new { Count = count, Cycles = cycles,
-            Scope = "Native isolated SECS microprobes, not Battle.Step and not AOT. Fresh worlds per variant/run, separate warmup. Structural row operations are code-audited counts, not instrumented copy-byte/repair counters. No gameplay creation contract changed.",
+            Scope = "Native isolated SKECS microprobes, not Battle.Step and not AOT. Fresh worlds per variant/run, separate warmup. Structural row operations are code-audited counts, not instrumented copy-byte/repair counters. No gameplay creation contract changed.",
             Results = results }, new JsonSerializerOptions { WriteIndented = true }));
 
         void Probe(int run)
@@ -20,8 +20,8 @@ internal static class StoreProbes
             foreach (var accessors in new[] { false, true })
             foreach (var direct in new[] { false, true })
             {
-                using var world = new SECS.World();
-                var entities = new SECS.Entity[count];
+                using var world = new SKECS.World();
+                var entities = new SKECS.Entity[count];
                 var accessor = accessors ? world.GetAccessor<Transform>() : default;
                 var motion = new Motion(); var projectile = new Projectile();
                 var allocated = GC.GetAllocatedBytesForCurrentThread();

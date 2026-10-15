@@ -11,7 +11,7 @@ internal static partial class Validation
         Console.WriteLine($"Runtime SIMD gates: Vector={vectorized}, Vector128={vector128}");
         foreach (var factory in new Func<IEcsStore>[]
         {
-            static () => new SecsStore(), static () => new LeoEcsLiteStore(),
+            static () => new SkecsStore(), static () => new LeoEcsLiteStore(),
             static () => new LeoEcsClassicStore(), static () => new MorpehStore(),
             static () => new StaticEcsStore(r => { r.Register<PassA>(); r.Register<PassB>(); r.Register<PassC>(); r.Register<PassTag>(); })
         })

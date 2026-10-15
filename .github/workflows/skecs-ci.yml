@@ -1,0 +1,299 @@
+name: SKECS library CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+    inputs:
+      require-unity:
+        description: Require all six trusted Unity consumers before release
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Build, test, pack, .NET 8 and 10
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Read the single project version
+        id: version
+        run: |
+          version=$(dotnet msbuild SKECS/SKECS.csproj -getProperty:Version)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Restore and build every library target
+        run: |
+          dotnet restore SKECS/SKECS.csproj
+          dotnet build SKECS/SKECS.csproj -c Release --no-restore
+      - name: Run SKECS tests
+        run: dotnet test SKECS.Tests/SKECS.Tests.csproj -c Release --logger "trx;LogFileName=skecs-tests.trx" --results-directory artifacts/release/tests
+      - name: Pack the exact source commit
+        run: dotnet pack SKECS/SKECS.csproj -c Release --no-build -o artifacts/release -p:RepositoryCommit="$GITHUB_SHA"
+      - name: Verify package metadata and content
+        run: >-
+          python tools/release/verify_package.py
+          artifacts/release/ShortKedr.SKECS.${{ steps.version.outputs.version }}.nupkg
+          --version "${{ steps.version.outputs.version }}" --commit "$GITHUB_SHA"
+      - name: Build and inspect the Unity archive
+        run: >-
+          python tools/release/make_unity_zip.py
+          --package artifacts/release/ShortKedr.SKECS.${{ steps.version.outputs.version }}.nupkg
+          --output artifacts/release/SKECS.Unity.${{ steps.version.outputs.version }}.zip
+          --version "${{ steps.version.outputs.version }}" --commit "$GITHUB_SHA"
+      - name: Verify Unity ZIP bytes and manifest
+        run: >-
+          python tools/release/verify_unity_zip.py
+          --package artifacts/release/ShortKedr.SKECS.${{ steps.version.outputs.version }}.nupkg
+          --unity-zip artifacts/release/SKECS.Unity.${{ steps.version.outputs.version }}.zip
+          --version "${{ steps.version.outputs.version }}" --commit "$GITHUB_SHA"
+      - name: Run package-backed .NET 8 consumer
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-DotNetSmoke.ps1 -PackageDirectory artifacts/release -Framework net8.0 -Version "${{ steps.version.outputs.version }}"
+      - name: Run package-backed .NET 10 consumer
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-DotNetSmoke.ps1 -PackageDirectory artifacts/release -Framework net10.0 -Version "${{ steps.version.outputs.version }}"
+      - name: Record successful package-backed .NET consumers
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          foreach ($major in 8, 10) {
+            $runtime = dotnet --list-runtimes | Where-Object { $_ -match "^Microsoft.NETCore.App $major\." } | Select-Object -Last 1
+            if (-not $runtime) { throw "Missing .NET $major runtime" }
+            $runtime = ($runtime -split ' \[', 2)[0]
+            python tools/release/record_evidence.py --package "artifacts/release/ShortKedr.SKECS.$env:VERSION.nupkg" --kind "dotnet$major" --version "$env:VERSION" --commit "$env:GITHUB_SHA" --run-id "$env:GITHUB_RUN_ID" --runtime "$runtime" --os ([System.Runtime.InteropServices.RuntimeInformation]::OSDescription) --output "artifacts/release/evidence/dotnet$major.json"
+            if ($LASTEXITCODE -ne 0) { throw 'Could not record .NET evidence' }
+          }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: skecs-evidence-dotnet-${{ github.run_id }}
+          path: artifacts/release/evidence/dotnet*.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Check bilingual documentation
+        run: python tools/check_docs.py
+      - name: Retain package, Unity archive and test log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: skecs-build-${{ github.run_id }}
+          path: artifacts/release/
+          if-no-files-found: error
+          retention-days: 14
+
+  framework:
+    name: .NET Framework 4.8 consumer
+    needs: package
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v8
+        with:
+          name: skecs-build-${{ github.run_id }}
+          path: artifacts/release
+      - name: Run package-backed .NET Framework application
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-DotNetSmoke.ps1 -PackageDirectory artifacts/release -Framework net48 -Version "${{ needs.package.outputs.version }}"
+      - name: Record successful Framework consumer
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          $release = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full').Release
+          if ($release -lt 528040) { throw 'Requires .NET Framework 4.8 or later' }
+          $runtime = ".NET Framework 4.8-compatible (registry release $release)"
+          python tools/release/record_evidence.py --package "artifacts/release/ShortKedr.SKECS.$env:VERSION.nupkg" --kind framework --version "$env:VERSION" --commit "$env:GITHUB_SHA" --run-id "$env:GITHUB_RUN_ID" --runtime "$runtime" --os ([System.Runtime.InteropServices.RuntimeInformation]::OSDescription) --output artifacts/release/evidence/framework.json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not record Framework evidence' }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: skecs-evidence-framework-${{ github.run_id }}
+          path: artifacts/release/evidence/framework.json
+          if-no-files-found: error
+          retention-days: 14
+
+  godot:
+    name: Godot 4.5 .NET desktop consumer
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v8
+        with:
+          name: skecs-build-${{ github.run_id }}
+          path: artifacts/release
+      - name: Install pinned Godot 4.5 .NET editor
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 --output godot.zip \
+            https://github.com/godotengine/godot-builds/releases/download/4.5-stable/Godot_v4.5-stable_mono_linux_x86_64.zip
+          # SHA-512 from godotengine/godot-builds/releases/godot-4.5-stable.json.
+          echo '8cbfc3f8ef2e346aac72df3a0f71f4a7b05df575cbd8e0930aad7dc6a7ad79b3e27395184674a3718c376f49011a40689966bf243638d8e7efef4693dd3b276b  godot.zip' | sha512sum --check
+          mkdir -p artifacts/release/godot
+          unzip -q godot.zip -d artifacts/release/godot
+          GODOT_BIN=$(find artifacts/release/godot -type f -name 'Godot_v4.5-stable_mono_linux.x86_64' -print -quit)
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          "$GODOT_BIN" --version | tee artifacts/release/godot-version.txt
+          grep -q '^4\.5\.' artifacts/release/godot-version.txt
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+      - name: Run package-backed Godot scene
+        shell: pwsh
+        run: ./tools/release-consumers/Invoke-GodotSmoke.ps1 -PackageDirectory artifacts/release -GodotExecutable "$env:GODOT_BIN" -Version "${{ needs.package.outputs.version }}"
+      - name: Record successful Godot consumer
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.package.outputs.version }}
+        run: |
+          $runtime = 'Godot ' + (Get-Content artifacts/release/godot-version.txt -Raw).Trim()
+          python tools/release/record_evidence.py --package "artifacts/release/ShortKedr.SKECS.$env:VERSION.nupkg" --kind godot --version "$env:VERSION" --commit "$env:GITHUB_SHA" --run-id "$env:GITHUB_RUN_ID" --runtime "$runtime" --os ([System.Runtime.InteropServices.RuntimeInformation]::OSDescription) --output artifacts/release/evidence/godot.json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not record Godot evidence' }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: skecs-evidence-godot-${{ github.run_id }}
+          path: artifacts/release/evidence/godot.json
+          if-no-files-found: error
+          retention-days: 14
+
+  unity:
+    name: Unity ${{ matrix.branch }} ${{ matrix.backend }} package consumer
+    needs: package
+    # Trusted release tags only: never run pull request code on licensed self-hosted machines.
+    if: inputs.require-unity && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/skecs-v')
+    runs-on: [self-hosted, Windows, X64, '${{ matrix.runner }}']
+    timeout-minutes: 45
+    concurrency:
+      group: skecs-unity-${{ matrix.branch }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      # Each branch uses one licensed editor installation; avoid simultaneous editor launches.
+      max-parallel: 1
+      matrix:
+        branch: ['2022.3', '6']
+        backend: [Editor, Mono, IL2CPP]
+        include:
+          - branch: '2022.3'
+            runner: skecs-unity-2022
+            editor-variable: SKECS_UNITY_2022_EDITOR
+          - branch: '6'
+            runner: skecs-unity-6
+            editor-variable: SKECS_UNITY_6_EDITOR
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          clean: true
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v8
+        with:
+          name: skecs-build-${{ github.run_id }}
+          path: artifacts/release
+      - name: Validate the release package and provisional Unity archive
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.package.outputs.version }}
+          UNITY_EDITOR: ${{ vars[matrix.editor-variable] }}
+        run: |
+          if (-not $env:UNITY_EDITOR -or -not (Test-Path -LiteralPath $env:UNITY_EDITOR -PathType Leaf)) { throw 'Configure the trusted runner Unity editor path in the repository variable' }
+          if ((git rev-parse HEAD) -ne $env:GITHUB_SHA) { throw 'Checkout commit differs from release commit' }
+          python tools/release/verify_package.py "artifacts/release/ShortKedr.SKECS.$env:VERSION.nupkg" --version "$env:VERSION" --commit "$env:GITHUB_SHA"
+          if ($LASTEXITCODE -ne 0) { throw 'Package verification failed' }
+          python tools/release/verify_unity_zip.py --package "artifacts/release/ShortKedr.SKECS.$env:VERSION.nupkg" --unity-zip "artifacts/release/SKECS.Unity.$env:VERSION.zip" --version "$env:VERSION" --commit "$env:GITHUB_SHA"
+          if ($LASTEXITCODE -ne 0) { throw 'Unity archive verification failed' }
+      - name: Run the package-backed Unity consumer and record actual editor version
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.package.outputs.version }}
+          UNITY_EDITOR: ${{ vars[matrix.editor-variable] }}
+          UNITY_BRANCH: ${{ matrix.branch }}
+          UNITY_BACKEND: ${{ matrix.backend }}
+        run: |
+          ./tools/release-consumers/Invoke-UnitySmoke.ps1 -UnityZip "artifacts/release/SKECS.Unity.$env:VERSION.zip" -UnityEditor "$env:UNITY_EDITOR" -Backend "$env:UNITY_BACKEND" -Version "$env:VERSION"
+          $logs = @(Get-ChildItem artifacts/release-consumers -Filter editor.log -File -Recurse)
+          if ($logs.Count -ne 1) { throw "Expected exactly one current Unity Editor log; found $($logs.Count)" }
+          $match = Select-String -LiteralPath $logs[0].FullName -Pattern 'Initialize engine version: (\d+\.\d+\.\d+[abcfpx]\d+)' | Select-Object -First 1
+          if (-not $match) { throw 'Editor log has no exact Unity version' }
+          $editorVersion = $match.Matches[0].Groups[1].Value
+          $prefix = if ($env:UNITY_BRANCH -eq '6') { '6000.' } else { '2022.3.' }
+          if (-not $editorVersion.StartsWith($prefix)) { throw "Wrong Unity branch: $editorVersion" }
+          $kind = "unity-$env:UNITY_BRANCH-$env:UNITY_BACKEND"
+          $os = [System.Runtime.InteropServices.RuntimeInformation]::OSDescription
+          if (-not $os.StartsWith('Windows ')) { $os = "Windows $os" }
+          python tools/release/record_evidence.py --package "artifacts/release/ShortKedr.SKECS.$env:VERSION.nupkg" --kind "$kind" --version "$env:VERSION" --commit "$env:GITHUB_SHA" --run-id "$env:GITHUB_RUN_ID" --runtime "Unity $editorVersion ($env:UNITY_BACKEND)" --os "$os" --output "artifacts/release/evidence/$kind.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not record Unity evidence' }
+      - name: Retain successful Unity evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: skecs-evidence-unity-${{ matrix.branch }}-${{ matrix.backend }}-${{ github.run_id }}
+          path: artifacts/release/evidence/unity-${{ matrix.branch }}-${{ matrix.backend }}.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain Unity diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: skecs-unity-logs-${{ matrix.branch }}-${{ matrix.backend }}-${{ github.run_id }}
+          path: |
+            artifacts/release-consumers/**/editor.log
+            artifacts/release-consumers/**/player.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  verified:
+    name: SKECS hosted checks
+    needs: [package, framework, godot, unity]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every runtime and packaging check
+        env:
+          PACKAGE: ${{ needs.package.result }}
+          FRAMEWORK: ${{ needs.framework.result }}
+          GODOT: ${{ needs.godot.result }}
+          UNITY: ${{ needs.unity.result }}
+          REQUIRE_UNITY: ${{ inputs.require-unity }}
+        run: |
+          for result in "$PACKAGE" "$FRAMEWORK" "$GODOT"; do
+            test "$result" = success || { echo "SKECS hosted checks are incomplete: $PACKAGE $FRAMEWORK $GODOT"; exit 1; }
+          done
+          if [ "$REQUIRE_UNITY" = true ]; then
+            test "$UNITY" = success || { echo "Required Unity matrix is incomplete: $UNITY"; exit 1; }
+          fi
+          echo 'Required SKECS package and consumer checks passed.'

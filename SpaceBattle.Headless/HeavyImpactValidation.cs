@@ -5,8 +5,8 @@ internal static partial class Validation
 {
     private static void HeavyImpactChecks()
     {
-        var expected = HeavyImpactStoreChecks(static () => new SecsStore());
-        Check(HeavyImpactStoreChecks(static () => new SecsStore()), "SECS repeat");
+        var expected = HeavyImpactStoreChecks(static () => new SkecsStore());
+        Check(HeavyImpactStoreChecks(static () => new SkecsStore()), "SKECS repeat");
         Check(HeavyImpactStoreChecks(static () => new LeoEcsLiteStore()), "Lite");
         Check(HeavyImpactStoreChecks(static () => new LeoEcsClassicStore()), "Classic");
         Check(HeavyImpactStoreChecks(static () => new MorpehStore()), "Morpeh");

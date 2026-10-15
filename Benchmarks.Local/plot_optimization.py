@@ -66,7 +66,7 @@ def load_secs(path: Path, allowed: set[tuple[str, int]]) -> tuple[dict[str, Any]
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             raise InputError(f"{path}: results[{index}] must be an object")
-        if row.get("framework") != "SECS":
+        if row.get("framework") not in {"SECS", "SKECS"}:
             continue
         missing = [field for field in REQUIRED_FIELDS if field not in row]
         if missing:
@@ -150,7 +150,7 @@ def render(old_results: dict[tuple[str, int], dict[str, float]],
                      loc="left", fontsize=9, fontweight="semibold", color="#20252B", pad=3)
 
     matched = sum(1 for scenario, count, _ in rows if (scenario, count) in old_results and (scenario, count) in new_results)
-    fig.suptitle("SECS Optimization: Original vs Optimized", x=0.055, y=0.997, ha="left",
+    fig.suptitle("SKECS Optimization: Original vs Optimized", x=0.055, y=0.997, ha="left",
                  fontsize=16, fontweight="bold", color="#17212B")
     fig.text(0.055, 0.986,
              f"{matched} matched cases  |  labels show mean time  |  whiskers show +/-1 SD when present  |  lower time is better",
@@ -160,7 +160,7 @@ def render(old_results: dict[tuple[str, int], dict[str, float]],
                + [Patch(color=EQUAL_COLOR)],
                labels=("≤5% lag", "15% lag", "≥30% lag", "within 5% / neutral"),
                loc="upper left", bbox_to_anchor=(0.055, 0.974), ncol=4, frameon=False, fontsize=8)
-    fig.text(0.055, 0.974, ".NET 8.0.31 x64 | native SECS | original 872e0df vs optimized working tree | 20 base / 8 stress samples",
+    fig.text(0.055, 0.974, ".NET 8.0.31 x64 | native SKECS | original 872e0df vs optimized working tree | 20 base / 8 stress samples",
              ha="left", va="top", fontsize=8, color="#475569")
     fig.subplots_adjust(left=0.19, right=0.97, top=0.945, bottom=0.025, hspace=0.92)
     output.parent.mkdir(parents=True, exist_ok=True)

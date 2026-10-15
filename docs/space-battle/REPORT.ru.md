@@ -207,4 +207,4 @@ python tools/space-battle/analyze_current.py --data-dir docs/space-battle/curren
 
 - [Архив конечного боя 2026-10-14](REPORT_2026-10-14_FINITE.ru.md): прежняя матрица low/nominal/high, другая методика и игровой workload; время напрямую не сравнивается.
 - [Архив измерений 2026-10-11](REPORT_2026-10-11.ru.md), [архитектура](ARCHITECTURE.ru.md), [физика](PHYSICS.ru.md), [тактика](TACTICS_V3.ru.md).
-- [Микробенчмарки SECS](../../SECS.Benchmarks/README.ru.md): отдельная нагрузка без игровой логики.
+- [Микробенчмарки SKECS](../../SKECS.Benchmarks/README.ru.md): отдельная нагрузка без игровой логики.

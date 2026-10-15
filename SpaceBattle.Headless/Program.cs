@@ -31,15 +31,15 @@ try
     if (args.Contains("--validate-ports")) { Validation.ComparePorts(); return 0; }
     var options = RunOptions.Parse(args);
     var frameworkIndex = Array.IndexOf(args, "--framework");
-    var framework = frameworkIndex < 0 ? "secs" : args[frameworkIndex + 1];
+    var framework = frameworkIndex < 0 ? "skecs" : args[frameworkIndex + 1];
     switch (framework)
     {
-        case "secs": Runner.Run(static () => new SecsStore(), options); break;
+        case "skecs": Runner.Run(static () => new SkecsStore(), options); break;
         case "lite": Runner.Run(static () => new LeoEcsLiteStore(), options); break;
         case "classic": Runner.Run(static () => new LeoEcsClassicStore(), options); break;
         case "morpeh": Runner.Run(static () => new MorpehStore(), options); break;
         case "static": Runner.Run(static () => new StaticEcsStore(), options); break;
-        default: throw new ArgumentException("--framework must be secs, lite, classic, morpeh, or static");
+        default: throw new ArgumentException("--framework must be skecs, lite, classic, morpeh, or static");
     }
     return 0;
 }
@@ -72,7 +72,7 @@ internal sealed record RunOptions(string Output, int Ticks, int WarmupTicks, Bat
             EndlessReinforcements = game, ReplenishCarriers = !game
         };
         config.Validate();
-        var output = Path.GetFullPath(Value("--output", "Benchmarks.Local/tmp/circle-kernel/secs.json"));
+        var output = Path.GetFullPath(Value("--output", "Benchmarks.Local/tmp/circle-kernel/skecs.json"));
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../")).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         if (!output.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Output must stay inside the current project.");
@@ -195,7 +195,7 @@ internal static class Runner
                 SimulatedSeconds = options.Ticks / 60.0, WallSeconds = elapsed, Options = options.Config, options.Preset,
                 TimingScope = "Outer tickMs includes Battle.Step systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",
                 HudTimingScope = "Battle.LastTickMs as displayed by desktop HUD; consecutive 600-tick windows, excluding outer call timer overhead",
-                MemoryScope = "Managed tick allocation, managed heap, process working/private bytes; SECS native storage separately; process includes harness buffers",
+                MemoryScope = "Managed tick allocation, managed heap, process working/private bytes; SKECS native storage separately; process includes harness buffers",
                 Collision = "circle-kernel-v1; homogeneous disk ships; relative-motion analytic disk/rectangle projectile CCD",
                 GameplayRules = new { Revision = ArmamentRules.Revision, TacticalRevision = TacticalRules.Revision, PhysicsRevision = PhysicsSettings.Revision,
                     DamageRevision = DamageRules.Revision, DamageProfiles = options.Config.Damage,
@@ -209,7 +209,7 @@ internal static class Runner
                     FriendlyFireCounter = "observed hits with a still-live owner identity; excludes attribution after owner destruction" } },
             Provenance = new
             {
-                Sources = new { SECS = "optimized working tree + default WorldOptions fix", Lite = "5053141d7d663c6b1855c8409ac93dfac807b239", Classic = "1213c31c9ef8325d48e74a52b345c4db242d038b",
+                Sources = new { SKECS = "optimized working tree + default WorldOptions fix", Lite = "5053141d7d663c6b1855c8409ac93dfac807b239", Classic = "1213c31c9ef8325d48e74a52b345c4db242d038b",
                     Morpeh = "9f6369384792a01d74df24efd35b08ae313e4f12", StaticEcs = "23b1cf36d89497e8a126d38459d688e2b0a5dea3", StaticPack = "7bfb6cf925901b9366dda884258d727a89fff76e" },
                 Binaries = Directory.GetFiles(AppContext.BaseDirectory, "*.dll").Order().ToDictionary(path => Path.GetFileName(path)!, path => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))))
             },

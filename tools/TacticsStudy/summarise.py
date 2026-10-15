@@ -168,7 +168,7 @@ def main():
     run.add_argument("--after", required=True)
     run.add_argument("--dotnet", default="dotnet")
     run.add_argument("--output-directory", required=True)
-    run.add_argument("--port", default="secs", choices=["secs", "lite", "classic", "morpeh", "static"])
+    run.add_argument("--port", default="skecs", choices=["skecs", "lite", "classic", "morpeh", "static"])
     run.add_argument("--seeds", type=int, nargs="+", default=[27, 7331, 61012])
     run.add_argument("--reps", type=int, default=3)
     run.add_argument("--ships", type=int, default=96)

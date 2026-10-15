@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from benchmark_colors import EQUAL_COLOR, PALETTE, colors
 
 
-FRAMEWORKS = ("SECS", "LeoECS Lite", "LeoECS Classic", "Morpeh", "StaticEcs")
+FRAMEWORKS = ("SKECS", "LeoECS Lite", "LeoECS Classic", "Morpeh", "StaticEcs")
 SCENARIOS = ("Create", "Iterate", "Churn", "Destroy")
 ENTITY_COUNTS = (1000, 100000)
 REQUIRED_FIELDS = ("framework", "scenario", "entityCount", "meanNs", "stddevNs", "samplesNs", "allocatedBytes")
@@ -56,6 +56,8 @@ def validate(data: Any) -> tuple[dict[str, Any], dict[tuple[str, str, int], dict
         if missing:
             raise InputError(f"results[{i}] missing fields: {', '.join(missing)}")
         framework, scenario, count = row["framework"], row["scenario"], row["entityCount"]
+        if framework == "SECS":  # Keep preserved benchmark captures readable.
+            framework = "SKECS"
         if framework not in FRAMEWORKS:
             raise InputError(f"results[{i}].framework is unexpected: {framework!r}")
         if scenario not in SCENARIOS:
@@ -156,8 +158,8 @@ def render(metadata: dict[str, Any], results: dict[tuple[str, str, int], dict[st
             ax.tick_params(axis="y", length=0, labelsize=9)
             ax.tick_params(axis="x", labelsize=8, colors="#4B5563")
             ax.set_xlabel("ns / entity (log scale, lower is better)", fontsize=8, color="#4B5563")
-    secs_revision = str(metadata.get("revisions", {}).get("SECS", ""))
-    title = "ECS Framework Comparison: Optimized SECS" if "working tree" in secs_revision else "ECS Framework Benchmark Comparison"
+    skecs_revision = str(metadata.get("revisions", {}).get("SKECS", metadata.get("revisions", {}).get("SECS", "")))
+    title = "ECS Framework Comparison: Optimized SKECS" if "working tree" in skecs_revision else "ECS Framework Benchmark Comparison"
     fig.suptitle(title, fontsize=16, fontweight="bold", y=0.98, color="#20252B")
     fig.text(0.5, 0.942, "Error bars: +/-1 SD   |   Create: 2 components   |   Churn: add/remove third component",
              ha="center", va="top", fontsize=9, color="#4B5563")

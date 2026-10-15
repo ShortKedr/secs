@@ -65,7 +65,7 @@ async function main() {
       coreMs: metric("coreStep"), stepAndExportMs: metric("stepAndExport"), exportMs: metric("perTickExportAndInterop"),
       physicsQueries: after[0].physicsQueries, checksum: before[0].checksum });
   }
-  const summary = { generatedAt: new Date().toISOString(), scope: "SECS only; identical seeded trajectories within each runtime; independent fresh warmed runs; median of three run means; no cross-runtime lockstep claim", native: scenarios, browser: phases, browserRuns: web.runs };
+  const summary = { generatedAt: new Date().toISOString(), scope: "SKECS only; identical seeded trajectories within each runtime; independent fresh warmed runs; median of three run means; no cross-runtime lockstep claim", native: scenarios, browser: phases, browserRuns: web.runs };
   await fs.mkdir(path.dirname(output), { recursive: true });
   await fs.writeFile(output, JSON.stringify(summary, null, 2) + "\n");
   console.log(JSON.stringify({ native: scenarios.map(s => ({ name: s.name, coreMs: s.coreMs })), browser: phases }, null, 2));

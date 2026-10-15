@@ -22,7 +22,7 @@ Historical measurements are not replaced.
 
 ## Implementation
 
-1. [Component-only passes](../../SpaceBattle.SECS/SecsStore.cs) avoid native
+1. [Component-only passes](../../SpaceBattle.SKECS/SkecsStore.cs) avoid native
    entity construction and reverse mapping for projectile, debris and particle
    movement. Dense generation-aware mapping already existed in the baseline;
    there was no dictionary lookup on every ordinary SECS row. The other four

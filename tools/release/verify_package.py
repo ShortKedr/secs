@@ -1,4 +1,4 @@
-"""Fail closed when the SECS release package differs from the tagged source."""
+"""Fail closed when the SKECS release package differs from the tagged source."""
 
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ FORBIDDEN_PARTS = {
     "spacebattle.web",
     "benchmarks.local",
     "vendor",
-    "secs.tests",
-    "secs.benchmarks",
+    "skecs.tests",
+    "skecs.benchmarks",
     "obj",
     "bin",
     "tmp",
@@ -87,7 +87,7 @@ def inspect_package(path: Path, package_id: str, version: str, commit: str, lice
         if repository.attrib.get("commit", "").lower() != commit.lower():
             fail("Package repository commit differs from release commit")
         url = repository.attrib.get("url", "")
-        if not url.startswith("https://github.com/ShortKedr/secs"):
+        if not url.startswith("https://github.com/ShortKedr/skecs"):
             fail(f"Unexpected repository URL: {url!r}")
 
         readme = text_of(root, "readme")
@@ -102,11 +102,11 @@ def inspect_package(path: Path, package_id: str, version: str, commit: str, lice
 
         dlls = {
             name for name in names
-            if re.fullmatch(r"lib/[^/]+/SECS\.dll", name, flags=re.IGNORECASE)
+            if re.fullmatch(r"lib/[^/]+/SKECS\.dll", name, flags=re.IGNORECASE)
         }
-        expected_dlls = {f"lib/{tfm}/SECS.dll" for tfm in EXPECTED_TFMS}
+        expected_dlls = {f"lib/{tfm}/SKECS.dll" for tfm in EXPECTED_TFMS}
         if dlls != expected_dlls:
-            fail(f"Expected SECS DLLs {sorted(expected_dlls)}, found {sorted(dlls)}")
+            fail(f"Expected SKECS DLLs {sorted(expected_dlls)}, found {sorted(dlls)}")
         other_libs = {
             name for name in names
             if name.lower().startswith("lib/") and name.lower().endswith(".dll")
@@ -117,10 +117,10 @@ def inspect_package(path: Path, package_id: str, version: str, commit: str, lice
         dotnet = shutil.which("dotnet")
         if dotnet is None:
             fail("dotnet SDK is required to verify assembly versions")
-        with tempfile.TemporaryDirectory(prefix="secs-package-assembly-", dir=path.parent) as directory:
+        with tempfile.TemporaryDirectory(prefix="skecs-package-assembly-", dir=path.parent) as directory:
             for tfm in sorted(EXPECTED_TFMS):
-                dll_file = Path(directory) / f"SECS-{tfm}.dll"
-                dll_file.write_bytes(archive.read(f"lib/{tfm}/SECS.dll"))
+                dll_file = Path(directory) / f"SKECS-{tfm}.dll"
+                dll_file.write_bytes(archive.read(f"lib/{tfm}/SKECS.dll"))
                 command = [dotnet, "run", "--project", str(Path(__file__).with_name("InspectAssemblyRefs.csproj")),
                            "--configuration", "Release", "--", str(dll_file)]
                 result = subprocess.run(command, capture_output=True, text=True, check=False)
@@ -158,8 +158,8 @@ def inspect_package(path: Path, package_id: str, version: str, commit: str, lice
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("package", type=Path)
-    parser.add_argument("--package-id", default="ShortKedr.SECS")
-    parser.add_argument("--version", default="0.1.0")
+    parser.add_argument("--package-id", default="ShortKedr.SKECS")
+    parser.add_argument("--version", default="0.2.0")
     parser.add_argument("--commit", required=True)
     parser.add_argument("--license", type=Path, default=Path("LICENSE"))
     args = parser.parse_args()

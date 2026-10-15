@@ -2,9 +2,13 @@ English | [Русский](REPORT.ru.md)
 
 # ECS comparison — 2026-10-14
 
-[Benchmark overview](../../../SECS.Benchmarks/README.md) | [Harness and reproduction](../../../Benchmarks.Local/README.md)
+[Benchmark overview](../../../SKECS.Benchmarks/README.md) | [Harness and reproduction](../../../Benchmarks.Local/README.md)
 
 [Complete SECS suites and API measurements](SUPPLEMENT.md) include 34 current and 51 legacy BenchmarkDotNet cases, plus creation/accessor and retained-storage diagnostics.
+
+This report predates the SKECS rename. Its `SECS` framework labels, measurements,
+raw files, chart labels, and source hashes are preserved as the identity of the
+measured build; they have not been relabelled as SKECS results.
 
 All five frameworks were measured afresh in one sequential campaign: 40 base cases and 70 stress cases. Each cell below is mean milliseconds per complete operation; lower is better. Markers show relative lag within each scenario and entity-count row; they describe effect size, not statistical significance.
 

@@ -22,7 +22,7 @@ if (!$SkipBuild) {
     }
 }
 $sources = [ordered]@{}
-foreach ($file in (git ls-files --cached --others --exclude-standard -- SECS SpaceBattle.Core SpaceBattle.SECS SpaceBattle.Game SpaceBattle.Headless | Where-Object { $_ -match '\.(cs|csproj|props|targets)$' } | Sort-Object -Unique)) {
+foreach ($file in (git ls-files --cached --others --exclude-standard -- SKECS SpaceBattle.Core SpaceBattle.SKECS SpaceBattle.Game SpaceBattle.Headless | Where-Object { $_ -match '\.(cs|csproj|props|targets)$' -and (Test-Path -LiteralPath $_ -PathType Leaf) } | Sort-Object -Unique)) {
     $sources[$file] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash
 }
 $manifest = [ordered]@{ Completed = $false; StartedAt = [DateTimeOffset]::Now.ToString('O'); Ticks = $Ticks
@@ -32,7 +32,7 @@ $manifestPath = Join-Path $target 'manifest.json'
 $manifest | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $manifestPath -Encoding utf8
 $headless = 'SpaceBattle.Headless/bin/Release/net8.0/SpaceBattle.Headless.dll'
 $desktop = 'SpaceBattle.Game/bin/Release/net8.0/SpaceBattle.Game.dll'
-foreach ($name in @('SpaceBattle.Core.dll', 'SpaceBattle.SECS.dll', 'SECS.dll')) {
+foreach ($name in @('SpaceBattle.Core.dll', 'SpaceBattle.SKECS.dll', 'SKECS.dll')) {
     if ((Get-FileHash "SpaceBattle.Headless/bin/Release/net8.0/$name").Hash -ne (Get-FileHash "SpaceBattle.Game/bin/Release/net8.0/$name").Hash) {
         throw "Matched study requires identical loaded assemblies: $name"
     }
@@ -48,7 +48,7 @@ foreach ($case in $cases) {
     $env:DOTNET_TieredCompilation = $case.Tiering
     $output = Join-Path $target "$($case.Name).json"
     if ($case.Host -eq 'headless') {
-        $arguments = @($headless, '--preset', 'game', '--framework', 'secs', '--ticks', "$Ticks", '--warmup', '600', '--seed', '7331', '--ships-per-team', '96', '--output', $output)
+        $arguments = @($headless, '--preset', 'game', '--framework', 'skecs', '--ticks', "$Ticks", '--warmup', '600', '--seed', '7331', '--ships-per-team', '96', '--output', $output)
         if ($case.Paced) { $arguments += '--realtime' }
     } else {
         $arguments = @($desktop, '--profile-frames', "$Ticks", '--profile-warmup', '0', '--profile-output', $output, '--profile-csv', (Join-Path $target "$($case.Name).ticks.csv"), '--seed', '7331', '--ships-per-team', '96', '--hidden')

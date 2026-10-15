@@ -15,8 +15,8 @@ or color filter is added. Alpha, pivots, recoil, projectiles and warp artwork
 are preserved. Orange overheat indicators remain distinct.
 
 This is a real .NET 8 Blazor WebAssembly host for the unchanged
-[SpaceBattle.Core](../SpaceBattle.Core), [SpaceBattle.SECS](../SpaceBattle.SECS)
-and [SECS](../SECS) simulation with the shared [circle physics kernel](../docs/space-battle/PHYSICS.md).
+[SpaceBattle.Core](../SpaceBattle.Core), [SpaceBattle.SKECS](../SpaceBattle.SKECS)
+and [SKECS](../SKECS) simulation with the shared [circle physics kernel](../docs/space-battle/PHYSICS.md).
 Aether is no longer a production dependency. C# runs the simulation in
 the browser; production uses AOT-compiled WebAssembly. JavaScript Canvas is a thin
 renderer, not a JavaScript rewrite of the battle. Direct JS exports expose a
@@ -98,7 +98,7 @@ mean Core Step divided by that budget. It excludes rendering/export and does not
 promise the requested speed. Backlog/discarded ticks expose the browser catch-up
 limit; discarded time is not skipped gameplay state or an executed tick.
 
-This demo runs SECS only; it is not the full five-framework comparison.
+This demo runs SKECS only; it is not the full five-framework comparison.
 Browser timings describe the current browser, WebAssembly runtime, device and
 execution conditions. Rendering, interop, warmup and tab scheduling can affect
 the experience; browser readings are not interchangeable with the measured

@@ -5,7 +5,7 @@ internal static partial class Validation
 {
     private static void LifecycleSpatialChecks()
     {
-        LifecycleSpatialStoreChecks(static () => new SecsStore());
+        LifecycleSpatialStoreChecks(static () => new SkecsStore());
         LifecycleSpatialStoreChecks(static () => new LeoEcsLiteStore());
         LifecycleSpatialStoreChecks(static () => new LeoEcsClassicStore());
         LifecycleSpatialStoreChecks(static () => new MorpehStore());

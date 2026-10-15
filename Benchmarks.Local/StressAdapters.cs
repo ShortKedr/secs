@@ -1,6 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
-using SECS.Benchmarks;
+using SKECS.Benchmarks;
 using Scellecs.Morpeh;
 using Leopotam.Ecs;
 using Lite = Leopotam.EcsLite;

@@ -20,6 +20,7 @@ PROFILES = {"low": 0.5, "nominal": 1, "high": 2}
 CURRENT_PROFILE = "high"
 FRAMEWORKS = {"secs": "SECS", "lite": "LeoECSLite", "classic": "LeoECS Classic",
               "morpeh": "Morpeh", "static": "StaticEcs 2.2.9"}
+SKECS_FRAMEWORKS = {"skecs": "SKECS", **{key: value for key, value in FRAMEWORKS.items() if key != "secs"}}
 VERIFIED_VERSIONS = {
     ("SECS", "beca1e4c0277ca7f03b972a8d4ffef789b45ab19"): ("0.1.0", None),
     ("LeoECS Lite", "5053141d7d663c6b1855c8409ac93dfac807b239"):
@@ -50,6 +51,8 @@ def require(condition, message):
 
 
 def version_cell(framework, pin):
+    if framework == "SKECS":
+        return "`0.2.0`"
     version = VERIFIED_VERSIONS.get((framework, pin))
     require(version is not None, f"No verified version for {framework} at {pin}")
     number, url = version
@@ -150,11 +153,13 @@ def total_step_seconds(run):
 
 def hud_selection(runs, profile):
     """Choose one common worst phase; each ECS is compared at that same tick range."""
-    windows = runs[profile, "secs"].get("HudWindows", [])
+    frameworks = frameworks_for_runs(runs)
+    primary = next(iter(frameworks))
+    windows = runs[profile, primary].get("HudWindows", [])
     if not windows:
         return []
     worst = max(range(len(windows)), key=lambda i: max(
-        runs[profile, f]["HudWindows"][i]["Timing"]["MeanMs"] for f in FRAMEWORKS))
+        runs[profile, f]["HudWindows"][i]["Timing"]["MeanMs"] for f in frameworks))
     return [("first", 0), ("second", 1), ("worst", worst)]
 
 
@@ -171,13 +176,29 @@ def validate_current_profile(manifest):
     require(manifest.get("Format") == 3, "Current campaign requires Format 3")
     require(manifest.get("Profile") == CURRENT_PROFILE and "Profiles" not in manifest and
             "PrimaryProfile" not in manifest, "Current campaign must have only one real-game high profile")
-    require(tuple(manifest.get("FrameworkOrder", ())) == tuple(FRAMEWORKS),
+    frameworks = frameworks_for_manifest(manifest)
+    require(tuple(manifest.get("FrameworkOrder", ())) == tuple(frameworks),
             "Current campaign must include exactly the five ECS implementations")
     workload = manifest["Workload"]
     require(set(workload) == {"Preset", "Seed", "ShipsPerTeam", "GameplayChurnMultiplier"} and
             workload["Preset"] == "game" and workload["Seed"] == 7331 and
             workload["ShipsPerTeam"] == 96 and workload["GameplayChurnMultiplier"] == 2,
             "Current campaign must use the real game high workload without synthetic parameters")
+
+
+def frameworks_for_manifest(manifest):
+    """Select the Format 3 identity while retaining the archived SECS contract."""
+    order = tuple(manifest.get("FrameworkOrder", ()))
+    if order == tuple(FRAMEWORKS):
+        return FRAMEWORKS
+    if order == tuple(SKECS_FRAMEWORKS):
+        return SKECS_FRAMEWORKS
+    raise ValueError("Current campaign must include exactly the five ECS implementations")
+
+
+def frameworks_for_runs(runs):
+    primary = "skecs" if any(framework == "skecs" for _, framework in runs) else "secs"
+    return SKECS_FRAMEWORKS if primary == "skecs" else FRAMEWORKS
 
 
 def validate(directory, verify_ticks, expected_preset=None):
@@ -265,13 +286,14 @@ def validate_format3(directory, manifest, verify_ticks, expected_preset=None):
     """Validate the single real-game high campaign without weakening archived Format 1 checks."""
     require(manifest["Completed"] is True, "Campaign is incomplete")
     validate_current_profile(manifest)
+    frameworks = frameworks_for_manifest(manifest)
     require(manifest["Ticks"] == TICKS and manifest["WarmupTicks"] == 600,
             "Current campaign requires 108000 ticks and 600 separate warmup ticks")
     require(manifest.get("Preset") == "game", "Current campaign requires the game preset")
     require(expected_preset is None or expected_preset == "game", "Unexpected campaign preset")
     require(bool(manifest.get("SourceRevision")) and bool(manifest.get("SourceHashes")), "Missing source provenance")
     expected_files = {"hardware.json"}
-    for framework in FRAMEWORKS:
+    for framework in frameworks:
         expected_files.add(f"high-{framework}.json")
         expected_files.add(f"high-{framework}.ticks.csv")
     actual_json = {p.name for p in directory.glob("*.json")} - {"manifest.json"}
@@ -293,7 +315,7 @@ def validate_format3(directory, manifest, verify_ticks, expected_preset=None):
     initial_state = None
     profile = CURRENT_PROFILE
     port_state = None
-    for framework, name in FRAMEWORKS.items():
+    for framework, name in frameworks.items():
             filename = f"high-{framework}.json"
             run = read_json(directory / filename)
             m = run["Metadata"]
@@ -463,7 +485,8 @@ def validate_gc_interval(post_step, checkpoint, next_sample, label):
 
 
 def charts(runs, directory):
-    if set(runs) == {(CURRENT_PROFILE, framework) for framework in FRAMEWORKS}:
+    frameworks = frameworks_for_runs(runs)
+    if set(runs) == {(CURRENT_PROFILE, framework) for framework in frameworks}:
         return charts_current(runs, directory)
     import matplotlib
     matplotlib.use("Agg")
@@ -503,14 +526,16 @@ def charts_current(runs, directory):
     from matplotlib.patches import Patch
     plt.rcParams.update({"font.size": 10})
     policy = TimingPolicy.from_file(Path(__file__).with_name("heatmap_policy.json"))
+    frameworks = frameworks_for_runs(runs)
+    brand = next(iter(frameworks.values()))
     profile = CURRENT_PROFILE
     for metric in ("MeanMs", "P99Ms"):
         fig, axis = plt.subplots(figsize=(9, 4))
-        values = [runs[profile, f]["Timing"][metric] for f in FRAMEWORKS]
+        values = [runs[profile, f]["Timing"][metric] for f in frameworks]
         bars = axis.bar(range(5), values, color=colors(values, absolute_threshold=policy.threshold(profile, "tick.mean_ms" if metric == "MeanMs" else "tick.p99_ms")))
         axis.bar_label(bars, labels=[f"{v:.4f}" for v in values], padding=3, fontsize=8)
         axis.margins(y=.16)
-        axis.set_xticks(range(5), ["SECS", "Lite", "Classic", "Morpeh", "Static"], rotation=25)
+        axis.set_xticks(range(5), [brand, "Lite", "Classic", "Morpeh", "Static"], rotation=25)
         axis.set_ylabel("Tick time (ms)")
         axis.grid(axis="y", alpha=.2)
         fig.suptitle(f"SpaceBattle game preset, ChurnMultiplier=2: {metric} — 108,000 measured ticks")
@@ -526,7 +551,7 @@ def charts_current(runs, directory):
 
     fig, axis = plt.subplots(figsize=(10, 5))
     x = [0, 1, 2, 3]
-    for framework in FRAMEWORKS:
+    for framework in frameworks:
         run = runs[profile, framework]
         means = [run["OpeningPhases"]["First600"]["Timing"]["MeanMs"],
                  run["OpeningPhases"]["First2000"]["Timing"]["MeanMs"],
@@ -543,11 +568,12 @@ def charts_current(runs, directory):
 
 
 def stage_table(runs, profile, policy, language="en", asset_path="../benchmarks/heatmap"):
+    frameworks = frameworks_for_runs(runs)
     rows = []
     for i, name in enumerate(STAGE_NAMES):
-        values = [runs[profile, f]["Stages"][i]["Timing"]["MeanMs"] for f in FRAMEWORKS]
+        values = [runs[profile, f]["Stages"][i]["Timing"]["MeanMs"] for f in frameworks]
         rows.append([name, *[Metric(f"{v:.4f}", comparison=v) for v in values]])
-    values = [runs[profile, f]["Timing"]["MeanMs"] for f in FRAMEWORKS]
+    values = [runs[profile, f]["Timing"]["MeanMs"] for f in frameworks]
     rows.append(["Total Step", *[Metric(f"{v:.4f}", comparison=v) for v in values]])
     return shade_rows(rows, range(1, 6),
         absolute_thresholds=lambda row: policy.threshold(profile,
@@ -557,8 +583,11 @@ def stage_table(runs, profile, policy, language="en", asset_path="../benchmarks/
 
 def hud_tables(runs, policy, ru, asset_path):
     language = "ru" if ru else "en"
+    frameworks = frameworks_for_runs(runs)
+    primary = next(iter(frameworks))
+    brand = frameworks[primary]
     lines = ["", "## " + ("Окна HUD: по 600 тиков" if ru else "HUD windows: 600 ticks each"), ""]
-    if not runs["nominal", "secs"].get("HudWindows"):
+    if not runs["nominal", primary].get("HudWindows"):
         return lines + [("В старых входных данных нет HUD-окон; короткие фазы по ним не восстановить." if ru else
                         "Legacy inputs contain no HUD windows; short phases cannot be reconstructed from them."), ""]
     lines += [("Первое, второе и худшее окно показывают по одной и той же фазе всех пяти ECS. Худшее — окно с максимальным средним HUD-временем среди всех ECS профиля; его границы общие, а не отдельные максимумы портов. Численность — среднее после каждого тика окна." if ru else
@@ -568,7 +597,7 @@ def hud_tables(runs, policy, ru, asset_path):
               "| Profile | HUD mean ms: SECS | Lite | Classic | Morpeh | StaticEcs |",
               "| --- | ---: | ---: | ---: | ---: | ---: |"]
     rows = [[profile, *[Metric(f"{runs[profile, f]['HudTiming']['MeanMs']:.4f}",
-                              comparison=runs[profile, f]["HudTiming"]["MeanMs"]) for f in FRAMEWORKS]] for profile in PROFILES]
+                              comparison=runs[profile, f]["HudTiming"]["MeanMs"]) for f in frameworks]] for profile in PROFILES]
     rows = shade_rows(rows, range(1, 6), language=language, asset_path=asset_path,
                       absolute_thresholds=lambda row: policy.threshold(row[0], "tick.mean_ms"))
     lines += ["| " + " | ".join(map(str, row)) + " |" for row in rows]
@@ -577,7 +606,7 @@ def hud_tables(runs, policy, ru, asset_path):
         lines += [f"### {profile}", "", "| Phase / ticks | HUD / stage mean ms | SECS | Lite | Classic | Morpeh | StaticEcs |",
                   "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
         for phase, i in hud_selection(runs, profile):
-            windows = [runs[profile, f]["HudWindows"][i] for f in FRAMEWORKS]
+            windows = [runs[profile, f]["HudWindows"][i] for f in frameworks]
             span = f"{phase} / {windows[0]['StartTick']}–{windows[0]['EndTick']}"
             rows = [[span, "HUD total", *[Metric(f"{w['Timing']['MeanMs']:.4f}", comparison=w["Timing"]["MeanMs"]) for w in windows]]]
             for j, name in enumerate(STAGE_NAMES):
@@ -590,7 +619,7 @@ def hud_tables(runs, policy, ru, asset_path):
         lines += ["", "| Phase / ticks | Mean ships | Mean projectiles | Mean debris | Mean particles | Mean turrets |",
                   "| --- | ---: | ---: | ---: | ---: | ---: |"]
         for phase, i in hud_selection(runs, profile):
-            w = runs[profile, "secs"]["HudWindows"][i]
+            w = runs[profile, primary]["HudWindows"][i]
             lines.append("| " + " | ".join([f"{phase} / {w['StartTick']}–{w['EndTick']}",
                 *[f"{w['Mean' + key]:.2f}" for key in COUNTS]]) + " |")
         lines += ["", ("Средняя численность совпадает во всех пяти ECS и показана один раз." if ru else
@@ -601,6 +630,8 @@ def hud_tables(runs, policy, ru, asset_path):
 def current_hud_tables(runs, ru, asset_path):
     """Retain the phase and population view when the campaign targets high only."""
     language = "ru" if ru else "en"
+    frameworks = frameworks_for_runs(runs)
+    primary = next(iter(frameworks))
     lines = ["## " + ("Окна HUD: по 600 тиков" if ru else "HUD windows: 600 ticks each"), "",
              ("Первое, второе и худшее окно сравнивают одну фазу всех пяти ECS. Худшее окно выбрано по максимальному среднему HUD-времени среди всех портов; границы у портов общие." if ru else
               "First, second and worst windows compare the same phase across all five ECS. The worst window has the largest mean HUD time among all ports; its tick range is shared."), "",
@@ -611,7 +642,7 @@ def current_hud_tables(runs, ru, asset_path):
     for profile in (CURRENT_PROFILE,):
         row = [profile, *[Metric(f"{runs[profile, f]['HudTiming']['MeanMs']:.4f}",
                                 comparison=runs[profile, f]["HudTiming"]["MeanMs"])
-                          for f in FRAMEWORKS]]
+                          for f in frameworks]]
         shaded = shade_rows([row], range(1, 6), language=language, asset_path=asset_path)[0]
         lines.append("| " + " | ".join(map(str, shaded)) + " |")
     lines.append("")
@@ -619,7 +650,7 @@ def current_hud_tables(runs, ru, asset_path):
         lines += [f"### {profile}", "", "| Phase / ticks | HUD / stage mean ms | SECS | Lite | Classic | Morpeh | StaticEcs |",
                   "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
         for phase, i in hud_selection(runs, profile):
-            windows = [runs[profile, f]["HudWindows"][i] for f in FRAMEWORKS]
+            windows = [runs[profile, f]["HudWindows"][i] for f in frameworks]
             span = f"{phase} / {windows[0]['StartTick']}–{windows[0]['EndTick']}"
             rows = [[span, "HUD total", *[Metric(f"{w['Timing']['MeanMs']:.4f}", comparison=w["Timing"]["MeanMs"])
                                           for w in windows]]]
@@ -631,7 +662,7 @@ def current_hud_tables(runs, ru, asset_path):
         lines += ["", "| Phase / ticks | Mean ships | Mean projectiles | Mean debris | Mean particles | Mean turrets |",
                   "| --- | ---: | ---: | ---: | ---: | ---: |"]
         for phase, i in hud_selection(runs, profile):
-            window = runs[profile, "secs"]["HudWindows"][i]
+            window = runs[profile, primary]["HudWindows"][i]
             lines.append("| " + " | ".join([f"{phase} / {window['StartTick']}–{window['EndTick']}",
                 *[f"{window['Mean' + key]:.2f}" for key in COUNTS]]) + " |")
         lines += ["", ("Средняя численность совпадает во всех пяти ECS и показана один раз." if ru else
@@ -776,7 +807,10 @@ def render(runs, manifest, hardware, directory, verify_ticks, report_base=None):
 
 def render_format3(runs, manifest, hardware, directory, verify_ticks):
     relative = directory.relative_to(DOCS).as_posix()
-    frameworks = list(FRAMEWORKS)
+    framework_map = frameworks_for_runs(runs)
+    frameworks = list(framework_map)
+    primary = frameworks[0]
+    brand = framework_map[primary]
     profiles = [CURRENT_PROFILE]
     cpu_data = hardware["Cpu"] if isinstance(hardware["Cpu"], list) else [hardware["Cpu"]]
     cpu = ", ".join(item["Name"].strip() for item in cpu_data)
@@ -800,8 +834,8 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
         runs["high", f]["OpeningPhases"]["First2000"]["Timing"]["MeanMs"] >
         runs["high", f]["OpeningPhases"]["RemainderAfter2000"]["Timing"]["MeanMs"]
         for f in frameworks)
-    pins = runs["high", "secs"]["Provenance"]["Sources"]
-    framework_pins = [("SECS", manifest["SourceRevision"]),
+    pins = runs["high", primary]["Provenance"]["Sources"]
+    framework_pins = [(brand, manifest["SourceRevision"]),
                       ("LeoECS Lite", pins["Lite"]),
                       ("LeoECS Classic", pins["Classic"]),
                       ("Morpeh", pins["Morpeh"]),
@@ -863,7 +897,7 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
                 run = runs[profile, framework]
                 full = run["Timing"]
                 label = profile
-                timing_rows.append([profile, label, FRAMEWORKS[framework],
+                timing_rows.append([profile, label, framework_map[framework],
                     *[Metric(f"{full[key]:.4f}", comparison=full[key])
                       for key in ("MeanMs", "P95Ms", "P99Ms", "MaxMs")],
                     Metric(str(full["BudgetMisses"]), comparison=full["BudgetMisses"]),
@@ -885,7 +919,7 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
                 early = run["OpeningPhases"]
                 values = [early["First600"]["Timing"]["MeanMs"], early["First2000"]["Timing"]["MeanMs"],
                           early["RemainderAfter2000"]["Timing"]["MeanMs"], run["Timing"]["MeanMs"]]
-                lines.append(f"| {profile} | {FRAMEWORKS[framework]} | " +
+                lines.append(f"| {profile} | {framework_map[framework]} | " +
                              " | ".join(f"{value:.4f}" for value in values) + " |")
         lines += ["", (f"The first 2,000 ticks have a higher mean than the remainder for {early_more_expensive} of five ECS implementations." if not ru else
                        f"Первые 2 000 тиков дороже остатка у {early_more_expensive} из пяти ECS."), "",
@@ -899,7 +933,7 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
                    "| Profile | Checksum | Ships | Turrets | Shots | Hits | Created | Destroyed |"),
                   "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |"]
         for profile in profiles:
-            run = runs[profile, "secs"]
+            run = runs[profile, primary]
             window, counters = run["Windows"][-1], run["Counters"]
             lines.append(f"| {profile} | {run['Checksum']} | {window['Ships']} | {window['Turrets']} | {counters['Shots']} | {counters['Hits']} | {counters['ShipsCreated']} | {counters['ShipsDestroyed']} |")
         lines += ["", "### " + ("Средние стадий за полный прогон" if ru else "Full-run stage means"), ""]
@@ -927,7 +961,7 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
                       ("| Стадия | 1–600 ms | 1–2000 ms | 2001–108000 ms | 1–108000 ms |" if ru else
                        "| Stage | 1–600 ms | 1–2,000 ms | 2,001–108,000 ms | 1–108,000 ms |"),
                       "| --- | ---: | ---: | ---: | ---: |"]
-            run = runs[profile, "secs"]
+            run = runs[profile, primary]
             early = run["OpeningPhases"]
             for i, stage in enumerate(STAGE_NAMES):
                 lines.append(f"| {stage} | {early['First600']['Stages'][i]['Timing']['MeanMs']:.4f} | {early['First2000']['Stages'][i]['Timing']['MeanMs']:.4f} | {early['RemainderAfter2000']['Stages'][i]['Timing']['MeanMs']:.4f} | {run['Stages'][i]['Timing']['MeanMs']:.4f} |")
@@ -936,7 +970,7 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
         lines += current_hud_tables(runs, ru, asset_path)
         lines += ["## " + ("Происхождение данных" if ru else "Data provenance"), "",
                   f"- CPU: {cpu}; RAM: {hardware['TotalPhysicalMemoryBytes']/1024**3:.2f} GiB.",
-                  f"- Runtime: {runs['high', 'secs']['Metadata']['Runtime']}; OS: {runs['high', 'secs']['Metadata']['Os']}; tiered compilation: `0`.",
+                  f"- Runtime: {runs['high', primary]['Metadata']['Runtime']}; OS: {runs['high', primary]['Metadata']['Os']}; tiered compilation: `0`.",
                   (f"- Базовый commit: `{manifest['SourceRevision']}`; хеши измеренных файлов отражают фактическое рабочее дерево и записаны в [{relative}/manifest.json]({relative}/manifest.json)." if ru else
                    f"- Base commit: `{manifest['SourceRevision']}`; measured file hashes describe the actual working tree and are recorded in [{relative}/manifest.json]({relative}/manifest.json)."),
                   (f"- [Опубликованные JSON и графики]({relative}/); [сводная CSV-таблица]({relative}/summary.csv); [оборудование]({relative}/hardware.json). Локальные tick CSV остаются входом для проверки, их хеши записаны в манифесте." if ru else
@@ -961,6 +995,8 @@ def render_format3(runs, manifest, hardware, directory, verify_ticks):
                    "- [Archived 2026-10-11 campaign](REPORT_2026-10-11.md), [architecture](ARCHITECTURE.md), [physics](PHYSICS.md), [tactics](TACTICS_V3.md)."),
                   (f"- [Микробенчмарки SECS](../../SECS.Benchmarks/README{suffix}.md): отдельная нагрузка без игровой логики." if ru else
                    "- [SECS microbenchmarks](../../SECS.Benchmarks/README.md): a separate workload without gameplay logic."), ""]
+        if brand == "SKECS":
+            lines = [line.replace("SECS", "SKECS") for line in lines]
         (DOCS / name).write_text("\n".join(lines), encoding="utf-8")
 
 

@@ -63,12 +63,12 @@ internal static class Program
             var started = DateTimeOffset.UtcNow;
             var run = options.Port switch
             {
-                "secs" => Run(static () => new SecsStore(), config, options),
+                "skecs" => Run(static () => new SkecsStore(), config, options),
                 "lite" => Run(static () => new LeoEcsLiteStore(), config, options),
                 "classic" => Run(static () => new LeoEcsClassicStore(), config, options),
                 "morpeh" => Run(static () => new MorpehStore(), config, options),
                 "static" => Run(static () => new StaticEcsStore(), config, options),
-                _ => throw new ArgumentException("Unknown --port. Use secs, lite, classic, morpeh or static.")
+                _ => throw new ArgumentException("Unknown --port. Use skecs, lite, classic, morpeh or static.")
             };
             if (!source.SequenceEqual(SourceIdentity(sourceRoot))) throw new InvalidOperationException("Simulation source changed during this process; discard the run.");
             if (!binaries.SequenceEqual(BinaryIdentities())) throw new InvalidOperationException("Loaded binary files changed during this process; discard the run.");
@@ -222,8 +222,8 @@ internal static class Program
     private static string HashFile(string path) { using var file = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(file)); }
     private static BinaryIdentity[] BinaryIdentities()
     {
-        var primary = new[] { Assembly.GetExecutingAssembly(), typeof(BattleConfig).Assembly, typeof(SecsStore).Assembly,
-            typeof(SECS.World).Assembly, typeof(LeoEcsLiteStore).Assembly }.Distinct()
+        var primary = new[] { Assembly.GetExecutingAssembly(), typeof(BattleConfig).Assembly, typeof(SkecsStore).Assembly,
+            typeof(SKECS.World).Assembly, typeof(LeoEcsLiteStore).Assembly }.Distinct()
             .Select(assembly => new BinaryIdentity(assembly.GetName().Name!, assembly.Location, HashFile(assembly.Location),
                 assembly.ManifestModule.ModuleVersionId.ToString(), assembly.GetName().Version?.ToString(),
                 assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration)).ToList();
@@ -238,7 +238,7 @@ internal static class Program
     private static SourceFile[] SourceIdentity(string root)
     {
         var paths = new List<string>();
-        foreach (var folder in new[] { "SpaceBattle.Core", "SpaceBattle.SECS", "SpaceBattle.Adapters", "SECS" })
+        foreach (var folder in new[] { "SpaceBattle.Core", "SpaceBattle.SKECS", "SpaceBattle.Adapters", "SKECS" })
         {
             var directory = Path.Combine(root, folder);
             if (!Directory.Exists(directory)) throw new DirectoryNotFoundException(directory);
@@ -286,7 +286,7 @@ internal sealed record Options(string Variant, string Port, uint Seed, int Repet
         if (values.Keys.Any(key => !known.Contains(key))) throw new ArgumentException("Unknown option.");
         string Value(string name, string fallback) => values.GetValueOrDefault(name, fallback);
         int Number(string name, string fallback) => int.Parse(Value(name, fallback), CultureInfo.InvariantCulture);
-        var result = new Options(Value("--variant", "after"), Value("--port", "secs"), uint.Parse(Value("--seed", "27"), CultureInfo.InvariantCulture),
+        var result = new Options(Value("--variant", "after"), Value("--port", "skecs"), uint.Parse(Value("--seed", "27"), CultureInfo.InvariantCulture),
             Number("--rep", "1"), Number("--ships", "96"), Number("--ticks", "2400"), Number("--warmup", "2400"), Number("--checkpoint", "240"), Value("--output", ""));
         if (result.Variant is not ("before" or "after") || result.Repetition < 1 || result.Ticks < 1 || result.WarmupTicks < 1 ||
             result.CheckpointTicks < 1 || result.Ships is < 8 or > 10000) throw new ArgumentException("Invalid mode/counts.");

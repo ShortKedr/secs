@@ -77,7 +77,7 @@ class ReportTests(unittest.TestCase):
             fixtures = {'optimized-api.json': api_fixture(),
                         'storage.json': {'metadata': {'passes': 20, 'entityCount': 100000},
                                          'samples': [{'pass': i, 'chunkCount': 2, 'nativeBytes': 256} for i in range(21)]},
-                        'bdn-secs.json': bdn_fixture(report.expected_secs()),
+                        'bdn-skecs.json': bdn_fixture(report.expected_secs()),
                         'bdn-legacy.json': bdn_fixture(report.expected_legacy())}
             for filename, data in fixtures.items():
                 (directory / filename).write_text(json.dumps(data), encoding='utf-8')

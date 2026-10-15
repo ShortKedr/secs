@@ -15,7 +15,7 @@ internal static partial class Validation
         OwnerMissingCheck(liveWithoutIdentity: true);
         OwnerMountedCheck();
         OwnerDebrisCheck();
-        OwnerStoreChecks(static () => new SecsStore());
+        OwnerStoreChecks(static () => new SkecsStore());
         OwnerStoreChecks(static () => new LeoEcsLiteStore());
         OwnerStoreChecks(static () => new LeoEcsClassicStore());
         OwnerStoreChecks(static () => new MorpehStore());

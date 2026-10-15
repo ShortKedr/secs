@@ -2,7 +2,7 @@ English | [Русский](README.ru.md)
 
 # SpaceBattle Web
 
-A browser view of the shared C# fleet simulation running on SECS. Production uses .NET 8 Mono AOT WebAssembly; Canvas draws the scene. Ships fight autonomously while you control the camera and speed.
+A browser view of the shared C# fleet simulation running on SKECS. Production uses .NET 8 Mono AOT WebAssembly; Canvas draws the scene. Ships fight autonomously while you control the camera and speed.
 
 [Live demo](https://shortkedr.github.io/skecs/) | [Russian demo](https://shortkedr.github.io/skecs/?lang=ru) | [SpaceBattle overview](../docs/space-battle/README.md) | [Current report](../docs/space-battle/REPORT.md)
 

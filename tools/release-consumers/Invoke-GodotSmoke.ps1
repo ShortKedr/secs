@@ -1,17 +1,17 @@
 param(
     [Parameter(Mandatory = $true)][string] $PackageDirectory,
     [Parameter(Mandatory = $true)][string] $GodotExecutable,
-    [string] $Version = '0.1.0',
+    [string] $Version = '0.2.0',
     [string] $SdkVersion
 )
 
 $ErrorActionPreference = 'Stop'
 $projectDirectory = Join-Path $PSScriptRoot 'Godot'
-$project = Join-Path $projectDirectory 'SECSReleaseSmoke.csproj'
+$project = Join-Path $projectDirectory 'SKECSReleaseSmoke.csproj'
 $feed = (Resolve-Path -LiteralPath $PackageDirectory).Path
-$package = Join-Path $feed "ShortKedr.SECS.$Version.nupkg"
+$package = Join-Path $feed "ShortKedr.SKECS.$Version.nupkg"
 if (-not (Test-Path -LiteralPath $package)) {
-    throw "Missing ShortKedr.SECS.$Version.nupkg in $feed"
+    throw "Missing ShortKedr.SKECS.$Version.nupkg in $feed"
 }
 $godot = (Resolve-Path -LiteralPath $GodotExecutable).Path
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '../..')).Path
@@ -36,15 +36,15 @@ Set-Content -LiteralPath $sdkSelection -Encoding utf8 -Value "{`"sdk`":{`"versio
 Push-Location $projectDirectory
 try {
     Write-Output "Godot smoke SDK: $(dotnet --version)"
-    dotnet restore $project --configfile $config -p:SECSVersion=$Version
+    dotnet restore $project --configfile $config -p:SKECSVersion=$Version
     if ($LASTEXITCODE -ne 0) { throw 'Godot package restore failed.' }
-    $restoredPackage = Join-Path $env:NUGET_PACKAGES "shortkedr.secs/$Version/shortkedr.secs.$Version.nupkg"
+    $restoredPackage = Join-Path $env:NUGET_PACKAGES "shortkedr.skecs/$Version/shortkedr.skecs.$Version.nupkg"
     if (-not (Test-Path -LiteralPath $restoredPackage) -or
         (Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash -ne
         (Get-FileHash -LiteralPath $restoredPackage -Algorithm SHA256).Hash) {
         throw 'Restored Godot package does not match the built release package.'
     }
-    dotnet build $project -c Debug --no-restore -p:SECSVersion=$Version
+    dotnet build $project -c Debug --no-restore -p:SKECSVersion=$Version
     if ($LASTEXITCODE -ne 0) { throw 'Godot C# build failed.' }
 } finally {
     Pop-Location
@@ -59,6 +59,6 @@ if ($importExitCode -ne 0) { throw "Godot asset import failed (exit code $import
 $log = & $godot --headless --path $projectDirectory --quit-after 120 2>&1
 $exitCode = $LASTEXITCODE
 $log | ForEach-Object { Write-Output $_ }
-if ($exitCode -ne 0 -or -not ($log -match 'SECS_GODOT_OK')) {
+if ($exitCode -ne 0 -or -not ($log -match 'SKECS_GODOT_OK')) {
     throw "Godot scene smoke failed (exit code $exitCode)."
 }

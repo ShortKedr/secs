@@ -5,7 +5,7 @@ internal static partial class Validation
 {
     public static void ComparePorts()
     {
-        var expected = Replay(static () => new SecsStore());
+        var expected = Replay(static () => new SkecsStore());
         Check(Replay(static () => new LeoEcsLiteStore()), "Lite");
         Check(Replay(static () => new LeoEcsClassicStore()), "Classic");
         Check(Replay(static () => new MorpehStore()), "Morpeh");
@@ -13,7 +13,7 @@ internal static partial class Validation
         void Check(ulong[] actual, string name)
         {
             for (var i = 0; i < expected.Length; i++) Require(actual[i] == expected[i], $"{name}: checksum at tick {(i + 1) * 300}: {actual[i]:X16} != {expected[i]:X16}");
-            Console.WriteLine($"PASS: {name} == SECS at all {actual.Length} checkpoints");
+            Console.WriteLine($"PASS: {name} == SKECS at all {actual.Length} checkpoints");
         }
     }
     private static ulong[] Replay<T>(Func<T> factory) where T : IEcsStore
@@ -36,7 +36,7 @@ internal static partial class Validation
     {
         FlatSpatialValidation.Run();
         HardwareOptimizationValidation.Run();
-        SecsMappingChecks();
+        SkecsMappingChecks();
         ComponentPassChecks();
         DampingLocalityValidation.Run();
         AiLocalityValidation.Run();
@@ -46,7 +46,7 @@ internal static partial class Validation
         WeaponDamageValidation.Run();
         var config = new BattleConfig { ShipsPerTeam = 16, Seed = 27 };
         ulong first;
-        using (var battle = new Battle<SecsStore>(new(), config))
+        using (var battle = new Battle<SkecsStore>(new(), config))
         {
             var frame = new BattleFrame(); battle.Capture(frame);
             Require(frame.Ships.Select(s => s.Kind).Distinct().Count() == 11, "all eleven classes");
@@ -60,7 +60,7 @@ internal static partial class Validation
             Require(battle.Counters.StructuralAdds > 0 && battle.Counters.StructuralRemoves > 0 && battle.Counters.DebrisHits > 0, "real churn and damaging debris");
             first = battle.Checksum();
         }
-        using (var battle = new Battle<SecsStore>(new(), config))
+        using (var battle = new Battle<SkecsStore>(new(), config))
         {
             var frame = new BattleFrame(); battle.Capture(frame); var victim = frame.Ships.First(s => s.Kind == (int)ShipClass.Fighter);
             battle.TryFindShip(victim.Serial, out var e); battle.Damage(e, 10, true, false);
@@ -151,7 +151,7 @@ internal static partial class Validation
         CheckHit("enemy", false, false);
         CheckHit("friendly", true, false);
         CheckHit("self", true, true);
-        using var battle = new Battle<SecsStore>(new(), new BattleConfig { ShipsPerTeam = 16, Seed = 27 });
+        using var battle = new Battle<SkecsStore>(new(), new BattleConfig { ShipsPerTeam = 16, Seed = 27 });
         var frame = FreezeBattle(battle);
         var shooter = frame.Ships.First(s =>
         {
@@ -180,7 +180,7 @@ internal static partial class Validation
 
         static void CheckHit(string name, bool friendly, bool self)
         {
-            using var battle = new Battle<SecsStore>(new(), new BattleConfig { ShipsPerTeam = 16 });
+            using var battle = new Battle<SkecsStore>(new(), new BattleConfig { ShipsPerTeam = 16 });
             var frame = FreezeBattle(battle);
             var ownerShip = frame.Ships.First();
             battle.TryFindShip(ownerShip.Serial, out var owner);
@@ -213,7 +213,7 @@ internal static partial class Validation
             Require(battle.Counters.FriendlyFireHits == (friendly ? 1 : 0) && battle.Counters.SelfHits == (self ? 1 : 0), name + " friendly/self telemetry");
         }
     }
-    private static BattleFrame FreezeBattle(Battle<SecsStore> battle)
+    private static BattleFrame FreezeBattle(Battle<SkecsStore> battle)
     {
         var frame = new BattleFrame(); battle.Capture(frame);
         for (var i = 0; i < frame.Ships.Count; i++)
@@ -233,7 +233,7 @@ internal static partial class Validation
     }
     private static void MechanicsChecks()
     {
-        using var battle = new Battle<SecsStore>(new(), new BattleConfig { ShipsPerTeam = 16 });
+        using var battle = new Battle<SkecsStore>(new(), new BattleConfig { ShipsPerTeam = 16 });
         var frame = new BattleFrame(); battle.Capture(frame);
         var ship = frame.Ships.First(s => s.Kind == (int)ShipClass.Fighter);
         battle.TryFindShip(ship.Serial, out var e);

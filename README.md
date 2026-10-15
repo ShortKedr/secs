@@ -3,13 +3,13 @@ English | [Русский](README.ru.md)
 **[Space Battle promo: four recorded clips](docs/promo/space-battle/README.md)**
 
 <p align="center">
-  <img src="docs/branding/logo/shortkedr-ecs-200.png" width="200" height="200" alt="ShortKedr ECS — squirrel and cedar cone emblem">
+  <img src="docs/branding/logo/shortkedr-ecs-200.png" width="200" height="200" alt="SKECS — squirrel and cedar cone emblem">
 </p>
 
-# SECS — ShortKedr ECS
+# SKECS — ShortKedr ECS
 
 A small entity-component-system (ECS) library with .NET Standard 2.0/2.1 and
-.NET 8 builds. SECS groups entities
+.NET 8 builds. SKECS groups entities
 by their component types and stores unmanaged component data in chunks. Systems update
 that data through typed `ref` queries and run sequentially in `PreUpdate`,
 `Update`, and `PostUpdate`. The repository includes tests, benchmarks, and an
@@ -19,9 +19,9 @@ autonomous Space Battle sample.
 
 | Your goal | Where to go |
 | --- | --- |
-| Use the library | [Quickstart](#quickstart) · [Package installation](docs/secs/INSTALL.md) · [API and lifetime rules](docs/secs/README.md) · [Sample source](SECS.Sample/Program.cs) |
-| Work on SECS | [Implemented optimizations](docs/SECS_OPTIMIZATION.md) · [Tests](SECS.Tests) |
-| Read or reproduce measurements | [Microbenchmarks](SECS.Benchmarks/README.md) · [Five-framework comparison](Benchmarks.Local/README.md) · [Space Battle report](docs/space-battle/REPORT.md) |
+| Use the library | [Quickstart](#quickstart) · [Package installation](docs/skecs/INSTALL.md) · [API and lifetime rules](docs/skecs/README.md) · [Sample source](SKECS.Sample/Program.cs) |
+| Work on SKECS | [Implemented optimizations](docs/SKECS_OPTIMIZATION.md) · [Tests](SKECS.Tests) |
+| Read or reproduce measurements | [Microbenchmarks](SKECS.Benchmarks/README.md) · [Five-framework comparison](Benchmarks.Local/README.md) · [Space Battle report](docs/space-battle/REPORT.md) |
 | Run the game | [Desktop](SpaceBattle.Game/README.md) · [Web](SpaceBattle.Web/README.md) |
 
 `Benchmarks.Local/` is the public five-framework comparison harness: source code,
@@ -38,12 +38,12 @@ PowerShell settings keep tool and package caches inside the project:
 $env:DOTNET_CLI_HOME = "$PWD/Benchmarks.Local/.dotnet"
 $env:NUGET_PACKAGES = "$PWD/Benchmarks.Local/nuget-packages"
 
-dotnet run --project SECS.Sample/SECS.Sample.csproj -c Release
-dotnet test SECS.Tests/SECS.Tests.csproj -c Release
+dotnet run --project SKECS.Sample/SKECS.Sample.csproj -c Release
+dotnet test SKECS.Tests/SKECS.Tests.csproj -c Release
 ```
 
-To use SECS in your application, add a project reference to
-[SECS.csproj](SECS/SECS.csproj). The [library guide](docs/secs/README.md)
+To use SKECS in your application, add a project reference to
+[SKECS.csproj](SKECS/SKECS.csproj). The [library guide](docs/skecs/README.md)
 contains a minimal query example and explains entity ownership, component
 references, structural changes, and chunk iteration.
 
@@ -53,7 +53,7 @@ references, structural changes, and chunk iteration.
 **[Read the benchmark report](docs/space-battle/REPORT.md)**
 
 Autonomous fleets use AI steering, intercept aiming, turrets, shields, carrier
-production, docking, and repair. The desktop and browser frontends use SECS;
+production, docking, and repair. The desktop and browser frontends use SKECS;
 the headless host also compares LeoECS Lite, LeoECS Classic, Morpeh, and StaticEcs
 through native storage and query adapters.
 

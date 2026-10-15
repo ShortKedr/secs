@@ -7,14 +7,14 @@
   </PropertyGroup>
   <ItemGroup Condition="'$(StudyAssemblies)' == ''">
     <ProjectReference Include="../../SpaceBattle.Core/SpaceBattle.Core.csproj" />
-    <ProjectReference Include="../../SpaceBattle.SECS/SpaceBattle.SECS.csproj" />
+    <ProjectReference Include="../../SpaceBattle.SKECS/SpaceBattle.SKECS.csproj" />
     <ProjectReference Include="../../SpaceBattle.Adapters/SpaceBattle.Adapters.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(StudyAssemblies)' != ''">
     <Reference Include="SpaceBattle.Core"><HintPath>$(StudyAssemblies)/SpaceBattle.Core.dll</HintPath></Reference>
-    <Reference Include="SpaceBattle.SECS"><HintPath>$(StudyAssemblies)/SpaceBattle.SECS.dll</HintPath></Reference>
+    <Reference Include="SpaceBattle.SKECS"><HintPath>$(StudyAssemblies)/SpaceBattle.SKECS.dll</HintPath></Reference>
     <Reference Include="SpaceBattle.Adapters"><HintPath>$(StudyAssemblies)/SpaceBattle.Adapters.dll</HintPath></Reference>
-    <Reference Include="SECS"><HintPath>$(StudyAssemblies)/SECS.dll</HintPath></Reference>
+    <Reference Include="SKECS"><HintPath>$(StudyAssemblies)/SKECS.dll</HintPath></Reference>
     <Reference Include="Scellecs.Morpeh"><HintPath>$(StudyAssemblies)/Scellecs.Morpeh.dll</HintPath></Reference>
     <Reference Include="StaticLibrary"><HintPath>$(StudyAssemblies)/StaticLibrary.dll</HintPath></Reference>
   </ItemGroup>

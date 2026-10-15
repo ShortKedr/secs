@@ -10,7 +10,7 @@ internal static partial class AiLocalityValidation
 
     public static void Run()
     {
-        Run(static () => new SecsStore());
+        Run(static () => new SkecsStore());
         Run(static () => new LeoEcsLiteStore());
         Run(static () => new LeoEcsClassicStore());
         Run(static () => new MorpehStore());

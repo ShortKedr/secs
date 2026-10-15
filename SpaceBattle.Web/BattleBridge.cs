@@ -11,7 +11,7 @@ public static unsafe partial class BattleBridge
 {
     private const int HeaderValues = 80;
     private const int RowValues = 16;
-    private static Battle<SecsStore>? battle;
+    private static Battle<SkecsStore>? battle;
     private static readonly BattleFrame frame = new();
     private static double* buffer;
     private static int capacity;
@@ -21,7 +21,7 @@ public static unsafe partial class BattleBridge
     private static int colliderCapacity;
     private static bool colliderDebug;
     private static int profile;
-    private static readonly SimulationStatistics statistics = new(Battle<SecsStore>.StageNames.Length);
+    private static readonly SimulationStatistics statistics = new(Battle<SkecsStore>.StageNames.Length);
     private static long nextStatisticsRefresh;
 
     [JSExport]
@@ -45,10 +45,10 @@ public static unsafe partial class BattleBridge
         };
         battle?.Dispose();
         battle = null;
-        var store = new SecsStore();
+        var store = new SkecsStore();
         try
         {
-            battle = new Battle<SecsStore>(store, new BattleConfig
+            battle = new Battle<SkecsStore>(store, new BattleConfig
             {
                 Seed = (uint)seed,
                 EndlessReinforcements = true,
@@ -364,9 +364,9 @@ public static unsafe partial class BattleBridge
         return checked((int)(nint)buffer);
     }
 
-    private static Battle<SecsStore> Current => battle ?? throw new InvalidOperationException("Reset the battle first.");
+    private static Battle<SkecsStore> Current => battle ?? throw new InvalidOperationException("Reset the battle first.");
 
-    private static void CaptureColliders(Battle<SecsStore> current)
+    private static void CaptureColliders(Battle<SkecsStore> current)
     {
         current.CaptureColliders(colliders, refreshEntities: false);
         if (colliderBuffer == null || colliders.Count > colliderCapacity)

@@ -30,13 +30,13 @@ if (args.Contains("--selftest"))
 Directory.CreateDirectory(Path.Combine(docs, "composition"));
 foreach (var (profile, multiplier) in new[] { ("low", 0.5f), ("nominal", 1f), ("high", 2f) })
 {
-    var sourcePath = Path.Combine(docs, "results", profile + "-secs.json");
+    var sourcePath = Path.Combine(docs, "results", profile + "-skecs.json");
     using var source = JsonDocument.Parse(File.ReadAllText(sourcePath));
     var data = source.RootElement;
     var config = data.GetProperty("Metadata").GetProperty("Options").Deserialize<BattleConfig>(jsonOptions)!;
     Check(config.ChurnMultiplier == multiplier, "Wrong profile configuration");
     var binaryHashes = new Dictionary<string, string>();
-    foreach (var name in new[] { "SpaceBattle.Core.dll", "SpaceBattle.SECS.dll", "SECS.dll", "Aether.Physics2D.dll" })
+    foreach (var name in new[] { "SpaceBattle.Core.dll", "SpaceBattle.SKECS.dll", "SKECS.dll", "Aether.Physics2D.dll" })
     {
         var hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, name))));
         Check(hash == data.GetProperty("Provenance").GetProperty("Binaries").GetProperty(name).GetString(), "Measured DLL changed: " + name);
@@ -146,7 +146,7 @@ internal static class Component<T> where T : unmanaged
 // Observe composition changes, never duplicate component values or alter native query order.
 internal sealed class CensusStore : IEcsStore
 {
-    private readonly SecsStore inner = new();
+    private readonly SkecsStore inner = new();
     private bool disposed;
     private readonly Dictionary<EntityKey, uint> masks = new();
     public readonly int[] ComponentCounts = new int[Registry.Types.Length];

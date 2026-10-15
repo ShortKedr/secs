@@ -95,7 +95,7 @@ internal static partial class Validation
 
     private static (int Serial, ShipClass Kind, Vector2 Position, int Ready)[] ArmamentFleetCharge(uint seed, float churn)
     {
-        using var battle = new Battle<SecsStore>(new(), new BattleConfig
+        using var battle = new Battle<SkecsStore>(new(), new BattleConfig
         { ShipsPerTeam = 16, Seed = seed, ChurnMultiplier = churn, ParticleMultiplier = 0, ReplenishCarriers = false });
         var frame = new BattleFrame(); battle.Capture(frame);
         var placement = new RandomStream(seed);
@@ -203,7 +203,7 @@ internal static partial class Validation
 
     private static void ArmamentEntityChecks()
     {
-        using var battle = new Battle<SecsStore>(new(), new BattleConfig { ShipsPerTeam = 16, Seed = 27 });
+        using var battle = new Battle<SkecsStore>(new(), new BattleConfig { ShipsPerTeam = 16, Seed = 27 });
         var frame = new BattleFrame(); battle.Capture(frame);
         var expected = frame.Ships.Sum(s => ShipCatalog.TurretCount((ShipClass)s.Kind));
         var mounts = MountedGuns(battle);
@@ -561,9 +561,9 @@ internal static partial class Validation
         return battle.Checksum();
     }
 
-    private static Battle<SecsStore> ArmamentBattle(float churn = 1)
+    private static Battle<SkecsStore> ArmamentBattle(float churn = 1)
     {
-        var battle = new Battle<SecsStore>(new(), new BattleConfig { ShipsPerTeam = 8, Seed = 27, ChurnMultiplier = churn, ParticleMultiplier = 0, ReplenishCarriers = false });
+        var battle = new Battle<SkecsStore>(new(), new BattleConfig { ShipsPerTeam = 8, Seed = 27, ChurnMultiplier = churn, ParticleMultiplier = 0, ReplenishCarriers = false });
         var frame = FreezeBattle(battle);
         for (var i = 0; i < frame.Ships.Count; i++)
         {
@@ -575,7 +575,7 @@ internal static partial class Validation
         return battle;
     }
 
-    private static EntityKey ArmamentActor(Battle<SecsStore> battle, int team, ShipClass kind, Vector2 position)
+    private static EntityKey ArmamentActor(Battle<SkecsStore> battle, int team, ShipClass kind, Vector2 position)
     {
         var e = TacticalActor(battle, team, kind, position, false);
         battle.Store.Get<Motion>(e) = default;
@@ -584,14 +584,14 @@ internal static partial class Validation
         return e;
     }
 
-    private static void ArmamentAttack(Battle<SecsStore> battle, EntityKey parent, EntityKey target)
+    private static void ArmamentAttack(Battle<SkecsStore> battle, EntityKey parent, EntityKey target)
     {
         battle.Store.Get<Brain>(parent).Mode = BrainMode.Attack;
         battle.Store.Get<Brain>(parent).Target = target;
         battle.Store.Get<Brain>(parent).TargetLockUntilTick = int.MaxValue;
     }
 
-    private static void ArmamentGun(Battle<SecsStore> battle, EntityKey gun, EntityKey target, int cooldown, int ready)
+    private static void ArmamentGun(Battle<SkecsStore> battle, EntityKey gun, EntityKey target, int cooldown, int ready)
     {
         battle.Store.Get<Weapon>(gun) = new Weapon { Kind = WeaponKind.Cannon, Burst = 1, Damage = 1, Speed = 120, Range = 200, HeatPerShot = 2, Cooldown = cooldown, NextFireTick = ready };
         battle.Store.Get<Heat>(gun) = new Heat { Limit = 100 };
@@ -599,7 +599,7 @@ internal static partial class Validation
         battle.Store.Get<MountedTurret>(gun).NextDecisionTick = int.MaxValue;
     }
 
-    private static void ArmamentAim(Battle<SecsStore> battle, EntityKey gun)
+    private static void ArmamentAim(Battle<SkecsStore> battle, EntityKey gun)
     {
         var mount = battle.Store.Get<MountedTurret>(gun);
         var parent = battle.Store.Get<Transform>(mount.Parent);
@@ -610,7 +610,7 @@ internal static partial class Validation
 
     private static Vector2 ArmamentRotate(Vector2 v, float angle) => new(v.X * MathF.Cos(angle) - v.Y * MathF.Sin(angle), v.X * MathF.Sin(angle) + v.Y * MathF.Cos(angle));
 
-    private static List<EntityKey> MountedGuns(Battle<SecsStore> battle, EntityKey? parent = null)
+    private static List<EntityKey> MountedGuns(Battle<SkecsStore> battle, EntityKey? parent = null)
     {
         var query = new ArmamentMountCollector { Parent = parent, Entities = new() };
         battle.Store.ForEach<MountedTurret, ArmamentMountCollector>(ref query);
@@ -618,7 +618,7 @@ internal static partial class Validation
         return query.Entities;
     }
 
-    private static void FreezeMountedGuns(Battle<SecsStore> battle, EntityKey? parent = null)
+    private static void FreezeMountedGuns(Battle<SkecsStore> battle, EntityKey? parent = null)
     {
         foreach (var gun in MountedGuns(battle, parent)) battle.Store.Get<Weapon>(gun).NextFireTick = int.MaxValue;
     }
@@ -630,7 +630,7 @@ internal static partial class Validation
         public void Execute(EntityKey e, ref MountedTurret mount) { if (!Parent.HasValue || mount.Parent == Parent.Value) Entities.Add(e); }
     }
 
-    private static List<EntityKey> ArmamentProjectiles(Battle<SecsStore> battle)
+    private static List<EntityKey> ArmamentProjectiles(Battle<SkecsStore> battle)
     {
         var query = new ArmamentProjectileCollector { Entities = new() };
         battle.Store.ForEach<Projectile, ArmamentProjectileCollector>(ref query);

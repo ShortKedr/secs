@@ -21,7 +21,7 @@ if (ticks <= 0 || phaseTicks <= 0 || repeats <= 0) throw new ArgumentException("
 var runs = new List<object>();
 if (args.Contains("--store-probes")) { StoreProbes.Run(output); return; }
 var port = Arg("--port", "all");
-if (port is "all" or "secs") Run(static () => new SecsStore());
+if (port is "all" or "skecs") Run(static () => new SkecsStore());
 if (port is "all" or "lite") Run(static () => new LeoEcsLiteStore());
 if (port is "all" or "classic") Run(static () => new LeoEcsClassicStore());
 if (port is "all" or "morpeh") Run(static () => new MorpehStore());

@@ -6,7 +6,7 @@ English | [Русский](README.ru.md)
 
 Reusable tools for three real SpaceBattle moments: coordinated squad kills,
 lethal HeavyCannon hits, and corner warp arrivals followed by a dense two-sided
-battle. They use the current C# / SECS simulation, not scripted combat.
+battle. They use the current C# / SKECS simulation, not scripted combat.
 
 ## Quick Start
 

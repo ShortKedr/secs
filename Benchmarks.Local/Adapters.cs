@@ -12,9 +12,9 @@ interface IWorkload : IDisposable
     void Validate(int iterations, bool destroyed = false);
 }
 
-sealed class SecsWorkload(int count) : IWorkload
+sealed class SkecsWorkload(int count) : IWorkload
 {
-    private readonly SECS.Benchmarks.ComparisonWorkload workload = new(count);
+    private readonly SKECS.Benchmarks.ComparisonWorkload workload = new(count);
     public void Create() => workload.Create();
     public void Iterate() => workload.Iterate();
     public void Churn() => workload.Churn();

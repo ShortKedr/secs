@@ -33,7 +33,7 @@ if ($Variant -eq "Freeze") {
     $source = Join-Path $studyPath "source"
     New-Item -ItemType Directory -Path $source | Out-Null
     $manifest = @()
-    foreach ($project in @("SpaceBattle.Web", "SpaceBattle.Core", "SpaceBattle.SECS", "SECS")) {
+    foreach ($project in @("SpaceBattle.Web", "SpaceBattle.Core", "SpaceBattle.SKECS", "SKECS")) {
         $directory = Join-Path $root $project
         foreach ($file in Get-ChildItem -LiteralPath $directory -Recurse -File) {
             $relative = [IO.Path]::GetRelativePath($root, $file.FullName)

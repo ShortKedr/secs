@@ -40,7 +40,7 @@ jobs:
             echo "refresh=true" >> "$GITHUB_OUTPUT"
             echo "Cover provenance is unavailable; refreshing it." >> "$GITHUB_STEP_SUMMARY"
           elif git diff-tree --quiet -r "$captured_commit" HEAD -- \
-            SpaceBattle.Web/ SpaceBattle.Core/ SpaceBattle.SECS/ SECS/ \
+            SpaceBattle.Web/ SpaceBattle.Core/ SpaceBattle.SKECS/ SKECS/ \
             SpaceBattle.Game/Assets/ tools/build-space-battle-web.ps1 \
             tools/web/ tools/space-battle/cover.py \
             tools/space-battle/cover-requirements.txt \

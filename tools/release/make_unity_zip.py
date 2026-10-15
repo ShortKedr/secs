@@ -25,8 +25,8 @@ def inspect_assembly_references(dll: bytes, scratch_root: Path, version: str) ->
     if not ref_packs:
         raise ValueError(".NET Standard 2.1 reference pack is missing")
     framework_references = {path.stem for path in ref_packs[-1].glob("*.dll")}
-    with tempfile.TemporaryDirectory(prefix="secs-unity-assembly-", dir=scratch_root) as directory:
-        assembly = Path(directory) / "SECS.dll"
+    with tempfile.TemporaryDirectory(prefix="skecs-unity-assembly-", dir=scratch_root) as directory:
+        assembly = Path(directory) / "SKECS.dll"
         assembly.write_bytes(dll)
         command = [
             dotnet, "run", "--project", str(Path(__file__).with_name("InspectAssemblyRefs.csproj")),
@@ -75,7 +75,7 @@ def make_zip(package: Path, license_file: Path, guide: Path, output: Path, versi
                 target = group.attrib.get("targetFramework", "").lower()
                 if target in ("netstandard2.1", ".netstandard2.1") and group.findall("{*}dependency"):
                     raise ValueError("netstandard2.1 has package dependencies; Unity ZIP cannot omit their DLLs")
-        dll_name = "lib/netstandard2.1/SECS.dll"
+        dll_name = "lib/netstandard2.1/SKECS.dll"
         try:
             dll = source.read(dll_name)
         except KeyError as error:
@@ -91,12 +91,12 @@ def make_zip(package: Path, license_file: Path, guide: Path, output: Path, versi
         raise ValueError("License and Unity import guide must be nonempty")
 
     entries = {
-        "lib/netstandard2.1/SECS.dll": dll,
+        "lib/netstandard2.1/SKECS.dll": dll,
         "LICENSE": license_bytes,
         "INSTALL.md": guide_bytes,
     }
     manifest = {
-        "package": "ShortKedr.SECS",
+        "package": "ShortKedr.SKECS",
         "version": version,
         "sourceCommit": commit.lower(),
         "framework": "netstandard2.1",
@@ -120,9 +120,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--package", type=Path, required=True)
     parser.add_argument("--license", type=Path, default=Path("LICENSE"))
-    parser.add_argument("--guide", type=Path, default=Path("docs/secs/INSTALL.md"))
+    parser.add_argument("--guide", type=Path, default=Path("docs/skecs/INSTALL.md"))
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--version", default="0.1.0")
+    parser.add_argument("--version", default="0.2.0")
     parser.add_argument("--commit", required=True)
     args = parser.parse_args()
     try:

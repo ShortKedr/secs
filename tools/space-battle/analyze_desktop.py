@@ -45,8 +45,20 @@ def table(headers, rows):
             *['| ' + ' | '.join(map(str, row)) + ' |' for row in rows]]
 
 
+def product_identity(manifest):
+    """Use the recorded source paths to retain the original SECS study contract."""
+    sources = manifest.get('SourceHashes', {})
+    legacy = any(path.replace('\\', '/').startswith('SpaceBattle.SECS/') for path in sources)
+    if legacy:
+        return ('SECS', ('SpaceBattle.Core.dll', 'SpaceBattle.SECS.dll', 'SECS.dll'),
+                ('CoreDllSha256', 'SecsAdapterDllSha256', 'SecsDllSha256'))
+    return ('SKECS', ('SpaceBattle.Core.dll', 'SpaceBattle.SKECS.dll', 'SKECS.dll'),
+            ('CoreDllSha256', 'SkecsAdapterDllSha256', 'SkecsDllSha256'))
+
+
 def validate(directory):
     manifest = load(directory / 'manifest.json')
+    _, dll_names, desktop_fields = product_identity(manifest)
     require(manifest['Completed'] is True and manifest['Ticks'] >= 1200, 'Incomplete desktop campaign')
     require(set(manifest['Files']) == {case + suffix for case in CASES for suffix in ('.json', '.ticks.csv')}, 'Incomplete input provenance')
     records, samples, checksum = {}, {}, None
@@ -69,7 +81,7 @@ def validate(directory):
             require(record['Metadata']['Ticks'] == manifest['Ticks'] and record['Metadata']['Preset'] == 'game', 'Wrong headless workload')
             require(record['Metadata']['WarmupTicks'] == 600 and record['Metadata']['TieredCompilation'] == '0', 'Wrong headless warmup/tiering')
             require(record['Metadata']['Realtime'] == (case == 'headless-warm-paced'), 'Wrong headless pacing')
-            current_hashes = tuple(record['Provenance']['Binaries'][name] for name in ('SpaceBattle.Core.dll', 'SpaceBattle.SECS.dll', 'SECS.dll'))
+            current_hashes = tuple(record['Provenance']['Binaries'][name] for name in dll_names)
             current_environment = (record['Metadata']['Runtime'], record['Metadata']['Machine'])
             host_hash = record['Provenance']['Binaries']['SpaceBattle.Headless.dll']
             final_counts = {key: record['Windows'][-1][key] for key in ('Ships', 'Projectiles', 'Debris', 'Particles', 'Turrets')}
@@ -79,7 +91,7 @@ def validate(directory):
             require(record['GlErrors'] == [] and record['GlErrorOverflow'] == 0 and record['ValidationPass'] is True, 'Desktop GL validation failed')
             require(record['FrameRateCap'] == (60 if case.endswith('paced-default') else 0), 'Wrong desktop pacing')
             require(record['TieredCompilation'] == ('0' if case.endswith('tiering0') else None), 'Wrong desktop tiering')
-            current_hashes = (record['CoreDllSha256'], record['SecsAdapterDllSha256'], record['SecsDllSha256'])
+            current_hashes = tuple(record[name] for name in desktop_fields)
             current_environment = (record['Runtime'], record['Machine'])
             host_hash = record['GameDllSha256']
             final_counts = {key: record['FinalAliveEntities'][key] for key in ('Ships', 'Projectiles', 'Debris', 'Particles', 'Turrets')}
@@ -124,6 +136,7 @@ def validate(directory):
 
 def render(directory):
     manifest, records, samples, checksum = validate(directory)
+    product, _, _ = product_identity(manifest)
     relative = directory.relative_to(DOCS).as_posix()
     for ru in (False, True):
         suffix, language = ('.ru', 'ru') if ru else ('', 'en')
@@ -131,8 +144,8 @@ def render(directory):
                  '# ' + ('Почему HUD Mean отличается от headless' if ru else 'Why HUD Mean differs from headless'), '',
                  ((f"В этом свежем прогоне Release-клиент с tiering off показал {hud_mean(samples['desktop-cold-fast-tiering0']['hud'], 30):.3f} ms Mean к тику 30 и {hud_mean(samples['desktop-cold-fast-tiering0']['hud'], 1200):.3f} ms в окне 601–1200. С обычным runtime — {hud_mean(samples['desktop-cold-fast-default']['hud'], 10):.3f} ms к тику 10 и {hud_mean(samples['desktop-cold-fast-default']['hud'], 1200):.3f} ms в окне 601–1200. Высокий Mean на старте воспроизведён; это не средняя цена прогретого боя." if ru else
                    f"In this fresh Release run, tiering off produced {hud_mean(samples['desktop-cold-fast-tiering0']['hud'], 30):.3f} ms Mean at tick 30 and {hud_mean(samples['desktop-cold-fast-tiering0']['hud'], 1200):.3f} ms for ticks 601–1200. Default runtime produced {hud_mean(samples['desktop-cold-fast-default']['hud'], 10):.3f} ms at tick 10 and {hud_mean(samples['desktop-cold-fast-default']['hud'], 1200):.3f} ms for ticks 601–1200. High startup Mean was reproduced; it is not the steady warmed battle cost.")), '',
-                 ('Пять независимых Release-процессов повторяют один и тот же nominal game-бой: seed 7331, 96 эскортов и 3 носителя на сторону, LightSwarm, Tactical, подкрепления включены. Core, SECS и адаптер имеют одинаковые DLL-хеши; итоговые checksum, счётчики и численность совпали.' if ru else
-                  'Five independent Release processes replay the same nominal game battle: seed 7331, 96 escorts and 3 carriers per team, LightSwarm, Tactical, reinforcements enabled. Core, SECS and adapter DLL hashes match; final checksums, counters and populations match.'), '',
+                 ((f'Пять независимых Release-процессов повторяют один и тот же nominal game-бой: seed 7331, 96 эскортов и 3 носителя на сторону, LightSwarm, Tactical, подкрепления включены. Core, {product} и адаптер имеют одинаковые DLL-хеши; итоговые checksum, счётчики и численность совпали.') if ru else
+                  f'Five independent Release processes replay the same nominal game battle: seed 7331, 96 escorts and 3 carriers per team, LightSwarm, Tactical, reinforcements enabled. Core, {product} and adapter DLL hashes match; final checksums, counters and populations match.'), '',
                  f"Checksum: `{checksum}`. [Manifest]({relative}/manifest.json).", '',
                  ('Headless отдельно прогревает 600 тиков на другом экземпляре боя. Desktop начинается без прогрева Step: стартовые JIT и ленивые инициализации входят в его таймер. Default означает отсутствие переопределения DOTNET_TieredCompilation; tiering0 — принудительно выключенную tiered compilation. Paced desktop ограничен 60 кадрами/с, выполняет ровно один Step на кадр, VSync выключен; это контролируемый replay, а не замер FPS обычного накопителя игры. Все процессы запускаются последовательно.' if ru else
                   'Headless separately warms 600 ticks in another battle. Desktop records Step from cold startup, including initial JIT and lazy initialization. Default removes the DOTNET_TieredCompilation override; tiering0 explicitly disables tiered compilation. Paced desktop caps rendering at 60 frames/s, runs exactly one Step/frame and disables VSync: a controlled replay, not live accumulator FPS. Processes run sequentially.'), '',

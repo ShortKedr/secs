@@ -49,7 +49,7 @@ def expected_secs():
 
 def expected_legacy():
     # Concrete source classes include inherited [Benchmark] Run methods.
-    source = (ROOT / 'SECS.OtherBenchmarks/Benchmarks.cs').read_text(encoding='utf-8-sig')
+    source = (ROOT / 'SKECS.OtherBenchmarks/Benchmarks.cs').read_text(encoding='utf-8-sig')
     names = re.findall(r'public class (\w+)\s*:', source)
     names += ['DeleteEntity', 'MultiSystems', 'FilterMismatchSystems']
     return {(name, 'Run', 100000, padding) for name in names
@@ -146,11 +146,11 @@ def bdn_table(indexed, language):
 def render(api, storage, secs, legacy, language, secs_metadata=None, legacy_metadata=None):
     ru = language == 'ru'
     parts = [('[English](SUPPLEMENT.md) | Русский' if ru else 'English | [Русский](SUPPLEMENT.ru.md)'),
-             '# ' + ('Дополнительные измерения SECS' if ru else 'Supplemental SECS measurements'),
+             '# ' + ('Дополнительные измерения SKECS' if ru else 'Supplemental SKECS measurements'),
              ('Все значения относятся к текущим локальным исходникам и этой машине. Полные операции измерены в миллисекундах. Это отдельные нагрузки; таблицы не создают общего рейтинга API и систем.' if ru else
               'These measurements apply to the current local sources and this machine. Timings are milliseconds per complete operation. These are separate workloads; tables do not form an overall ranking of APIs or systems.'),
-             ('Сырые данные: [API](optimized-api.json), [storage](storage.json), [BDN SECS](bdn-secs.json), [BDN legacy](bdn-legacy.json).' if ru else
-              'Raw data: [API](optimized-api.json), [storage](storage.json), [BDN SECS](bdn-secs.json), [BDN legacy](bdn-legacy.json).'),
+             ('Сырые данные: [API](optimized-api.json), [storage](storage.json), [BDN SKECS](bdn-skecs.json), [BDN legacy](bdn-legacy.json).' if ru else
+              'Raw data: [API](optimized-api.json), [storage](storage.json), [BDN SKECS](bdn-skecs.json), [BDN legacy](bdn-legacy.json).'),
              ('[Метаданные кампании](supplement.json) фиксируют ревизию, исходники и хеши входных данных. [Сравнение пяти ECS](REPORT.ru.md) — отдельная общая нагрузка.' if ru else
               '[Campaign metadata](supplement.json) records the revision, sources and input hashes. The [five-ECS comparison](REPORT.md) uses a separate shared workload.'),
              '## API',
@@ -169,14 +169,14 @@ def render(api, storage, secs, legacy, language, secs_metadata=None, legacy_meta
              '## BenchmarkDotNet',
              table(['Suite', 'Runtime', 'Configuration', 'Toolchain'],
                    [[name, metadata['runtime'], metadata['configuration'], metadata['toolchain']]
-                    for name, metadata in [('SECS', secs_metadata), ('Legacy', legacy_metadata)]]),
+                    for name, metadata in [('SKECS', secs_metadata), ('Legacy', legacy_metadata)]]),
              ('Release, Short, InProcess: заданы 3 warmup и 8 actual итераций, вместо стандартных 3 actual у Short. Колонка actual / retained отделяет все собранные замеры от выборки Statistics после обработки выбросов. Setup/cleanup вне операций; естественный GC внутри включён. InProcess использует общий процесс, без изоляции child runtime. Allocation diagnostics не измеряют нативные колонки.' if ru else
               'Release, Short, InProcess: explicitly 3 warmup and 8 actual iterations, rather than Short’s default 3 actual iterations. Actual / retained distinguishes collected observations from Statistics after outlier processing. Setup/cleanup are outside operations; natural GC within operations is included. InProcess shares the host process without child-runtime isolation. Allocation diagnostics exclude native columns.'),
-             ('34 кейса SECS и 51 legacy кейс проверены по точным ключам. Здесь нет сопоставления разных операций: все ячейки нейтральны. MixedFrames — пакет 120 кадров. Padding 10 меняет долю совпадающих сущностей и не сравнивается с Padding 0 как ускорение одного workload.' if ru else
-              'Exact keys cover 34 SECS and 51 legacy cases. Different operations are not ranked: these cells are neutral. MixedFrames is a 120-frame batch. Padding 10 changes the fraction of matching entities and is not compared with Padding 0 as a speedup of one workload.'),
+             ('34 кейса SKECS и 51 legacy кейс проверены по точным ключам. Здесь нет сопоставления разных операций: все ячейки нейтральны. MixedFrames — пакет 120 кадров. Padding 10 меняет долю совпадающих сущностей и не сравнивается с Padding 0 как ускорение одного workload.' if ru else
+              'Exact keys cover 34 SKECS and 51 legacy cases. Different operations are not ranked: these cells are neutral. MixedFrames is a 120-frame batch. Padding 10 changes the fraction of matching entities and is not compared with Padding 0 as a speedup of one workload.'),
              ('Mutable-кейсы выполняют одну операцию за итерацию, чтобы сохранить корректный reset. Для многих BDN сообщает MinIterationTime ниже рекомендуемых 100 ms: восемь коротких наблюдений имеют ограниченную точность. Эти числа не заменяют длинный default-job и общую матрицу пяти ECS.' if ru else
               'Mutable cases invoke one operation per iteration to preserve reset semantics. Many receive BDN MinIterationTime warnings below its recommended 100 ms: eight short observations have limited precision. These values do not replace a longer default job or the shared five-ECS matrix.'),
-             '### SECS: 34', bdn_table(secs, language), '### Legacy: 51', bdn_table(legacy, language)]
+             '### SKECS: 34', bdn_table(secs, language), '### Legacy: 51', bdn_table(legacy, language)]
     return '\n\n'.join(parts) + '\n'
 
 
@@ -187,12 +187,12 @@ def generate(directory):
     if manifest_path.exists():
         manifest = load(manifest_path)
         require(manifest['completed'] is True and manifest['sourceRevision'] and manifest['sourceHashes'], 'Incomplete campaign provenance')
-        require(set(manifest['inputHashes']) == {'optimized-api.json', 'storage.json', 'bdn-secs.json', 'bdn-legacy.json'}, 'Incomplete supplemental inputs')
+        require(set(manifest['inputHashes']) == {'optimized-api.json', 'storage.json', 'bdn-skecs.json', 'bdn-legacy.json'}, 'Incomplete supplemental inputs')
         for name, expected in manifest['inputHashes'].items():
             require(hashlib.sha256((directory / name).read_bytes()).hexdigest().upper() == expected.upper(), 'Input hash mismatch: ' + name)
     api_data = load(directory / 'optimized-api.json')
     storage = load(directory / 'storage.json')
-    secs_data = load(directory / 'bdn-secs.json')
+    secs_data = load(directory / 'bdn-skecs.json')
     legacy_data = load(directory / 'bdn-legacy.json')
     api = validate_api(api_data)
     validate_storage(storage)

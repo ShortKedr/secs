@@ -2,13 +2,13 @@ config_version=5
 
 [application]
 
-config/name="SECS Release Smoke"
+config/name="SKECS Release Smoke"
 run/main_scene="res://Main.tscn"
 config/features=PackedStringArray("4.5", "C#", "GL Compatibility")
 
 [dotnet]
 
-project/assembly_name="SECSReleaseSmoke"
+project/assembly_name="SKECSReleaseSmoke"
 
 [rendering]
 

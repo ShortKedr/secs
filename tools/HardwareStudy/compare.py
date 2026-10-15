@@ -94,5 +94,5 @@ if __name__ == "__main__":
         target.write_text(json.dumps(rows, indent=2), encoding="utf-8")
     print("PASS: exact checkpoints, gameplay/AI counters and all population aggregates across every run/port/stage")
     for row in rows:
-        if row["port"] == "SECS" or args.browser:
+        if row["port"] in ("SECS", "SKECS") or args.browser:
             print(f'{row["stage"]} tick{row["endTick"]}: {row["medianMs"]:.4f}ms [{row["minMs"]:.4f}, {row["maxMs"]:.4f}]')

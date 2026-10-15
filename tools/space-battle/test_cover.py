@@ -25,7 +25,7 @@ STATIC_FILES = """index.html app.js styles.css observer-camera.js collider-debug
 web-atlases.js build-identity.json assets/web-atlases.json assets/lucide.min.js
 _framework/blazor.boot.json _framework/blazor.webassembly.js _framework/dotnet.native.wasm
 _framework/SpaceBattle.Web.wasm _framework/SpaceBattle.Core.wasm
-_framework/SpaceBattle.SECS.wasm _framework/SECS.wasm""".split()
+_framework/SpaceBattle.SKECS.wasm _framework/SKECS.wasm""".split()
 IDENTITY_FILES = """app.js styles.css observer-camera.js collider-debug.js web-atlases.js
 assets/web-atlases.json assets/lucide.min.js _framework/blazor.boot.json
 _framework/blazor.webassembly.js""".split()

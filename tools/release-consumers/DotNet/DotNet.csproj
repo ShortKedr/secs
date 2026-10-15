@@ -4,9 +4,9 @@
     <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <SECSVersion Condition="'$(SECSVersion)' == ''">0.1.0</SECSVersion>
+    <SKECSVersion Condition="'$(SKECSVersion)' == ''">0.2.0</SKECSVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ShortKedr.SECS" Version="$(SECSVersion)" />
+    <PackageReference Include="ShortKedr.SKECS" Version="$(SKECSVersion)" />
   </ItemGroup>
 </Project>

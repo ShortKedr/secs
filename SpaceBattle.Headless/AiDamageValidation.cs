@@ -6,7 +6,7 @@ internal static partial class AiLocalityValidation
     public static void RunDamage()
     {
         Check(DamageRules.Revision == "layered-weapon-damage-v1", "layer damage revision");
-        RunDamage(static () => new SecsStore()); RunDamage(static () => new LeoEcsLiteStore());
+        RunDamage(static () => new SkecsStore()); RunDamage(static () => new LeoEcsLiteStore());
         RunDamage(static () => new LeoEcsClassicStore()); RunDamage(static () => new MorpehStore());
         RunDamage(static () => new StaticEcsStore());
         Console.WriteLine("PASS: v3 layer preferences, heterogeneous readiness, armor, secondary heat, solo catalog mounts and configurable missiles (five adapters).");

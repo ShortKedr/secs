@@ -17,8 +17,8 @@ internal static class WeaponDamageValidation
         PureChecks();
         foreach (var settings in new[] { new DamageSettings(), Custom })
         {
-            var expected = Replay(static () => new SecsStore(), settings);
-            CheckReplay(expected, Replay(static () => new SecsStore(), settings), "SECS repeat");
+            var expected = Replay(static () => new SkecsStore(), settings);
+            CheckReplay(expected, Replay(static () => new SkecsStore(), settings), "SKECS repeat");
             CheckPort(static () => new LeoEcsLiteStore());
             CheckPort(static () => new LeoEcsClassicStore());
             CheckPort(static () => new MorpehStore());
@@ -237,7 +237,7 @@ internal static class WeaponDamageValidation
 
     public static void RunAllocationChecks()
     {
-        AllocationCheck(static () => new SecsStore()); AllocationCheck(static () => new LeoEcsLiteStore());
+        AllocationCheck(static () => new SkecsStore()); AllocationCheck(static () => new LeoEcsLiteStore());
         AllocationCheck(static () => new LeoEcsClassicStore()); AllocationCheck(static () => new MorpehStore());
         AllocationCheck(static () => new StaticEcsStore());
     }

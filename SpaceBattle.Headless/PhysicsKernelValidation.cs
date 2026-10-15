@@ -453,15 +453,15 @@ internal static partial class Validation
         }
     }
 
-    private static Battle<SecsStore> KernelBattle()
+    private static Battle<SkecsStore> KernelBattle()
     {
-        var battle = LifecycleBattle(static () => new SecsStore());
+        var battle = LifecycleBattle(static () => new SkecsStore());
         FreezeBattle(battle);
         LifecycleFreezeMounts(battle);
         return battle;
     }
 
-    private static EntityKey KernelBattleActor(Battle<SecsStore> battle, Vector2 position, Vector2 velocity = default)
+    private static EntityKey KernelBattleActor(Battle<SkecsStore> battle, Vector2 position, Vector2 velocity = default)
     {
         var e = battle.SpawnShip(0, ShipClass.Fighter, position, EntityKey.None);
         LifecycleFreezeShip(battle, e);

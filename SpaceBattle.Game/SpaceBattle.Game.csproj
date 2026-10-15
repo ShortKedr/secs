@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../SpaceBattle.Core/SpaceBattle.Core.csproj" />
-    <ProjectReference Include="../SpaceBattle.SECS/SpaceBattle.SECS.csproj" />
+    <ProjectReference Include="../SpaceBattle.SKECS/SpaceBattle.SKECS.csproj" />
     <Compile Include="../tools/BenchmarkMachineLabel.cs" Link="BenchmarkMachineLabel.cs" />
     <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
     <PackageReference Include="Silk.NET.OpenGL" Version="2.23.0" />

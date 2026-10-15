@@ -14,7 +14,7 @@ const profile = (names, samples = [3, 3, 2, 4], deltas = [10, 20, 30, 40]) => ({
 });
 
 test("index:name map preserves colons, CRLF, BOM, rejects invalid/conflicting entries", () => {
-  assert.deepEqual([...parseSymbolMap("\uFEFF2:SpaceBattle.Battle:Step()\r\n3:SECS_Query_1_ForEach\n")], [[2, "SpaceBattle.Battle:Step()"], [3, "SECS_Query_1_ForEach"]]);
+  assert.deepEqual([...parseSymbolMap("\uFEFF2:SpaceBattle.Battle:Step()\r\n3:SKECS_Query_1_ForEach\n")], [[2, "SpaceBattle.Battle:Step()"], [3, "SKECS_Query_1_ForEach"]]);
   assert.throws(() => parseSymbolMap("2:a\n2:b"));
   assert.throws(() => parseSymbolMap("n:a"));
   assert.throws(() => parseSymbolMap(""));
@@ -22,7 +22,7 @@ test("index:name map preserves colons, CRLF, BOM, rejects invalid/conflicting en
 
 test("known named frames classify conservatively, wrappers override own namespace", () => {
   for (const [name, expected] of [
-    ["SpaceBattle_Battle_1_Step", "managed-own-simulation"], ["SECS_Query_1_ForEach", "managed-own-simulation"],
+    ["SpaceBattle_Battle_1_Step", "managed-own-simulation"], ["SKECS_Query_1_ForEach", "managed-own-simulation"],
     ["mono_interp_exec_method", "mono-interpreter"], ["interp_exec_method", "mono-interpreter"],
     ["mono_interp_jit_wasm_entry_trampoline", "dispatch-runtime-helpers"],
     ["SpaceBattle_wrapper_delegate_invoke_System_Action", "dispatch-runtime-helpers"],
@@ -41,15 +41,15 @@ test("known named frames classify conservatively, wrappers override own namespac
 });
 
 test("self samples partition, inclusive callers overlap, stack paths retain leaf/caller names", () => {
-  const result = summarizeProfile(profile(["SpaceBattle_Battle_Step", "SECS_Query_ForEach", "mono_interp_exec_method"]), { requestedIntervalUs: 1000 });
+  const result = summarizeProfile(profile(["SpaceBattle_Battle_Step", "SKECS_Query_ForEach", "mono_interp_exec_method"]), { requestedIntervalUs: 1000 });
   const own = result.selfCategories.find(row => row.category === "managed-own-simulation");
   assert.equal(own.selfSamples, 3); assert.equal(own.selfSamplePercent, 75);
   assert.equal(result.selfCategories.reduce((sum, row) => sum + row.selfSamples, 0), 4);
-  assert.equal(result.topLeaves[0].name, "SECS_Query_ForEach");
+  assert.equal(result.topLeaves[0].name, "SKECS_Query_ForEach");
   const caller = result.topCallersInclusive.find(row => row.name === "SpaceBattle_Battle_Step");
   assert.equal(caller.selfSamples, 1); assert.equal(caller.inclusiveSamples, 3);
   assert.equal(caller.selfSamplePercent, 25); assert.equal(caller.inclusiveSamplePercent, 75);
-  assert.deepEqual(result.topStackPaths[0].path.map(row => row.name), ["(root)", "SpaceBattle_Battle_Step", "SECS_Query_ForEach"]);
+  assert.deepEqual(result.topStackPaths[0].path.map(row => row.name), ["(root)", "SpaceBattle_Battle_Step", "SKECS_Query_ForEach"]);
   assert.equal(result.intervals.meanUs, 25); assert.equal(result.intervals.unsampledTailUs, 20);
   assert.match(result.title, /named sampled wasm/);
 });
@@ -59,7 +59,7 @@ test("unnamed wasm stays unknown; exact index map resolves sole opaque native mo
   const unnamed = summarizeProfile(raw);
   assert.equal(unnamed.selfCategories.find(row => row.category === "unknown").selfSamples, 4);
   assert.match(unnamed.title, /partial\/unresolved/);
-  const named = summarizeProfile(raw, { symbols: parseSymbolMap("2:SpaceBattle_Battle_Step\n3:SECS_Query_ForEach\n4:mono_interp_exec_method") });
+  const named = summarizeProfile(raw, { symbols: parseSymbolMap("2:SpaceBattle_Battle_Step\n3:SKECS_Query_ForEach\n4:mono_interp_exec_method") });
   assert.equal(named.symbolization.mappedNodes, 3);
   assert.equal(named.symbolization.opaqueSingleModuleAssumption, true);
   assert.equal(named.selfCategories.find(row => row.category === "mono-interpreter").selfSamples, 1);
@@ -71,7 +71,7 @@ test("no guessing indices across modules or foreign named WASM modules", () => {
   raw.nodes[1].callFrame.url = "http://local/_framework/dotnet.native.wasm";
   raw.nodes[2].callFrame.url = "wasm://wasm/foreign";
   raw.nodes[3].callFrame.url = "http://local/_framework/foreign.wasm";
-  const result = summarizeProfile(raw, { symbols: parseSymbolMap("2:SpaceBattle_Battle_Step\n3:SECS_Query_ForEach\n4:SECS_Query_ForEach") });
+  const result = summarizeProfile(raw, { symbols: parseSymbolMap("2:SpaceBattle_Battle_Step\n3:SKECS_Query_ForEach\n4:SKECS_Query_ForEach") });
   assert.equal(result.symbolization.mappedNodes, 1);
   assert.equal(result.symbolization.unresolvedWasmNodes, 2);
 });

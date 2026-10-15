@@ -8,7 +8,7 @@ internal static class SquadCompositionValidation
     public static void Run()
     {
         BoundedIndex();
-        Run(static () => new SecsStore()); Run(static () => new LeoEcsLiteStore());
+        Run(static () => new SkecsStore()); Run(static () => new LeoEcsLiteStore());
         Run(static () => new LeoEcsClassicStore()); Run(static () => new MorpehStore());
         Run(static () => new StaticEcsStore());
         Console.WriteLine("PASS: useful mixed/homogeneous squads, compatibility, phase leases, death repair, screen/recovery, lane geometry, dense budgets and warmed phase allocations on five adapters.");

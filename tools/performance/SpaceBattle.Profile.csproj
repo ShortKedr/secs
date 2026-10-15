@@ -8,6 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="$(StudySourceRoot)/SpaceBattle.Core/SpaceBattle.Core.csproj" />
-    <ProjectReference Include="$(StudySourceRoot)/SpaceBattle.SECS/SpaceBattle.SECS.csproj" />
+    <ProjectReference Include="$(StudySourceRoot)/SpaceBattle.SKECS/SpaceBattle.SKECS.csproj" />
   </ItemGroup>
 </Project>

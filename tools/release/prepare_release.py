@@ -1,4 +1,4 @@
-"""Validate a SECS tag and prepare immutable GitHub Release files locally."""
+"""Validate a SKECS tag and prepare immutable GitHub Release files locally."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 
 
 VERSION_PATTERN = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?$")
-TAG_PATTERN = re.compile(r"secs-v" + VERSION_PATTERN.pattern)
+TAG_PATTERN = re.compile(r"skecs-v" + VERSION_PATTERN.pattern)
 NAMES = {(0, 1): "Cone", (0, 2): "Branch", (1, 0): "Canopy"}
 REQUIRED_EVIDENCE = (
     "dotnet8", "dotnet10", "framework", "godot",
@@ -36,8 +36,8 @@ def version_from_project(project: Path) -> str:
 def check_tag(tag: str, project: Path) -> str:
     match = TAG_PATTERN.fullmatch(tag)
     if match is None:
-        raise ValueError(f"Tag must use secs-vMAJOR.MINOR.PATCH: {tag!r}")
-    tag_version = tag.removeprefix("secs-v")
+        raise ValueError(f"Tag must use skecs-vMAJOR.MINOR.PATCH: {tag!r}")
+    tag_version = tag.removeprefix("skecs-v")
     project_version = version_from_project(project)
     if project_version != tag_version:
         raise ValueError(f"Tag version {tag_version} differs from project Version {project_version}")
@@ -54,9 +54,10 @@ def name_for(version: str) -> str:
     return NAMES[line]
 
 
-def evidence_table(directory: Path, version: str, commit: str, run_id: str) -> str:
+def evidence_table(directory: Path, version: str, commit: str, run_id: str, package: Path) -> str:
     if not run_id.isdigit():
         raise ValueError("GitHub run ID must be numeric")
+    package_sha = hashlib.sha256(package.read_bytes()).hexdigest()
     actual_files = {path.stem for path in directory.glob("*.json")}
     if actual_files != set(REQUIRED_EVIDENCE):
         raise ValueError(f"Expected runtime evidence {list(REQUIRED_EVIDENCE)}, found {sorted(actual_files)}")
@@ -64,7 +65,8 @@ def evidence_table(directory: Path, version: str, commit: str, run_id: str) -> s
     for kind in REQUIRED_EVIDENCE:
         entry = json.loads((directory / f"{kind}.json").read_text(encoding="utf-8"))
         for field, expected in (("kind", kind), ("packageVersion", version),
-                                ("sourceCommit", commit.lower()), ("runId", run_id),
+                                ("sourceCommit", commit.lower()), ("packageSha256", package_sha),
+                                ("runId", run_id),
                                 ("result", "passed")):
             if entry.get(field) != expected:
                 raise ValueError(f"{kind} evidence {field}: expected {expected!r}, got {entry.get(field)!r}")
@@ -102,7 +104,7 @@ def create_files(tag: str, commit: str, package: Path, unity_zip: Path, cover: P
     codename = name_for(version)
     if not re.fullmatch(r"[0-9a-fA-F]{40}", commit):
         raise ValueError("Source commit must be a full 40-character SHA-1")
-    expected_names = {f"ShortKedr.SECS.{version}.nupkg", f"SECS.Unity.{version}.zip", f"{codename.lower()}.png"}
+    expected_names = {f"ShortKedr.SKECS.{version}.nupkg", f"SKECS.Unity.{version}.zip", f"{codename.lower()}.png"}
     assets = (package, unity_zip, cover)
     if {asset.name for asset in assets} != expected_names:
         raise ValueError(f"Expected asset names {sorted(expected_names)}, found {[item.name for item in assets]}")
@@ -111,7 +113,7 @@ def create_files(tag: str, commit: str, package: Path, unity_zip: Path, cover: P
             raise ValueError(f"Release asset missing or empty: {asset}")
     if not install.is_file() or not install.read_text(encoding="utf-8").strip():
         raise ValueError("Installation guide is missing or empty")
-    matrix = evidence_table(evidence, version, commit, run_id)
+    matrix = evidence_table(evidence, version, commit, run_id, package)
 
     output.mkdir(parents=True, exist_ok=True)
     sums = []
@@ -122,7 +124,7 @@ def create_files(tag: str, commit: str, package: Path, unity_zip: Path, cover: P
     (output / "SHA256SUMS.txt").write_text(checksums, encoding="utf-8", newline="\n")
 
     today = dt.datetime.now(ZoneInfo("Asia/Qyzylorda")).date().isoformat()
-    title = f"SECS v{version} — {codename} · {today}"
+    title = f"SKECS v{version} — {codename} · {today}"
     (output / "title.txt").write_text(title + "\n", encoding="utf-8", newline="\n")
     base = f"https://github.com/ShortKedr/skecs/releases/download/{tag}"
     if version == "0.1.0":
@@ -131,13 +133,13 @@ def create_files(tag: str, commit: str, package: Path, unity_zip: Path, cover: P
                    "iterate queries, read or modify components, and dispose world memory. "
                    "The pre-1.0 API can change.")
     else:
-        change_file = Path(f"docs/secs/RELEASE_NOTES_{version}.md")
+        change_file = Path(f"docs/skecs/RELEASE_NOTES_{version}.md")
         if not change_file.is_file() or not change_file.read_text(encoding="utf-8").strip():
             raise ValueError(f"A version-specific change summary is required: {change_file}")
         introduction = "a release of the C# ECS core"
         changes = change_file.read_text(encoding="utf-8").strip()
     # GitHub renders title.txt above the body; do not repeat the release title here.
-    notes = f"""![SECS {codename}]({base}/{codename.lower()}.png)
+    notes = f"""![SKECS {codename}]({base}/{codename.lower()}.png)
 
 This is {introduction}.
 
@@ -152,7 +154,7 @@ This is {introduction}.
 - Unity 2022.3 LTS / Unity 6: download `{unity_zip.name}` and import the DLL as described in the installation guide.
 - Godot 4.5 .NET desktop: add the local NuGet package to a C# project.
 
-The [installation guide](https://github.com/ShortKedr/skecs/blob/{commit}/docs/secs/INSTALL.md) contains exact commands and backend limits.
+The [installation guide](https://github.com/ShortKedr/skecs/blob/{commit}/docs/skecs/INSTALL.md) contains exact commands and backend limits.
 
 ## Verified consumer matrix
 
@@ -162,7 +164,7 @@ These results come from the [release workflow run](https://github.com/ShortKedr/
 
 ## Contents and limits
 
-The release contains the SECS core, its package and Unity import archive. Space Battle, benchmarks and third-party vendor code are excluded. Fixed, SIMD, multithreading and GPU execution are future work, not features of this release.
+The release contains the SKECS core, its package and Unity import archive. Space Battle, benchmarks and third-party vendor code are excluded. Fixed, SIMD, multithreading and GPU execution are future work, not features of this release.
 
 ## Verification and provenance
 
@@ -170,8 +172,6 @@ The release workflow builds and tests from [`{commit}`](https://github.com/Short
 
 Source: [`{tag}`](https://github.com/ShortKedr/skecs/tree/{tag}) · License: [MIT](https://github.com/ShortKedr/skecs/blob/{commit}/LICENSE).
 """
-    if re.search(r"(?m)^#\s+", notes):
-        raise ValueError("GitHub already displays the release title; notes must not contain an H1")
     (output / "notes.md").write_text(notes, encoding="utf-8", newline="\n")
     print(title)
     print(checksums, end="")
@@ -182,9 +182,9 @@ def main() -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     check = sub.add_parser("check-tag")
     check.add_argument("--tag", required=True)
-    check.add_argument("--project", type=Path, default=Path("SECS/SECS.csproj"))
+    check.add_argument("--project", type=Path, default=Path("SKECS/SKECS.csproj"))
     version_command = sub.add_parser("version")
-    version_command.add_argument("--project", type=Path, default=Path("SECS/SECS.csproj"))
+    version_command.add_argument("--project", type=Path, default=Path("SKECS/SKECS.csproj"))
     name_command = sub.add_parser("name")
     name_command.add_argument("--version", required=True)
     make = sub.add_parser("create")
@@ -193,9 +193,9 @@ def main() -> int:
     make.add_argument("--package", type=Path, required=True)
     make.add_argument("--unity-zip", type=Path, required=True)
     make.add_argument("--cover", type=Path, required=True)
-    make.add_argument("--install", type=Path, default=Path("docs/secs/INSTALL.md"))
+    make.add_argument("--install", type=Path, default=Path("docs/skecs/INSTALL.md"))
     make.add_argument("--output", type=Path, required=True)
-    make.add_argument("--project", type=Path, default=Path("SECS/SECS.csproj"))
+    make.add_argument("--project", type=Path, default=Path("SKECS/SKECS.csproj"))
     make.add_argument("--evidence-dir", type=Path, required=True)
     make.add_argument("--run-id", required=True)
     args = parser.parse_args()
