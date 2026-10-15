@@ -24,6 +24,11 @@
 | Прочитать или воспроизвести измерения | [Микробенчмарки](SECS.Benchmarks/README.ru.md) · [Сравнение пяти фреймворков](Benchmarks.Local/README.ru.md) · [Отчёт Space Battle](docs/space-battle/REPORT.ru.md) |
 | Запустить игру | [Desktop](SpaceBattle.Game/README.ru.md) · [Web](SpaceBattle.Web/README.ru.md) |
 
+`Benchmarks.Local/` — публичный стенд сравнения пяти ECS: исходники, скрипты
+воспроизведения и результаты замеров. `Local` описывает запуск раннера, а не
+доступность папки. Каталоги сборки и кешей игнорируются; внутренние планы
+хранятся в `secs-private/`.
+
 ## Быстрый старт
 
 Нужен .NET SDK с поддержкой .NET 8. Запускайте из корня репозитория. Эти

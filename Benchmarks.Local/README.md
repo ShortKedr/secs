@@ -2,6 +2,11 @@ English | [Русский](README.ru.md)
 
 # Local ECS Comparisons
 
+This directory is part of the public repository. It contains the reproducible
+five-framework comparison runner, adapters, scripts, and published measurements.
+"Local" refers to running benchmarks on a machine; internal development notes
+belong in `../secs-private/`.
+
 [Repository](../README.md) | [Benchmark report](../SECS.Benchmarks/README.md) | [SpaceBattle report](../docs/space-battle/REPORT.md) | [Third-party notices](../THIRD_PARTY_NOTICES.md)
 
 This directory contains the five-framework Stopwatch comparison harness, its adapters, stress backends, retained JSON measurements, and plotting scripts. BenchmarkDotNet suites live separately in `SECS.Benchmarks` and `SECS.OtherBenchmarks` and measure SECS, not all five frameworks.

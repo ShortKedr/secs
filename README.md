@@ -24,6 +24,11 @@ autonomous Space Battle sample.
 | Read or reproduce measurements | [Microbenchmarks](SECS.Benchmarks/README.md) · [Five-framework comparison](Benchmarks.Local/README.md) · [Space Battle report](docs/space-battle/REPORT.md) |
 | Run the game | [Desktop](SpaceBattle.Game/README.md) · [Web](SpaceBattle.Web/README.md) |
 
+`Benchmarks.Local/` is the public five-framework comparison harness: source code,
+reproduction scripts, and measured results. "Local" describes how the runner is
+used, not the repository's visibility. Its build and cache directories are ignored;
+internal plans are kept in `secs-private/`.
+
 ## Quickstart
 
 Use a .NET SDK that supports .NET 8 and run from the repository root. These
