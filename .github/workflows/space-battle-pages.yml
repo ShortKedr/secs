@@ -64,7 +64,7 @@ jobs:
         run: node --test tools/web/test-web-atlases.mjs tools/web/test-web-atlas-loader.mjs tools/web/test-finalize-web-site.mjs tools/web/test-ios-diagnostics.mjs tools/space-battle/scenes/test-*.mjs
       - name: Publish shared C# simulation to WebAssembly
         shell: pwsh
-        run: ./tools/build-space-battle-web.ps1 -BasePath /secs/
+        run: ./tools/build-space-battle-web.ps1 -BasePath "/${{ github.event.repository.name }}/"
       - name: Check bilingual documentation links
         run: python3 tools/check_docs.py
       - name: Check portable scalar WebAssembly instructions
@@ -82,7 +82,7 @@ jobs:
         shell: pwsh
         run: ./tools/web/test-build-mono-study.ps1
       - name: Validate browser simulation, controls and responsive rendering
-        run: node tools/web/check-web.mjs --site Benchmarks.Local/tmp/web-publish/wwwroot --base /secs/ --require-mode aot-binary
+        run: node tools/web/check-web.mjs --site Benchmarks.Local/tmp/web-publish/wwwroot --base "/${{ github.event.repository.name }}/" --require-mode aot-binary
       - name: Desktop WebKit bounded iOS regression smoke (not device verification)
         run: node tools/web/run-ios-smoke.mjs --site Benchmarks.Local/tmp/web-publish/wwwroot --browser webkit --repeats 1 --ticks 24 --faults --retry reload --raf-faults --output Benchmarks.Local/tmp/ios-webkit-smoke.json
       - name: Retain browser evidence

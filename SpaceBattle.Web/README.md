@@ -4,7 +4,7 @@ English | [Русский](README.ru.md)
 
 A browser view of the shared C# fleet simulation running on SECS. Production uses .NET 8 Mono AOT WebAssembly; Canvas draws the scene. Ships fight autonomously while you control the camera and speed.
 
-[Live demo](https://shortkedr.github.io/secs/) | [Russian demo](https://shortkedr.github.io/secs/?lang=ru) | [SpaceBattle overview](../docs/space-battle/README.md) | [Current report](../docs/space-battle/REPORT.md)
+[Live demo](https://shortkedr.github.io/skecs/) | [Russian demo](https://shortkedr.github.io/skecs/?lang=ru) | [SpaceBattle overview](../docs/space-battle/README.md) | [Current report](../docs/space-battle/REPORT.md)
 
 The live URL is the deployment target. Local source changes do not update it, and its build may differ from this checkout.
 

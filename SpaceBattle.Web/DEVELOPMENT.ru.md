@@ -47,9 +47,9 @@ production использует AOT-компиляцию в WebAssembly. JavaScr
 
 [Workflow GitHub Actions](../.github/workflows/space-battle-pages.yml)
 собирает и развёртывает статическое демо по
-[целевому адресу Pages `/secs/`](https://shortkedr.github.io/secs/).
+[целевому адресу Pages `/skecs/`](https://shortkedr.github.io/skecs/).
 Демо содержит обратные ссылки на двуязычный отчёт о бенчмарках. Русский адрес демо:
-[`?lang=ru`](https://shortkedr.github.io/secs/?lang=ru).
+[`?lang=ru`](https://shortkedr.github.io/skecs/?lang=ru).
 Наличие целевой ссылки само по себе не подтверждает завершение развёртывания.
 
 Готовые каталоги не переиспользуются: для новой сборки выбирайте свежие output/build.
@@ -65,7 +65,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/Benchmarks.Local/tmp/playwright-browsers"
 npm ci --prefix tools/web --cache Benchmarks.Local/tmp/npm-cache
 ./tools/build-space-battle-web.ps1
 node tools/web/node_modules/playwright/cli.js install chromium webkit
-node tools/web/check-web.mjs --base /secs/
+node tools/web/check-web.mjs --base /skecs/
 ```
 
 В опубликованном сайте есть [состав лицензионной поставки](wwwroot/licenses/NOTICE.txt),

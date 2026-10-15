@@ -46,9 +46,9 @@ binary frame, physics, damage or gameplay revision.
 
 The [GitHub Actions workflow](../.github/workflows/space-battle-pages.yml)
 builds and deploys the static demo to
-[the `/secs/` Pages target](https://shortkedr.github.io/secs/).
+[the `/skecs/` Pages target](https://shortkedr.github.io/skecs/).
 The demo links back to the bilingual benchmark report. The Russian demo URL is
-[`?lang=ru`](https://shortkedr.github.io/secs/?lang=ru).
+[`?lang=ru`](https://shortkedr.github.io/skecs/?lang=ru).
 The target link alone does not establish that a deployment has completed.
 
 Finalized output directories are immutable; choose a fresh output/build directory
@@ -64,7 +64,7 @@ $env:PLAYWRIGHT_BROWSERS_PATH = "$PWD/Benchmarks.Local/tmp/playwright-browsers"
 npm ci --prefix tools/web --cache Benchmarks.Local/tmp/npm-cache
 ./tools/build-space-battle-web.ps1
 node tools/web/node_modules/playwright/cli.js install chromium webkit
-node tools/web/check-web.mjs --base /secs/
+node tools/web/check-web.mjs --base /skecs/
 ```
 
 The published site's [license inventory](wwwroot/licenses/NOTICE.txt),

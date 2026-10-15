@@ -302,7 +302,7 @@ import { verifyBuild, loadAtlasBundle, browserContract } from "./web-atlases.js"
     });
     $("language").textContent = lang === "en" ? "RU" : "EN";
     $("report").href =
-      "https://github.com/ShortKedr/secs/blob/main/docs/space-battle/" +
+      "https://github.com/ShortKedr/skecs/blob/main/docs/space-battle/" +
       (lang === "ru" ? "REPORT.ru.md" : "REPORT.md");
     updateUI();
   }

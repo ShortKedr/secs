@@ -1,6 +1,6 @@
 param(
     [string]$OutputDirectory = "Benchmarks.Local/tmp/web-publish",
-    [string]$BasePath = "/secs/",
+    [string]$BasePath = "/skecs/",
     [switch]$Interpreter,
     [string]$ArtifactsDirectory = "Benchmarks.Local/tmp/web-build",
     [string]$NodeExecutable = "node"
@@ -18,7 +18,7 @@ if (-not $artifacts.StartsWith($root + [IO.Path]::DirectorySeparatorChar, [Strin
 if ($artifacts -eq $output -or $artifacts.StartsWith($output + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or $output.StartsWith($artifacts + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
     throw "Publish and intermediate artifact directories must be separate."
 }
-if ($BasePath -notmatch '^/([a-zA-Z0-9_-]+/)*$') { throw "BasePath must be an absolute URL directory, e.g. /secs/ or /." }
+if ($BasePath -notmatch '^/([a-zA-Z0-9_-]+/)*$') { throw "BasePath must be an absolute URL directory, e.g. /skecs/ or /." }
 if (Test-Path -LiteralPath (Join-Path $output "wwwroot/build-identity.json")) {
     throw "OutputDirectory already contains a finalized site. Choose a fresh directory to preserve earlier builds."
 }

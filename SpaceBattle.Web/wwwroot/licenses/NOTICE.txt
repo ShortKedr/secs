@@ -35,4 +35,4 @@ Pinned browser file: https://unpkg.com/lucide@1.55.0/dist/umd/lucide.min.js
 SHA256: 48b3b5d82216bbe1d0c49dea480ed38fca8420c275c98f20505e3f9556f6b1d1
 
 Artwork provenance: ARTWORK.md.
-See https://github.com/ShortKedr/secs/blob/main/THIRD_PARTY_NOTICES.md.
+See https://github.com/ShortKedr/skecs/blob/main/THIRD_PARTY_NOTICES.md.

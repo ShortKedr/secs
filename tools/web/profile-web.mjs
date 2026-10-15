@@ -6,7 +6,7 @@ const arg = (name, fallback) => {
   const i = process.argv.indexOf(name);
   return i < 0 ? fallback : process.argv[i + 1];
 };
-const url = arg("--url", "https://shortkedr.github.io/secs/");
+const url = arg("--url", "https://shortkedr.github.io/skecs/");
 const warmupTicks = Number(arg("--warmup-ticks", "600"));
 if (!Number.isInteger(warmupTicks) || warmupTicks < 0 || warmupTicks > 3600) {
   throw new Error("Warmup ticks must be an integer from 0 to 3600");

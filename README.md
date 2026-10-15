@@ -49,7 +49,7 @@ references, structural changes, and chunk iteration.
 
 ## Space Battle
 
-**[Play in your browser](https://shortkedr.github.io/secs/)** ·
+**[Play in your browser](https://shortkedr.github.io/skecs/)** ·
 **[Read the benchmark report](docs/space-battle/REPORT.md)**
 
 Autonomous fleets use AI steering, intercept aiming, turrets, shields, carrier

@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i < 0 ? fallback : process.argv[i + 1]; };
-const base = new URL(arg("--url", "https://shortkedr.github.io/secs/"));
+const base = new URL(arg("--url", "https://shortkedr.github.io/skecs/"));
 const output = path.resolve(arg("--output", "Benchmarks.Local/tmp/ios-web-fix-20261012/deployed"));
-if (base.protocol !== "https:" || base.hostname !== "shortkedr.github.io" || base.pathname !== "/secs/" ||
+if (base.protocol !== "https:" || base.hostname !== "shortkedr.github.io" || base.pathname !== "/skecs/" ||
     !output.startsWith(path.join(root, "Benchmarks.Local/tmp") + path.sep)) throw new Error("Expected the specified public site and project-local evidence");
 await fs.mkdir(output, { recursive: false });
 const records = [];

@@ -49,7 +49,7 @@ dotnet test SECS.Tests/SECS.Tests.csproj -c Release
 
 ## Space Battle
 
-**[Открыть в браузере](https://shortkedr.github.io/secs/?lang=ru)** ·
+**[Открыть в браузере](https://shortkedr.github.io/skecs/?lang=ru)** ·
 **[Читать отчёт о бенчмарках](docs/space-battle/REPORT.ru.md)**
 
 Автономные флоты используют управление через AI, стрельбу с упреждением,
