@@ -27,7 +27,7 @@ autonomous Space Battle sample.
 `Benchmarks.Local/` is the public five-framework comparison harness: source code,
 reproduction scripts, and measured results. "Local" describes how the runner is
 used, not the repository's visibility. Its build and cache directories are ignored;
-internal plans are kept in `secs-private/`.
+internal plans are kept in `skecs-private/`.
 
 ## Quickstart
 
@@ -70,5 +70,5 @@ see each report for its method and limitations.
 
 [License: MIT for original project material](LICENSE) ·
 [Documentation map](docs/README.md) ·
-[Internal plans (restricted access)](https://github.com/ShortKedr/secs-private) ·
+[Internal plans (restricted access)](https://github.com/ShortKedr/skecs-private) ·
 [Third-party licenses and pinned sources](THIRD_PARTY_NOTICES.md)

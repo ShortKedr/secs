@@ -31,7 +31,7 @@ Read the date, source revisions, hardware, and configuration before comparing
 results. A chart from an older runtime remains evidence for that runtime.
 
 Internal drafts and development plans are kept in the
-[restricted SKECS repository](https://github.com/ShortKedr/secs-private).
+[restricted SKECS repository](https://github.com/ShortKedr/skecs-private).
 
 ## Historical names
 
