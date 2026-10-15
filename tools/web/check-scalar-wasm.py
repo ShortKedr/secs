@@ -33,14 +33,27 @@ def decoder_path(explicit):
     if sdk:
         pinned = ET.parse(ROOT / "SpaceBattle.Web/SpaceBattle.Web.csproj").findtext("./PropertyGroup/RuntimeFrameworkVersion")
         binary = "wasm-dis.exe" if os.name == "nt" else "wasm-dis"
-        files = list(Path(sdk).glob("packs/Microsoft.NET.Runtime.Emscripten.*.Sdk.*/**/wasm-dis*"))
-        files = [f for f in files if f.is_file() and f.name == binary and f.parents[2].name == pinned]
-        if len(files) == 1:
-            return files[0]
+        pinned_version = tuple(int(part) for part in pinned.split("."))
+        candidates = []
+        for file in Path(sdk).glob(f"packs/Microsoft.NET.Runtime.Emscripten.*.Sdk.*/*/tools/bin/{binary}"):
+            if not file.is_file():
+                continue
+            try:
+                version = tuple(int(part) for part in file.parents[2].name.split("."))
+            except ValueError:
+                continue
+            # The SDK can roll forward to a newer runtime patch when installing wasm-tools.
+            if len(version) == 3 and version[:2] == pinned_version[:2] and version >= pinned_version:
+                candidates.append((version, file))
+        if candidates:
+            newest = max(version for version, _ in candidates)
+            files = [file for version, file in candidates if version == newest]
+            if len(files) == 1:
+                return files[0]
     found = shutil.which("wasm-dis")
     if found:
         return Path(found)
-    raise ValueError("Provide --wasm-dis or a DOTNET_ROOT with the pinned Emscripten pack")
+    raise ValueError("Provide --wasm-dis or a DOTNET_ROOT with a compatible Emscripten pack")
 
 
 def main():
