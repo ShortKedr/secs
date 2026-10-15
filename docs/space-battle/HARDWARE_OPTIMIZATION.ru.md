@@ -13,7 +13,7 @@
 Сравниваются только выбранные метрики одного сценария/окна/среды. Если в таблице и связанном сводном источнике нет диапазона независимых повторов, измеренные сравнения остаются серыми. Доли стадий и игровые счётчики не окрашены.
 <!-- research-colors:end -->
 
-Локальное исследование, 2026-10-12. Не заменяет замороженные измерения пяти ECS. Без изменений remote и публикаций. [Harness и воспроизведение](../../tools/HardwareStudy/README.ru.md).
+Локальное исследование, 2026-10-12. Не заменяет замороженные измерения пяти ECS. [Harness и воспроизведение](../../tools/HardwareStudy/README.ru.md).
 
 ## Методика
 
@@ -61,14 +61,14 @@ Native frontend: одинаковый host/render/assets, меняются со�
 
 Canvas draw-only CPU submission одного paused snapshot тика 300: до 5.369 ms [5.066, 5.439], после 5.192 ms [5.148, 5.208], три независимых страницы, 60 draw warmups/120 samples. Production app.js не изменён; временный diagnostic closure exposure исключает Step/export/DOM. Ускорение рендера и GPU utilization не заявляются. Шесть native GL profiles прошли; checkpoint EEFA64DD84CED6DD/популяции совпадают.
 
-## Исторические Измерения CoreCLR И Отложенное
+## Исторические Измерения CoreCLR
 
 Экспериментальный браузерный маршрут CoreCLR/R2R снят с поддержки, его хост и инструменты удалены. Абзац и JSON ниже сохранены без изменений как исторические измерения, а не поддерживаемый способ воспроизведения. Production-измерения браузера используют стабильный .NET 8 Mono AOT.
 
 Pinned .NET 11 RC1 crossgen2 partial R2R работает в реальном Chromium. Три независимых replay по 120 тиков после 120-тикового прогрева: тики 1-60 Step 112.048 ms [109.488,123.055] → 88.062 ms [87.272, 89.478]; 61-120: 159.483 ms [158.798,172.423] → 130.892 ms [129.452,132.338]. Checkpoints/counters/populations совпадают. CPU sampling 120 тиков: interpreter leaf samples 84.927% до и 82.179% на этапе 5. Это mixed execution, не compiled-hot-path upgrade; длинные окна и interpreter-free R2R не проверены. [Отдельные R2R измерения](hardware-optimization/r2r-stage5.json).
 
-Отдельный микротест ComponentAccessor: прямые чтения 1.410 → 0.365 ms, но поэтапное создание/уничтожение 9.322 → 10.669 ms и дополнительные 49,152 байта accessor при 4096 слотах. В рабочую реализацию API не включён: сначала нужно сравнить полный Battle.
+Отдельный микротест ComponentAccessor: прямые чтения 1.410 → 0.365 ms, но поэтапное создание/уничтожение 9.322 → 10.669 ms и дополнительные 49,152 байта accessor при 4096 слотах. В рабочую реализацию API не включён.
 
 Микротест создания сразу в конечном архетипе: 4.158 ms против 9.322 ms при поэтапном создании. Проверка кода показывает сокращение вставок строки при создании с 4 до 1 и удалений с 3 до 0; число игровых добавлений компонентов остаётся 3. Объём копирования и исправления ссылок после swap-removal не измерялись. Эквивалентность типизированного создания и порядка запросов на пяти портах не доказана; игровое создание и счётчики не менялись.
 
-Incremental Collect/Sort отложен: внешние additions/removals и Serial/Transform правки через возвращённые refs должны оставаться видимыми. Mutation counter этих записей не видит. Registry требует reconciliation или более сильного публичного контракта; текущий collect сохранён. Тесты покрывают внешние правки на пяти портах, slot/native-ID reuse/divergence, epoch wrap/fallback, stale/disposal guards, точные grid oracles, ties, snapshot/live, self exclusion, friendly/debris damage. 16 SECS tests и 6 comparison tests прошли. Native/browser изображения боя и реальные controls проверены; ассеты и замороженные отчёты этой работой не изменялись.
+Текущий полный Collect/Sort сохранён: внешние additions/removals и Serial/Transform правки через возвращённые refs остаются видимыми. Тесты покрывают внешние правки на пяти портах, slot/native-ID reuse/divergence, epoch wrap/fallback, stale/disposal guards, точные grid oracles, ties, snapshot/live, self exclusion, friendly/debris damage. 16 SECS tests и 6 comparison tests прошли. Native/browser изображения боя и реальные controls проверены; ассеты и замороженные отчёты этой работой не изменялись.

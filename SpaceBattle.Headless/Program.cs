@@ -190,7 +190,7 @@ internal static class Runner
         var report = new
         {
             Metadata = new { Framework = fresh.Name, Runtime = RuntimeInformation.FrameworkDescription, Os = RuntimeInformation.OSDescription,
-                Machine = Environment.MachineName, Date = DateTimeOffset.Now, TieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
+                Machine = BenchmarkMachineLabel.Value, Date = DateTimeOffset.Now, TieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
                 TargetTickRate = 60, BudgetMs = 1000.0 / 60, options.Ticks, options.WarmupTicks, Realtime = options.Realtime,
                 SimulatedSeconds = options.Ticks / 60.0, WallSeconds = elapsed, Options = options.Config, options.Preset,
                 TimingScope = "Outer tickMs includes Battle.Step systems/physics/structural commits; excludes setup, snapshots, validation and telemetry serialization",

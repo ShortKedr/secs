@@ -3,7 +3,7 @@
     "Framework": "StaticEcs 2.2.9",
     "Runtime": ".NET 8.0.32",
     "Os": "Microsoft Windows 10.0.26200",
-    "Machine": "NIKOLAY-PC",
+    "Machine": "local-machine",
     "Date": "2026-10-14T22:18:35.8598277+05:00",
     "TieredCompilation": "0",
     "TargetTickRate": 60,

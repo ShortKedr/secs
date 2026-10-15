@@ -59,53 +59,8 @@ when using a project-local browser cache. Uncommitted local previews are marked 
 `--allow-dirty` is for local validation only and is never used by Actions.
 Capture writes into `Benchmarks.Local/tmp/space-battle-cover`, not the documents.
 
-## Validation And Publication
+## Cover Provenance
 
-The [workflow](../../.github/workflows/space-battle-cover.yml) checks the default
-branch daily at 04:17 UTC. It captures only when the web frontend, simulation,
-shared assets, build or capture tooling, cover settings, or workflow have changed
-since the `SourceCommit` recorded in the current cover manifest. Cover-only bot
-commits and unrelated documentation changes do not start a capture. Manual
-`workflow_dispatch` on `main` forces a refresh. It builds and captures the actual
-source commit using the real C# simulation and Canvas renderer of the AOT build.
-It serves that build on loopback, not a potentially older live Pages deployment.
-Native OpenGL, Xvfb and Mesa capture are no longer required. Chromium runs at
-device scale factor 1; simulation stays paused outside explicit tick advancement.
-
-The PNG and adjacent manifest are staged and validated as a pair before
-publication. Validation checks the configured tick, dimensions and seed,
-nonblank rendering and render counts, and compares recorded source provenance
-against the actual captured source commit. [cover.png.json](cover.png.json) records
-schema 2: source commit, Chromium version, AOT runtime mode, loaded web-build
-file SHA256 hashes, settings, simulation checksum and render counts; these
-describe this cover, not the historical benchmark. An invalid or mismatched
-pair must not replace the published cover.
-
-Seed, tick, nominal profile and zoom are checked against the actual browser state.
-Loaded-file hashes cover WASM/boot resources, renderer modules, build identity,
-the atlas manifest and all six generated PNG textures. The local validator
-compares them with the exact served build and both manifests; original source
-atlas PNG/JSON pairs are not loaded by the browser. External HTTP
-resources are rejected. The activity gate requires at least 24 on-screen ships,
-both teams still alive and at least one active projectile. It rejects an empty
-or already finished battle, not a performance regression. Adjust the fixed tick
-deliberately if gameplay changes make the preset fail. Raw browser timings remain
-in the artifact; the cover manifest omits them and is not a benchmark report.
-
-Failures retain diagnostics in the artifact and print the underlying browser
-error in the job log; an absent PNG cannot silently become a successful update.
-
-Only `docs/space-battle/cover.png` and `docs/space-battle/cover.png.json` are
-publication outputs. A bot commit uses `GITHUB_TOKEN`, never a PAT. Commits made
-with that token do not trigger other workflows, so the cover update does not
-recursively run this workflow. Branch protection or repository
-`contents: write` policy can block publication; the captured pair remains
-available as a workflow artifact when publication fails.
-
-Overlapping runs are superseded by the latest run. Before publication, the job
-checks that `main` still points to the simulated commit; it skips a stale result.
-The final push is fast-forward only, so a racing source push is never overwritten.
-GitHub documents the [GITHUB_TOKEN recursion safeguard](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
-
-This documents the intended automation contract, not a claim that a live
-GitHub run or bot publication has been tested successfully.
+[cover.png.json](cover.png.json) records the source commit, Chromium version,
+loaded AOT build hashes, settings, simulation checksum and render counts.
+These describe the cover, not a benchmark result.

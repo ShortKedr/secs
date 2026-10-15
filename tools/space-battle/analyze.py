@@ -260,6 +260,18 @@ def frontend_stats(actual, values, label):
         compare_number(actual[key], value, label + "." + key)
 
 
+def validate_frontend_csv_path(recorded, csv_path):
+    raw_path = Path(recorded)
+    if raw_path == Path(raw_path.name):
+        # New captures contain only the CSV filename, so no local home path is published.
+        require(raw_path.name == csv_path.name, "frontend: RawCsvPath must identify frontend.csv")
+    else:
+        # Existing captures may still have a repo-relative or absolute path.
+        if not raw_path.is_absolute():
+            raw_path = ROOT / raw_path
+        require(raw_path.resolve() == csv_path.resolve(), "frontend: RawCsvPath must identify docs/space-battle/frontend.csv")
+
+
 def validate_frontend(runs):
     path, csv_path = DOCS / "frontend.json", DOCS / "frontend.csv"
     data = read_json(path)
@@ -293,10 +305,7 @@ def validate_frontend(runs):
         if name != "SpaceBattle.Game.dll":
             require(runs["nominal", "secs"]["Provenance"]["Binaries"][name] == digest, "frontend/headless binary mismatch: " + name)
     checksum(data["FinalBattleChecksum"], "frontend.FinalBattleChecksum")
-    raw_path = Path(data["RawCsvPath"])
-    if not raw_path.is_absolute():
-        raw_path = ROOT / raw_path
-    require(raw_path.resolve() == csv_path.resolve(), "frontend: RawCsvPath must identify docs/space-battle/frontend.csv")
+    validate_frontend_csv_path(data["RawCsvPath"], csv_path)
     with csv_path.open(encoding="utf-8-sig", newline="") as stream:
         reader = csv.DictReader(stream)
         require(reader.fieldnames == FRONTEND_COLUMNS, "frontend: CSV header schema mismatch")

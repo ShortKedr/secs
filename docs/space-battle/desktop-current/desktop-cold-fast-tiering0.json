@@ -96,7 +96,7 @@
   },
   "Framework": "SECS",
   "Date": "2026-10-14T02:51:13.7214815+05:00",
-  "Machine": "NIKOLAY-PC",
+  "Machine": "local-machine",
   "Runtime": ".NET 8.0.31",
   "TieredCompilation": "0",
   "GameplayRevision": "mounted-armament-v7",
@@ -634,5 +634,5 @@
     "Turrets": 52,
     "Total": 3689
   },
-  "RawCsvPath": "C:\\Workspace\\_VibeCodeProjects\\ecs\\docs\\space-battle\\desktop-current\\desktop-cold-fast-tiering0.ticks.csv"
+  "RawCsvPath": "desktop-cold-fast-tiering0.ticks.csv"
 }

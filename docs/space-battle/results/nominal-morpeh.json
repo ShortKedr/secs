@@ -3,7 +3,7 @@
     "Framework": "Morpeh",
     "Runtime": ".NET 8.0.31",
     "Os": "Microsoft Windows 10.0.26200",
-    "Machine": "NIKOLAY-PC",
+    "Machine": "local-machine",
     "Date": "2026-10-11T14:57:04.1186441+05:00",
     "TieredCompilation": "0",
     "TargetTickRate": 60,

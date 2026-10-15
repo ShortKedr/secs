@@ -37,6 +37,6 @@ These PNG/sidecar pairs are recorded historical snapshots, not current capture o
 | [Mono compiler study](../../tools/web/MONO_COMPILER_STUDY.md) | 2026-10-12; O3/LTO against the recorded Mono AOT baseline | Commands and frozen manifests in the study |
 | [Circle physics](PHYSICS.md) | Current model plus preserved Aether comparison protocol | [Physics harness](../../tools/physics/README.md) |
 | [Kernel structural study](../../tools/physics/KERNEL_OPTIMIZATION.md) | Circle-vs-circle prescribed-state experiment; separate from Aether | Reproduction commands in the study |
-| [iOS investigation](IOS_WEB.md) | 2026-10-12 snapshot; actual iPhone recovery unverified | Bounded browser checks in the guide |
+| [iOS investigation](IOS_WEB.md) | 2026-10-12 snapshot; actual iPhone recovery unverified | Local evidence and measured results in the study |
 
-For screenshots use the [cover workflow](COVER.md); for videos use [scene search](../../tools/space-battle/scenes/README.md). These presentation workflows do not measure throughput. New studies need fresh project-local outputs, preserved baselines and an idle timing window.
+For screenshots use the [cover guide](COVER.md); for videos use [scene search](../../tools/space-battle/scenes/README.md). These presentation workflows do not measure throughput.

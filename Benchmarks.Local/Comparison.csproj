@@ -13,6 +13,7 @@
     <ProjectReference Include="StaticLibrary.csproj" />
     <ProjectReference Include="MorpehLibrary.csproj" />
     <Compile Include="*.cs" />
+    <Compile Include="../tools/BenchmarkMachineLabel.cs" Link="BenchmarkMachineLabel.cs" />
     <Compile Include="../SECS.Benchmarks/ComparisonWorkload.cs" Link="ComparisonWorkload.cs" />
     <Compile Include="../SECS.Benchmarks/StressContract.cs" Link="StressContract.cs" />
     <Compile Include="../SECS.Benchmarks/SecsStressBackend.cs" Link="SecsStressBackend.cs" />

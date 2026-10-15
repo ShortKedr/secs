@@ -13,7 +13,7 @@ Colour shows lag from the best value in a comparable group: green → yellow →
 Only selected metrics within one scenario/window/environment are compared. Measured comparisons stay grey when neither the table nor its linked summary supplies independent-repeat envelopes. Stage shares and gameplay counters are not colored.
 <!-- research-colors:end -->
 
-Local study, 2026-10-12. This is not a replacement for frozen five-ECS measurements. No remote changes or publication. [Harness and reproduction protocol](../../tools/HardwareStudy/README.md).
+Local study, 2026-10-12. This is not a replacement for frozen five-ECS measurements. [Harness and reproduction protocol](../../tools/HardwareStudy/README.md).
 
 ## Protocol
 
@@ -61,14 +61,14 @@ Native frontend uses identical host/render/assets and swaps preserved simulation
 
 Canvas draw-only CPU submission at the same paused tick 300: before 5.369 ms [5.066, 5.439], after 5.192 ms [5.148, 5.208], three independent pages with 60 draw warmups/120 samples. Original app.js is unchanged; temporary diagnostic closure exposure excludes Step/export/DOM. No render improvement or GPU utilization claim. All six native GL profiles passed; checkpoint EEFA64DD84CED6DD/populations match.
 
-## Historical CoreCLR Measurements And Deferred Work
+## Historical CoreCLR Measurements
 
 The experimental browser CoreCLR/R2R route has been retired and its host/tools removed. The paragraph and JSON below are retained unchanged as historical measurements, not a supported reproduction route. Production browser measurements use stable .NET 8 Mono AOT.
 
 Pinned .NET 11 RC1 crossgen2 partial R2R builds run in real Chromium. Three independent 120-tick replays after 120-tick warmup: ticks 1-60 Step 112.048 ms [109.488,123.055] → 88.062 ms [87.272, 89.478]; 61-120: 159.483 ms [158.798,172.423] → 130.892 ms [129.452,132.338]. Checkpoints/counters/populations match. CPU sampling on 120 ticks finds interpreter leaf samples 84.927% before and 82.179% at stage 5. This is mixed execution, not a compiled-hot-path speed upgrade; longer windows and interpreter-free R2R remain unverified. [Separate R2R measurements](hardware-optimization/r2r-stage5.json).
 
-A separate ComponentAccessor microprobe measured direct reads at 1.410 → 0.365 ms, but staged create/destroy at 9.322 → 10.669 ms, with an extra 49,152 accessor bytes at 4096 slots. The API was not adopted in production: a whole-Battle comparison is still needed.
+A separate ComponentAccessor microprobe measured direct reads at 1.410 → 0.365 ms, but staged create/destroy at 9.322 → 10.669 ms, with an extra 49,152 accessor bytes at 4096 slots. The API was not adopted in production.
 
 The final-archetype creation microprobe measured 4.158 ms versus 9.322 ms for staged creation. Code inspection shows birth row insertions falling from 4 to 1 and removals from 3 to 0; gameplay component additions remain 3. Copy bytes and reference repairs after swap-removal were not instrumented. Typed creation and query-order equivalence across all five ports are not proven, so gameplay creation and counters were not changed.
 
-Incremental Collect/Sort is deferred: external additions/removals and Serial/Transform changes through returned refs remain visible. A mutation counter cannot observe those writes. Maintaining a registry still needs reconciliation or a stronger public contract; current collection is retained. Tests cover five-port external edits, slot/native-ID reuse/divergence, epoch wrap/fallback, stale/disposal guards, exact grid oracles, ties, snapshot/live separation, self exclusion and friendly/debris damage. 16 SECS tests and 6 comparison tests pass. Native/browser battle images and real frontend controls were inspected; no assets or frozen reports changed by this work.
+The current full Collect/Sort is retained: external additions/removals and Serial/Transform changes through returned refs remain visible. Tests cover five-port external edits, slot/native-ID reuse/divergence, epoch wrap/fallback, stale/disposal guards, exact grid oracles, ties, snapshot/live separation, self exclusion and friendly/debris damage. 16 SECS tests and 6 comparison tests pass. Native/browser battle images and real frontend controls were inspected; no assets or frozen reports changed by this work.

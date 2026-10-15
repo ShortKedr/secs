@@ -92,7 +92,7 @@ static class StressRunner
         var metadata = new
         {
             runtime = RuntimeInformation.FrameworkDescription, os = RuntimeInformation.OSDescription,
-            machine = Environment.MachineName, date = DateTimeOffset.Now.ToString("O"), sampleCount,
+            machine = BenchmarkMachineLabel.Value, date = DateTimeOffset.Now.ToString("O"), sampleCount,
             layouts = StressData.LayoutCount, payloadBytes = Marshal.SizeOf<StressPayload>(),
             hotStride = StressData.HotStride, mixedFrames = StressWorkload.MixedFrameCount,
             tieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),

@@ -8,8 +8,14 @@ if (-not $target.StartsWith($root.TrimEnd([IO.Path]::DirectorySeparatorChar) + [
 $cpus = @(Get-CimInstance Win32_Processor | Select-Object Name, Manufacturer, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed)
 $system = Get-CimInstance Win32_ComputerSystem
 $os = Get-CimInstance Win32_OperatingSystem
+$machineLabel = $env:SECS_BENCHMARK_MACHINE_LABEL
+$privateIdentities = @([Environment]::MachineName, [Environment]::UserName, $env:COMPUTERNAME, $env:USERNAME)
+if ($machineLabel -cnotmatch '^[A-Za-z0-9_-]{1,64}$' -or
+    @($privateIdentities | Where-Object { $_ -and [string]::Equals($machineLabel, $_, [StringComparison]::OrdinalIgnoreCase) }).Count -gt 0) {
+    $machineLabel = 'local-machine'
+}
 $metadata = [ordered]@{
-    Machine = [Environment]::MachineName
+    Machine = $machineLabel
     CapturedAt = [DateTimeOffset]::Now.ToString('O')
     Cpu = $cpus
     TotalPhysicalMemoryBytes = [long]$system.TotalPhysicalMemory

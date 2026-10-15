@@ -3,7 +3,7 @@
     "runtime": ".NET 8.0.32",
     "os": "Microsoft Windows 10.0.26200",
     "architecture": "X64",
-    "machine": "NIKOLAY-PC",
+    "machine": "local-machine",
     "date": "2026-10-14T22:08:31.5978446\u002B05:00",
     "stopwatchFrequency": 10000000,
     "tieredCompilation": "0",

@@ -101,9 +101,7 @@ Connected-component pruning needs a proof of numerical fixed point, not merely
 an unchanged graph. An existing component can still have residual impulse updates
 after eight iterations. Skipping it when an unrelated new pair triggers another
 pass would change the original solver result. This optimization therefore keeps
-all passes, avoiding a hidden numerical-model change. A future experiment would
-need exact component-state fixed-point detection and preserved interleaving, then
-separate replay and cost evidence.
+all passes, avoiding a hidden numerical-model change.
 The validation suite demonstrates residual velocity changes after an extra full
 pass on an unchanged coupled graph; graph identity alone is not a safe criterion.
 
@@ -113,5 +111,5 @@ may increase candidate count, escaping them forces rebuilds, and exact fallback
 queries outside the bounded grid can also become quadratic. Budget fallback trades
 speed for bounded memory and correctness. Synthetic prescribed-state scenes force
 density anew each tick and are not ordinary gameplay or historical Aether scenes.
-Production AOT game runs, long endless replays, export and renderer timings must
-be reported separately; screenshots alone do not prove contact or CCD correctness.
+Production AOT game runs, long endless replays, export and renderer timings
+are separate measurements; screenshots alone do not prove contact or CCD correctness.

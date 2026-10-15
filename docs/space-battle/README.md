@@ -39,6 +39,11 @@ Tuning values are implementation choices, not proof of balanced matchups. A perf
 
 Run from the repository root. Build and validate before measurement; finish other builds, rendering, profilers and browser tests before timing. Do not mix configurations or revisions.
 
+Published JSON uses the anonymous `Machine` label `local-machine`; hardware
+details, runtime and source revisions remain recorded for interpretation.
+Use distinct neutral `SECS_BENCHMARK_MACHINE_LABEL` values when combining runs
+from different computers; the default label does not establish host identity.
+
 The current suite measures five ECS implementations on exactly one real game workload: profile `high`, preset `game`, and gameplay `ChurnMultiplier=2`. It adds no synthetic churn, diagnostic profiles, inert entity pool, or pre-Step churn hook. Each case measures 108000 ticks after 600 separate warmup ticks:
 
 ```powershell

@@ -23,7 +23,7 @@ negative result, not an assertion that these flags can never help another scene
 or machine. C# simulation, SECS, physics, AI, balance, RNG and renderer are unchanged.
 The local publish script now accepts a separate `-ArtifactsDirectory`; defaults
 remain compatible. CI tests the new measurement tools, not performance thresholds.
-No remote operation was performed and no historical report was overwritten.
+No historical report was overwritten.
 
 ## Inputs And Actual Pipeline
 

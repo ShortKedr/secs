@@ -3,7 +3,7 @@
     "Framework": "LeoECS Classic",
     "Runtime": ".NET 8.0.31",
     "Os": "Microsoft Windows 10.0.26200",
-    "Machine": "NIKOLAY-PC",
+    "Machine": "local-machine",
     "Date": "2026-10-11T14:53:46.0179844+05:00",
     "TieredCompilation": "0",
     "TargetTickRate": 60,

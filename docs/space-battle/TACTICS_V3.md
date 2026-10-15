@@ -138,8 +138,8 @@ zero bytes on all five adapters; whole Step still allocates 3.13-3.24 MB over a
 battle for existing structural work/capacity growth (v2: 3.28-3.36 MB), not zero.
 Observer allocation is zero; no GC collections occurred in measured windows.
 
-Raw results, frozen sources/DLLs, build logs and images remain separate in ignored
-`Benchmarks.Local/tmp/tactics-v3-20261012`. [summarise.py](../../tools/TacticsStudy/summarise.py)
+Raw results, frozen sources/DLLs, build logs and images remain separate from this
+published report. [summarise.py](../../tools/TacticsStudy/summarise.py)
 rotates already-built harnesses; [report.py](../../tools/TacticsStudy/report.py)
 derives the tables and censored curves without simulation or result replacement.
 
@@ -164,4 +164,4 @@ that every tactical situation or long endless wave is visually verified.
 Only native SECS has old/new timing measurements here. WASM has actual AOT
 correctness/runtime evidence, not an old/new performance claim. More seeds,
 machines, long reinforcement battles, exact obstruction and mounted-gun state
-remain follow-up validation limits. No commit, deployment or remote changes.
+remain unverified in this study.

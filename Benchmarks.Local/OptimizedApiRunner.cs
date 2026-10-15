@@ -36,7 +36,7 @@ static class OptimizedApiRunner
             runtime = RuntimeInformation.FrameworkDescription,
             os = RuntimeInformation.OSDescription,
             architecture = RuntimeInformation.ProcessArchitecture.ToString(),
-            machine = Environment.MachineName,
+            machine = BenchmarkMachineLabel.Value,
             date = DateTimeOffset.Now.ToString("O"),
             stopwatchFrequency = Stopwatch.Frequency,
             tieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),

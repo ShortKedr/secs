@@ -22,6 +22,8 @@ _other_ecs_benchmarks/
 /progress.md
 # Independent private repository for plans and internal documentation.
 /secs-private/
+# Unpublished security reviews belong in secs-private/docs/security/.
+/docs/security/
 __pycache__/
 *.pyc
 /Benchmarks.Local/.dotnet/

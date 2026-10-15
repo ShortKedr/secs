@@ -3,7 +3,7 @@
     "Framework": "SECS",
     "Runtime": ".NET 8.0.31",
     "Os": "Microsoft Windows 10.0.26200",
-    "Machine": "NIKOLAY-PC",
+    "Machine": "local-machine",
     "Date": "2026-10-11T14:13:17.7210089+05:00",
     "TieredCompilation": null,
     "TargetTickRate": 60,

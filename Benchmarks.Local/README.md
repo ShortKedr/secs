@@ -48,6 +48,13 @@ Equivalent logical work does not mean identical layouts, queries, or optimal API
 
 Allocation fields measure managed allocations on the measured thread. They exclude native storage and do not represent total memory. Error bars represent sample standard deviation, not confidence intervals. Results apply to the recorded machine/runtime/revisions, not Unity/IL2CPP or a universal framework ranking. SECS-only optimized creation/accessor experiments are separate and do not replace the shared API comparison.
 
+The JSON `machine` field uses the anonymous label `local-machine`. CPU, OS,
+runtime, source revisions and measurement conditions remain recorded so the
+results can be interpreted without publishing the computer name.
+For a campaign combining different computers, set a distinct neutral
+`SECS_BENCHMARK_MACHINE_LABEL` on each one; the default label alone does not
+prove that two runs came from the same host.
+
 ## Current campaign
 
 The canonical [current report](../docs/benchmarks/current/REPORT.md) links [base raw samples](../docs/benchmarks/current/base.json), [stress raw samples](../docs/benchmarks/current/stress.json), [source/runtime metadata](../docs/benchmarks/current/campaign.json) and three charts. This is the complete fresh five-framework matrix. Files in the directory root and `docs/benchmarks/updated` are retained history; they are not the current ranking.

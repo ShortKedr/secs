@@ -18,7 +18,7 @@ Only selected metrics within one scenario/window/environment are compared. Measu
 Local study, 2026-10-12. The baseline was the dirty workspace frozen for this study, including
 the earlier circle-kernel and SECS mapping changes, not the historical published
 benchmark. Gameplay, balance, RNG, physics and AI decision rules are unchanged.
-Historical measurements are not replaced. No remote operation was performed.
+Historical measurements are not replaced.
 
 ## Implementation
 

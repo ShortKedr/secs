@@ -202,7 +202,7 @@ internal sealed class FrontendProfiler : IDisposable
             Width = width, Height = height, Zoom = zoom, Hidden = hidden, Atlas = hasAtlas,
             VSync = false, FrameRateCap = paced ? battle.Config.TickRate : 0, UpdateRateCap = 0, ControlsVerified = controlsVerified,
             battle.Config, Framework = battle.Framework,
-            Date = DateTimeOffset.Now, Machine = Environment.MachineName,
+            Date = DateTimeOffset.Now, Machine = BenchmarkMachineLabel.Value,
             Runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
             TieredCompilation = Environment.GetEnvironmentVariable("DOTNET_TieredCompilation"),
             GameplayRevision = ArmamentRules.Revision,
@@ -256,7 +256,7 @@ internal sealed class FrontendProfiler : IDisposable
             FinalAliveEntities = new { Ships = battle.ShipCount, Projectiles = battle.ProjectileCount, Debris = battle.DebrisCount,
                 Particles = battle.ParticleCount, Turrets = battle.TurretCount,
                 Total = battle.ShipCount + battle.ProjectileCount + battle.DebrisCount + battle.ParticleCount + battle.TurretCount },
-            RawCsvPath = csv
+            RawCsvPath = csv is null ? null : Path.GetFileName(csv)
         };
         Directory.CreateDirectory(Path.GetDirectoryName(output)!);
         File.WriteAllText(output, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));

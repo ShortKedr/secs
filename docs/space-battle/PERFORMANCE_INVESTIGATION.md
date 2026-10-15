@@ -94,13 +94,11 @@ Release publishing compiles 47 assemblies, including `SECS`, `SpaceBattle.SECS`,
 
 The deployed Pages site was also [probed read-only](performance-study/live-runtime.json): `aot-binary`, `tactical-lock-v2`, binary protocol v2, 198 initial ships, `crossOriginIsolated=false`. These flags do not prove that every dynamically reached generic method avoids interpretation; no named method-level CPU trace was captured.
 
-`-O3`, LTO or a newer runtime are candidates for controlled A/B experiments, not demonstrated fixes in this study. Do not promise desktop CoreCLR performance simply because Mono AOT is enabled. A named CPU trace would be needed to assign the remaining gap to generic dispatch, bounds checks, runtime helpers or interpreter fallback in particular methods.
+`-O3`, LTO and a newer runtime were not measured in this study. Mono AOT is not evidence of desktop CoreCLR performance. Without a named CPU trace, the remaining gap cannot be assigned to generic dispatch, bounds checks, runtime helpers or interpreter fallback in particular methods.
 
 IL stripping and removing unused Blazor hosting code mainly target download/startup size. They are not demonstrated solutions for this CPU-bound tick. [Microsoft runtime guidance](https://learn.microsoft.com/en-us/aspnet/core/blazor/performance/webassembly-runtime-performance?view=aspnetcore-10.0).
 
-Move simulation to a single-threaded Web Worker to isolate UI scheduling, while transferring compact frame buffers and handling backpressure. This alone cannot make a 24 ms tick run at 60 ticks/s. Actual managed multithreading is a different architectural change and requires cross-origin isolation headers; the current Pages response inspected in this study did not provide COOP/COEP. Preserve ordered commits and deterministic combat. [Runtime feature documentation](https://github.com/dotnet/runtime/blob/main/src/mono/wasm/features.md).
-
-Use named diagnostic CPU traces separately from release timing, because enabling managed profilers changes performance and size. Never ship those profilers in the normal demo. [Microsoft profiler documentation](https://learn.microsoft.com/en-us/aspnet/core/blazor/performance/webassembly-browser-developer-tools-diagnostics?view=aspnetcore-10.0).
+The inspected Pages response did not provide COOP/COEP, which managed multithreading requires. A 24 ms tick alone exceeds a 60 Hz budget. Enabling managed profilers changes performance and size, so diagnostic traces are not comparable with the release timing here. [Runtime feature documentation](https://github.com/dotnet/runtime/blob/main/src/mono/wasm/features.md); [Microsoft profiler documentation](https://learn.microsoft.com/en-us/aspnet/core/blazor/performance/webassembly-browser-developer-tools-diagnostics?view=aspnetcore-10.0).
 
 ## Isolated Optimization Experiment
 
@@ -119,20 +117,10 @@ Core run-mean ranges: original 12.327-12.927 ms, experimental 9.200-9.625 ms. Th
 
 [Native experimental runs](performance-study/native-sweep.json) have a median early mean of 1.278 ms versus the earlier baseline's 1.716 ms. These native samples were sequential, not paired; prefer the paired browser result for the speed claim.
 
-21,518 native differential sweeps matched hit/miss, serial and impact-coordinate bits against the unfiltered original path: empty space, stationary/zero-radius rays, origin overlap, compound fixtures, disabled fixtures, removal/slot reuse and large-coordinate cases. Replays retained the original populations, counters and checksums at ticks 600/1200 in both runtimes. This is not exhaustive proof: additional seeds, moving-target boundary cases and long-running low/high profiles remain required before production integration.
+21,518 native differential sweeps matched hit/miss, serial and impact-coordinate bits against the unfiltered original path: empty space, stationary/zero-radius rays, origin overlap, compound fixtures, disabled fixtures, removal/slot reuse and large-coordinate cases. Replays retained the original populations, counters and checksums at ticks 600/1200 in both runtimes. This is not exhaustive proof: additional seeds, moving-target boundary cases and long-running low/high profiles were not measured.
 
 [Experimental patch](../../tools/performance/sweep-empty-space.patch) and [differential harness](../../tools/performance/SweepCheck.cs) are retained for reproduction; the patch is **not applied** to the production project. The remaining 20 ms core P95 still misses 60 Hz even before drawing/export.
 
 The dense full-browser probe repeated on the experiment ([run 1](performance-study/web-sweep-live-1.json), [run 2](performance-study/web-sweep-live-2.json), [run 3](performance-study/web-sweep-live-3.json)) measured 16.375 / 16.398 / 16.583 ms for ticks 181-220, versus 23.885 / 26.930 / 26.572 ms previously. Median core-plus-export means were 21.918 versus 33.565 ms. These full-frontend series were sequential, not paired, and still do not meet the full 60 Hz frame budget in the dense interval. Later live tick rates were 59.5-59.9 ticks/s as the workload evolved.
-
-## Next Work
-
-1. Conservative empty-space rejection for projectile/debris CCD, keeping the original five-ray narrowphase and origin-overlap semantics.
-2. Explicit collection invalidation and reuse between Step/Capture; avoid repeated full sorts. Account for public spawning and external store mutations before deleting a collection call.
-3. Final-archetype creation for short-lived effects, fewer checked identity translations, then measure retained empty chunks and allocations.
-4. Memoize same-tick target costs/threats and squad anchors. Preserve decision schedules, serial ties, snapshot boundaries and floating-point operation order.
-5. Worker separation and compact render-only data after core costs are reduced. Profile actual main-thread and transfer costs.
-
-All production changes require replay/counter/population checks, friendly/self/debris damage tests, full physics checks, and low/nominal/high measurements. Changing tick rate, removing particles from the simulation or reducing unit counts changes the comparison workload and must not be presented as an equivalent optimization.
 
 Reproduction tools: [native harness](../../tools/performance/Program.cs), [browser harness](../../tools/web/profile-revisions.mjs), [tool instructions](../../tools/performance/README.md).

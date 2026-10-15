@@ -2,7 +2,7 @@
   "metadata": {
     "runtime": ".NET 8.0.32",
     "os": "Microsoft Windows 10.0.26200",
-    "machine": "NIKOLAY-PC",
+    "machine": "local-machine",
     "date": "2026-10-14T22:12:55.0516516\u002B05:00",
     "sampleCount": 8,
     "layouts": 256,

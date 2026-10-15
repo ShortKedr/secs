@@ -1,4 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
-  <ItemGroup><ProjectReference Include="../SpaceBattle.Core/SpaceBattle.Core.csproj" /><ProjectReference Include="../SpaceBattle.SECS/SpaceBattle.SECS.csproj" /><ProjectReference Include="../SpaceBattle.Adapters/SpaceBattle.Adapters.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../SpaceBattle.Core/SpaceBattle.Core.csproj" /><ProjectReference Include="../SpaceBattle.SECS/SpaceBattle.SECS.csproj" /><ProjectReference Include="../SpaceBattle.Adapters/SpaceBattle.Adapters.csproj" /><Compile Include="../tools/BenchmarkMachineLabel.cs" Link="BenchmarkMachineLabel.cs" /></ItemGroup>
 </Project>
