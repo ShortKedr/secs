@@ -231,9 +231,7 @@ UI at tick 600 were visually inspected: loaded assets, moving ships, impacts and
 warp effect, colliders off, no page errors. Tick 360: SelfHits 0, friendlyFireHits 3201,
 debrisHits 3975. These screenshots are validation, not throughput samples.
 
-32 Node tests passed; one real-junction test skipped because the sandbox denies
-creation (mock metadata rejection passed). Six Python tests, three PowerShell
-parser checks and five pre-build path guards passed. Documentation checker:
-58 bilingual documents, 1606 local links/anchors, numeric/code parity. Runtime
-source/config hashes still match the frozen input; only Web README links changed.
-CI was edited locally, not dispatched.
+32 Node tests passed; one real-junction test was skipped (mock metadata
+rejection passed). Six Python tests, three PowerShell parser checks and five
+pre-build path guards passed. Runtime source/config hashes matched the frozen
+input.

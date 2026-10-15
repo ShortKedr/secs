@@ -132,9 +132,8 @@ processes, separate warmup/reset, exact per-tick state and checkpoints, and
 separate Step/export/frontend CPU timing. Frontend timing is Canvas submission,
 not GPU busy time, compositor cost or real-time FPS.
 
-No branch/cache-miss reduction is asserted. Installed WPT advertises PMCs, but
-this task has no administrative tracing token and did not modify any existing
-tracing session. [Microsoft's PMU procedure](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/recording-pmu-events)
+No branch/cache-miss reduction is asserted: PMU counters were not measured.
+[Microsoft's PMU procedure](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/recording-pmu-events)
 is a separate diagnostic protocol, not a counter measurement in this report.
 Power, thermals, OS caches and other user processes remain uncontrolled.
 Cross-platform bitwise determinism and untested CPU/browser architectures are

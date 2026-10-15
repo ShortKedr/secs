@@ -218,9 +218,6 @@ realtime pause/resume. Скриншоты стандартного action-кли
 попадания и warp, colliders off, page errors нет. На тике 360: SelfHits 0,
 friendlyFireHits 3201, debrisHits 3975. Это проверки, не throughput samples.
 
-32 Node-теста прошли, один real-junction пропущен из-за sandbox-запрета создания
-(mock metadata rejection прошёл). Шесть Python-тестов, parsing трёх PowerShell
-scripts и пять pre-build path guards прошли. Docs checker:58 bilingual documents,
-1606 local links/anchors, numeric/code parity. Hashes runtime source/config
-совпадают с frozen input; изменены только ссылки Web README. CI изменён локально,
-не запускался.
+32 Node-теста прошли, один real-junction пропущен (mock metadata rejection
+прошёл). Шесть Python-тестов, parsing трёх PowerShell scripts и пять pre-build
+path guards прошли. Хеши runtime source/config совпали с frozen input.

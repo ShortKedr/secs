@@ -15,7 +15,7 @@ Only selected metrics within one scenario/window/environment are compared. Measu
 
 [Simulation report](REPORT_2026-10-11.md) | [Earlier investigation](PERFORMANCE_INVESTIGATION.md)
 
-Historical study, 2026-10-12, of mounted-armament gameplay with Aether before the circle-kernel replacement. This measures SECS before/after algorithm changes, not a new ranking of the five ECS frameworks. Frozen benchmark evidence and remote state are unchanged.
+Historical study, 2026-10-12, of mounted-armament gameplay with Aether before the circle-kernel replacement. This measures SECS before/after algorithm changes, not a new ranking of the five ECS frameworks.
 
 ## What Was Wasteful
 

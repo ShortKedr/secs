@@ -8,9 +8,6 @@ stage. Existing reports and measurement history remain unchanged.
 
 ## Evidence and Limits
 
-- A privately supplied device report indicates memory pressure. It does not
-  identify this page's URL or attribute system memory to this app. The raw log
-  is not published; that report alone does not establish the page footprint.
 - A fresh live capture fetched 51 resources; all fetched boot-integrity
   entries matched. The captured app blob `3595...` matches local source at
   `2ca6446`; `74f1686` was the documentation HEAD at the investigation snapshot.

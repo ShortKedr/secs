@@ -140,8 +140,8 @@ experiment does not overwrite the published benchmark tables.
 The [machine-readable summary](physics-experiment-summary.json) retains every
 independent run mean, ranges, input/raw/binary hashes, workload counts and
 checksums. Machine: Ryzen 9 9900X, 24 logical CPUs, Windows build 26200.
-Builds and other QA runs were finished before each timing window; existing
-user applications/previews were left alone. This is local evidence, not an
+Builds and other QA runs were finished before each timing window; background
+workloads were not controlled. This is local evidence, not an
 isolated laboratory or a statistical significance claim. Values below are
 milliseconds, median of three independent run means, not the best tick/run.
 

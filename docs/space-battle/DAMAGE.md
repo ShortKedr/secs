@@ -114,9 +114,6 @@ statistics and nonblank atlas rendering passed at tick 600. The unmodified
 Playwright action client reached tick 360 with no errors. Desktop, browser and
 mobile frames were visually inspected, colliders disabled. No cross-platform
 bitwise checksum guarantee or validation on other browser/CPU architectures is claimed.
-Desktop restore warned that the NuGet vulnerability feed was unavailable; cached
-dependencies built successfully. Initial sandbox launch/localhost failures and
-the corrected JS diagnostic export omission remain in the ignored evidence logs.
 
 Run the [headless checks](../../SpaceBattle.Headless/Validation.cs) with
 `--validate`, `--validate-adapters` and `--validate-ports`. The controlled

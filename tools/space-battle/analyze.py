@@ -705,7 +705,8 @@ def report(runs, capture, charts, frontend, hardware, gc_samples, heat_policy=No
               "попаданий, а не полный учёт или ноль после гибели владельца. SelfHits - подмножество FriendlyFireHits, "
               "их нельзя складывать. Нулевые значения сохраняются без предположения, что каждый механизм обязательно сработал."]
     m = runs["nominal", "secs"]["Metadata"]
-    lines += ["", f"Среда: {m['Machine']}; {m['Os']}; {m['Runtime']}; TieredCompilation={m['TieredCompilation']!r}.",
+    # Report text is public even when the input capture contains a private hostname.
+    lines += ["", f"Среда: local-machine; {m['Os']}; {m['Runtime']}; TieredCompilation={m['TieredCompilation']!r}.",
               f"RAM: {hardware['TotalPhysicalMemoryBytes'] / (1024 ** 3):.2f} GiB; OS inventory: {hardware['Os']} "
               f"{hardware['OsVersion']}; видимых PowerShell логических процессоров: {hardware['LogicalProcessorCountVisibleToPowerShell']}.",
               f"GPU/driver фронтенда: {frontend['Driver']['Vendor']}; {frontend['Driver']['Renderer']}; {frontend['Driver']['Version']}.", ""]

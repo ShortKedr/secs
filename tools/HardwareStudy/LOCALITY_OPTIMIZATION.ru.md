@@ -124,8 +124,7 @@ checksum, игровых/AI-счётчиков и популяций до сра
 раздельные Step/export/frontend CPU. Frontend: Canvas submission, не GPU busy,
 compositor cost или realtime FPS.
 
-Снижение branch/cache misses не заявлено. WPT перечисляет PMCs, но текущий
-токен не административный; существующие tracing-сессии не менялись.
+Снижение branch/cache misses не заявлено: PMU-счётчики не измерялись.
 [Методика Microsoft](https://learn.microsoft.com/en-us/windows-hardware/test/wpt/recording-pmu-events)
 не является измерением счётчиков в этом отчёте. Power/thermals, OS-кэши и чужие
 процессы не контролируются. Битовая межплатформенная детерминированность и

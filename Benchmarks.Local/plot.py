@@ -94,6 +94,9 @@ def metadata_footer(metadata: dict[str, Any]) -> str:
     for label, keys in aliases.items():
         value = next((metadata[k] for k in keys if metadata.get(k) not in (None, "")), None)
         if value is not None:
+            if label == "Machine":
+                # Historical inputs may still contain a private hostname.
+                value = "local-machine"
             parts.append(f"{label}: {value}")
     extra = metadata.get("footer") or metadata.get("description")
     if extra:

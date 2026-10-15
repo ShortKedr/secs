@@ -25,7 +25,7 @@ The authoritative parameters live in [cover-settings.json](cover-settings.json),
 consumed by [cover.py](../../tools/space-battle/cover.py) and
 [the browser capture](../../tools/web/capture-cover.mjs). Change that configuration to change
 the scene; do not maintain a second set of capture constants in documentation
-or workflow commands. The intended preset is seed 7331, 96 escorts per team,
+or workflow commands. The configured preset is seed 7331, 96 escorts per team,
 tick 180, 1600 x 1000 pixels and zoom 2. The settings file, not this description,
 is authoritative. The profile is nominal; the current web host supports exactly
 96 escorts per team. Other `ShipsPerTeam` values fail rather than being ignored.
